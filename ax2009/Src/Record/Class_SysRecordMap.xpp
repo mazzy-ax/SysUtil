@@ -1,0 +1,408 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+// класс содержит map записей из таблиц *разного типа* (в том числе могут быть типа Common)
+// для записей всех типов вполне успешно срабатывают табличные методы initValue, validateWrite, write, insert, update и т.д.
+// класс позволяет единообразно обслуживать записи из списка
+//
+class SysRecordMap extends Map
+{
+    Set tableIds;
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public Common assignable(anytype value)
+    {
+        Common buf = AnytypeUtil::toBuf(value);
+
+        return buf;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // выполняет удаление без валиадции.
+    // Может, стоит использовать метод validateAndDelete?
+    public SysRecordMap deleteDatabase()
+    {
+        MapEnumerator me = this.getEnumerator();
+        Common buf;
+
+        while( me && me.moveNext() )
+        {
+            buf = me.currentValue();         // строка для отладчика
+            buf.delete();
+        }
+
+        return this;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public boolean hasTableAccess(AccessType neededAccessType)
+    {
+        AccessType accessType = this.rights();
+        boolean ret = (accessType >= neededAccessType);
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // выполняет initValue для буферов с пустым recId.
+    public void initValue()
+    {
+        MapEnumerator me = this.getEnumerator();
+        Common buf;
+
+        while( me && me.moveNext() )
+        {
+            buf = me.current();
+            if( !buf.RecId )
+            {
+                buf.initValue();
+            }
+        }
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public boolean insert(anytype key, anytype value)
+    {
+        boolean ret;
+        Common buf = this.assignable(value);
+
+        if( this.isAssignableBuf(buf) )
+        {
+            ret = super(key, value);
+            this.tableIds().add(buf.TableId);
+        }
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // выполняет вставку без валиадции для буферов с пустым recId.
+    // Может, стоит использовать метод validateAndDelete?
+    public SysRecordMap insertDatabase()
+    {
+        MapEnumerator me = this.getEnumerator();
+        Common buf;
+
+        while( me && me.moveNext() )
+        {
+            buf = me.current();
+            if( !buf.RecId )
+            {
+                buf.insert();
+            }
+        }
+
+        return this;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public boolean isAssignableBuf(Common buf)
+    {
+        boolean ret = buf.TableId && !RecordUtil::isCommon(buf);
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public void new(Types _keyType, Types _valueType = Types::Record)
+    {
+        anytype contract = Debug::assert(_valueType == Types::Record);
+
+        super(_keyType, Types::Record);
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // возвращает минимальный уровень доступа
+    // пустой список записей имеет максимальный уровень доступа
+    public AccessType rights()
+    {
+        AccessType ret = AccessType::Delete;
+        AccessType rights;
+
+        SetEnumerator se = this.tableIds().getEnumerator();
+        TableId tableId;
+
+        while( se && se.moveNext() )
+        {
+            tableId = se.current();
+            rights = new DictTable(tableId).rights(); // так мы получаем права с учетом свойства таблицы maxAccessMode
+            ret = min(ret, rights);
+        }
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // устанавливает режим выборки для всех табличных буферов в true, если selectForUpdate == true
+    // не изменяет флаг у табличных буферов, если selectForUpdate == false
+    public void selectForUpdate(boolean selectForUpdate = false)
+    {
+        MapEnumerator me = this.getEnumerator();
+        Common buf;
+
+        while( selectForUpdate && me && me.moveNext() )
+        {
+            buf = me.currentValue();
+            buf.selectForUpdate(selectForUpdate);
+        }
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public void setTmp()
+    {
+        MapEnumerator me = this.getEnumerator();
+        Common buf;
+
+        while( me && me.moveNext() )
+        {
+            buf = me.currentValue();         // строка для отладчика
+            buf.setTmp();
+        }
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public Set tableIds()
+    {
+        if( !tableIds )
+            tableIds = new Set(Types::Integer);
+
+        return tableIds;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // выполняет обновление без валиадции для буферов с заполненным recId.
+    // Может, стоит использовать метод validateAndDelete?
+    public SysRecordMap updateDatabase()
+    {
+        MapEnumerator me = this.getEnumerator();
+        Common buf;
+
+        while( me && me.moveNext() )
+        {
+            buf = me.currentValue();
+            if( buf.RecId )
+            {
+                buf.update();
+            }
+        }
+
+        return this;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // выполняет валидацию всех записей,
+    // а затем, если валидация успешна, удаляет
+    public boolean validateAndDelete()
+    {
+        boolean valid = this.validateDelete();
+
+        if( valid )
+        {
+            this.deleteDatabase();
+        }
+
+        return valid;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public void validateAndDeleteOrThrow()
+    {
+        this.validateDeleteOrThrow();
+        this.deleteDatabase();
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // выполняет валидацию всех еще не вставленных записей (recId == 0),
+    // а затем, если валидация успешна, вставку еще не вставленных записей
+    public boolean validateAndInsert()
+    {
+        boolean valid = this.validateWrite();
+
+        if( valid )
+        {
+            this.insertDatabase();
+        }
+
+        return valid;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public void validateAndInsertOrThrow()
+    {
+        this.validateWriteOrThrow();
+        this.insertDatabase();
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // выполняет валидацию всех уже вставленных записей (recId != 0),
+    // а затем, если валидация успешна, update уже вставленных записей
+    public boolean validateAndUpdate()
+    {
+        boolean valid = this.validateWrite();
+
+        if( valid )
+        {
+            this.updateDatabase();
+        }
+
+        return valid;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public void validateAndUpdateOrThrow()
+    {
+        this.validateWriteOrThrow();
+        this.writeDatabase();
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // выполняет валидацию всех записей,
+    // а затем, если валидация успешна, запись всех буферов (Аксапта сама разбирается нужно вставить или обновить буфер)
+    public boolean validateAndWrite()
+    {
+        boolean valid = this.validateWrite();
+
+        if( valid )
+        {
+            this.writeDatabase();
+        }
+
+        return valid;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public void validateAndWriteOrThrow()
+    {
+        this.validateWriteOrThrow();
+        this.writeDatabase();
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public boolean validateDelete()
+    {
+        boolean valid = true;
+        MapEnumerator me = this.getEnumerator();
+        Common buf;
+
+        while( valid && me && me.moveNext() )
+        {
+            buf = me.currentValue();         // строка для отладчика
+            valid = buf.validateDelete();
+        }
+
+        return valid;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public void validateDeleteOrThrow()
+    {
+        if( !this.validateDelete() )
+        {
+            throw error(strFmt('Delete validation error in %1', funcname()));
+        }
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public boolean validateWrite()
+    {
+        boolean valid = true;
+        MapEnumerator me = this.getEnumerator();
+        Common buf;
+
+        while( valid && me && me.moveNext() )
+        {
+            buf = me.currentValue();         // строка для отладчика
+            valid = buf.validateWrite();
+        }
+
+        return valid;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public void validateWriteOrThrow()
+    {
+        if( !this.validateWrite() )
+        {
+            throw error(strFmt('Write validation error in %1', funcname()));
+        }
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // выполняет запись без валиадции всех буферов.
+    // Может, стоит использовать метод validateAndDelete?
+    public SysRecordMap writeDatabase()
+    {
+        MapEnumerator me = this.getEnumerator();
+        Common buf;
+
+        while( me && me.moveNext() )
+        {
+            buf = me.currentValue(); // строка для отладчика
+            buf.writeDatabase();
+        }
+
+        return this;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static SysRecordMap construct(Types keyType)
+    {
+        SysRecordMap recordMap = new SysRecordMap(keyType, Types::Record);
+
+        return recordMap;
+    }
+}

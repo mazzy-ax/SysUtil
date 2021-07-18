@@ -1,0 +1,38 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+class Timer extends SysStopwatch
+{
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public str toString()
+    {
+        return this.elapsed();
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static Timer construct()
+    {
+        Timer timer = new Timer();
+
+        return timer;
+    }
+
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static Timer startNew()
+    {
+        Timer timer = Timer::construct();
+        ;
+
+        timer.start();
+
+        return timer;
+    }
+}

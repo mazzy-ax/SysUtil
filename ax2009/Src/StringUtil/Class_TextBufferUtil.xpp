@@ -1,0 +1,330 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+class TextBufferUtil
+{
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // это Util-класс, содержащий только статические методы
+    // нет смысла создавать объекты этого класса
+    private void new()
+    {
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static TextBuffer append(TextBuffer textOrNull, str s)
+    {
+        TextBuffer text = TextBufferUtil::safeNotNull(textOrNull);
+
+        if( s )
+        {
+            text.appendText(s);
+        }
+
+        return text;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // отображаем как в отладчике
+    public static TextBuffer appendCallStack(TextBuffer text, int skip = 1, container callStack = xSession::xppCallStack())
+    {
+        int len   = conLen(callStack);
+        int start = max(2, skip*2+2);
+        int i;
+
+        if( !text )
+        {
+            text = new TextBuffer();
+        }
+
+        for( i=start; i<=len; i+=2 )
+        {
+            text.appendText(strfmt('\n%1 - line %2', conPeek(callStack, i-1), conPeek(callStack, i)));
+        }
+
+        return text;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static TextBuffer appendContainer(TextBuffer textOrNull, container con, str sep = ',')
+    {
+        ConEnumerator ce = ConEnumerator::construct(con);
+        TextBuffer text = TextBufferUtil::appendEnumerator(textOrNull, ce, sep);
+
+        return text;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static TextBuffer appendEnumerator(TextBuffer textOrNull, Enumerator e, str sep = ',')
+    {
+        TextBuffer text = TextBufferUtil::safeNotNull(textOrNull);
+        boolean tail;
+
+        while( e && e.moveNext() )
+        {
+            if( tail && sep )
+            {
+                text.appendText(sep);
+            }
+
+            text.appendText(strFmt('%1', e.current()));
+
+            tail = true;
+        }
+
+        return text;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static TextBuffer appendIfNotEmpty(TextBuffer text, str s)
+    {
+        if( s && text && text.size() )
+        {
+            text.appendText(s);
+        }
+
+        return text;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static TextBuffer appendInfolog(TextBuffer textOrNull, InfologData info = infolog.export(), str newLine = '\n')
+    {
+        TextBuffer              text = TextBufferUtil::safeNotNull(textOrNull);
+        boolean                 firstLine = true;
+        SysInfologEnumerator    sysInfologEnumerator;
+        SysInfologMessageStruct messageStruct;
+        SysInfoLogStr           message;
+
+        if (info)
+        {
+            sysInfologEnumerator = SysInfologEnumerator::newData(info);
+            while (sysInfologEnumerator.moveNext())
+            {
+                if (!firstLine && newLine)
+                {
+                    text.appendText(newline);
+                }
+
+                messageStruct = SysInfologMessageStruct::construct(sysInfologEnumerator.currentMessage());
+                message = messageStruct.message();
+                if (message)
+                {
+                    text.appendText(message);
+                    firstLine = false;
+                }
+            }
+        }
+
+        return text;
+    }
+
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // рассчитывает бощий отступ, который может быть применим для каждой строки в многострочном тексте
+    // табуляцию рассматривает как непробельный значащий символ
+    // при расчете игнорирует пустые и пробельные строки (строки, содержащие только пробелы)
+    public static int calcIndent(TextBuffer text)
+    {
+        int     ident;
+        int     lineIndent;
+        int     startPos    = 1;
+
+        if( !text )
+            return 0;
+
+        if( !text.size() )
+            return 0;
+
+        ident = maxint();
+
+        ///////////////////
+        if( text.find('< +') )
+        {
+            lineIndent = text.matchLen();
+            startPos = text.matchPos() + text.matchLen();
+        }
+
+        while( text.find('\n *', startPos) )
+        {
+            // вторая половина условия срабатывает толкьо для непробельных строк
+            if( lineIndent < ident && startPos != text.matchPos() )
+            {
+                ident = lineIndent;
+            }
+
+            lineIndent = text.matchLen() - 1;
+            startPos = text.matchPos() + text.matchLen();
+        }
+
+        if( lineIndent < ident && startPos <= text.size() )
+        {
+            ident = lineIndent;
+        }
+        else if( ident == maxint() )
+        {
+            ident = lineIndent;
+        }
+
+        return ident;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // добавляет или удаляет отступ слева у каждой строки в многострочном тексте
+    // пробелы справа каждой строки оставляет как есть
+    // табуляцию рассматривает как непробельный значащий символ
+    // возвращает измененный TextBuffer, не создает копию если TextBuffer уже создан
+    // возвращаемый объект никогда не равен null
+    //
+    // text - исходный текст, в котором метод изменяет отступы
+    // identOffset - положительное значение увеличивает отступ, отрицательное значение уменьшает отступ, нулевое значение не меняет текст
+    //
+    public static TextBuffer changeIndent(TextBuffer textOrNull, int indentOffset)
+    {
+        TextBuffer text = TextBufferUtil::safeNotNull(textOrNull);
+
+        if( text.size() == 0 )
+            return text;
+
+        while( indentOffset < 0 )
+        {
+            text.replace('< ', '');
+            text.replace('\n ', '\n');
+            indentOffset++;
+        }
+
+        while( indentOffset > 0 )
+        {
+            text.insert(' ', 1);
+            text.replace('\n', '\n ');
+            indentOffset--;
+        }
+
+        return text;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static str getText(TextBuffer text)
+    {
+        str ret = text ? text.getText() : '';
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static TextBuffer newFrom(TextBuffer textOrNull)
+    {
+        TextBuffer text = new TextBuffer();
+
+        if( textOrNull && textOrNull.size() )
+        {
+            text.setText(textOrNull.getText());
+        }
+
+        return text;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static TextBuffer newFromStr(str s)
+    {
+        TextBuffer text = new TextBuffer();
+
+        if( s )
+        {
+            text.appendText(s);
+        }
+
+        return text;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static TextBuffer safeNotNull(TextBuffer text)
+    {
+        if( !text )
+        {
+            text = new TextBuffer();
+        }
+
+        return text;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // удаляет общий для всех строк отступ в многострочном тексте
+    // пробелы справа каждой строки оставляет как есть
+    // табуляцию рассматривает как непробельный значащий символ
+    //
+    // работает как trimIndent в Kotlin, https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.text/trim-indent.html
+    // см. также https://openjdk.java.net/jeps/355
+    public static TextBuffer trimIndent(TextBuffer text)
+    {
+        TextBuffer  ret     = new TextBuffer();
+        int         startPos;
+        int         endPos;
+        int         len;
+        int         indent;
+    ;
+        if( text == null )
+            return ret;
+
+        if( text.size() == 0 )
+            return ret;
+
+        // удаляем первую пустую или пробельную строку
+        if( text.find('< *\n') )
+            startPos = text.matchPos() + text.matchLen();
+        else
+            startPos = 1;
+
+        // удаляем последнюю пустую или пробельную строку
+        if( text.find('\n *>') )
+            endPos = text.matchPos() - 1;
+        else
+            endPos = text.size();
+
+        len = endPos - startPos + 1;
+
+        if( len <= 0 )
+            return ret;
+
+        if( len == text.size() )
+            ret = text;
+        else
+            ret.setText(text.subStr(startPos, len));
+
+        indent = TextBufferUtil::calcIndent(ret);
+
+        if( indent == 0 )
+            return ret;
+
+        ret = TextBufferUtil::changeIndent(ret, -indent);
+
+        return ret;
+    }
+}

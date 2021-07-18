@@ -1,0 +1,626 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+class StrUtil
+{
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // это Util-класс, содержащий только статические методы
+    // нет смысла создавать объекты этого класса
+    private void new()
+    {
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // возвращает подстроку, которая находится после первого вхожения подстроки
+    // возвращает исходную строку, если ни одного вхождения не найдено
+    //
+    // пример:
+    //      StringUtil::after('ABC-DEF-GH','DEF-') == 'GH'
+    //      StringUtil::after('ABC-DEF-GH',',')  == 'ABC-DEF-GH'
+    //
+    static str after(str s, str txt)
+    {
+        int len = strlen(s);
+        int pos = strscan(s, txt, 1, len);
+        str ret = s;
+
+        if(pos)
+            ret = substr(s, pos+strlen(txt), len);
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // возвращает подстроку, которая находится после первого вхожения любого из указанных символов characters
+    // возвращает исходную строку, если ни одного вхождения не найдено
+    //
+    // пример:
+    //      strBefore('ABC-DEF-GH','-=') == 'DEF-GH'
+    //      strBefore('ABC-DEF-GH',',')  == 'ABC-DEF-GH'
+    //
+    static str afterChar(str s, str characters)
+    {
+        int len = strlen(s);
+        int pos = strfind(s, characters, 1, len);
+        str ret = s;
+
+        if(pos)
+            ret = substr(s, pos+1, len);
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // возвращает подстроку, которая находится после последнего вхожения подстроки
+    // возвращает исходную строку, если ни одного вхождения не найдено
+    //
+    // пример:
+    //      strBefore('ABC-DEF-DEFGH','DEF') == 'GH'
+    //      strBefore('ABC-DEF-GH',',')  == 'ABC-DEF-GH'
+    //
+    static str afterLast(str s, str txt)
+    {
+        int len = strlen(s);
+        int pos = strscan(s, txt, len, -len);
+        str ret = s;
+
+        if(pos)
+            ret = substr(s, pos+strlen(txt), len);
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // возвращает подстроку, которая находится после последнего вхожения одного из символов characters
+    // возвращает исходную строку, если ни одного вхождения не найдено
+    //
+    // пример:
+    //      strBefore('ABC-DEF-GH','-=') == 'GH'
+    //      strBefore('ABC-DEF-GH',',')  == 'ABC-DEF-GH'
+    //
+    static str afterLastChar(str s, str characters)
+    {
+        int len = strlen(s);
+        int pos = strfind(s, characters, len, -len);
+        str ret = s;
+
+        if(pos)
+            ret = substr(s, pos+1, len);
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // возвращает подстроку, которая находится до первого вхожения подстроки
+    // возвращает пустую строку, если ни одного вхождения не найдено
+    //
+    // пример:
+    //      strBefore('ABC-DEF-DEFGH','DEF') == 'ABC-'
+    //      strBefore('ABC-DEF-GH',',')  == ''
+    //
+    static str before(str s, str txt)
+    {
+        int len = strlen(s);
+        int pos = strscan(s, txt, 1, len);
+        str ret = s;
+
+        if(pos)
+            ret = StrUtil::strLeft(s, pos-1);
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // возвращает подстроку, которая находится до первого вхожения одного из символов characters
+    // возвращает пустую строку, если ни одного вхождения не найдено
+    //
+    // пример:
+    //      strBefore('ABC-DEF-GH','-=') == 'ABC'
+    //      strBefore('ABC-DEF-GH',',')  == ''
+    //
+    static str beforeChar(str s, str characters)
+    {
+        int len = strlen(s);
+        int pos = strfind(s, characters, 1, len);
+        str ret = s;
+
+        if(pos)
+            ret = StrUtil::strLeft(s, pos-1);
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // возвращает подстроку, которая находится до последнего вхожения подстроки
+    // возвращает пустую строку, если ни одного вхождения не найдено
+    //
+    // пример:
+    //      strBefore('ABC-DEF-DEFGH','-=') == 'ABC-DEF-'
+    //      strBefore('ABC-DEF-GH',',')  == ''
+    //
+    static str beforeLast(str s, str txt)
+    {
+        int len = strlen(s);
+        int pos = strscan(s, txt, len, -len);
+        str ret = s;
+
+        if(pos)
+            ret = StrUtil::strLeft(s, pos-1);
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // возвращает подстроку, которая находится до последнего вхожения одного из символов characters
+    // возвращает пустую строку, если ни одного вхождения не найдено
+    //
+    // пример:
+    //      strBefore('ABC-DEF-GH','-=') == 'ABC'
+    //      strBefore('ABC-DEF-GH',',')  == ''
+    //
+    static str beforeLastChar(str s, str characters)
+    {
+        int len = strlen(s);
+        int pos = strfind(s, characters, len, -len);
+        str ret = s;
+
+        if(pos)
+        {
+            ret = StrUtil::strLeft(s, pos-1);
+        }
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // удалить первые n символов, если n > 0
+    // удалить последние n символов, если n < 0
+    // оставить исходную строку, если n == 0
+    public static str drop(str s, int n)
+    {
+        if(n == 0)
+            return s;
+
+        if(n < 0)
+            return substr(s, 1, strlen(s)+n);
+
+        return substr(s, n+1, strlen(s)-n);
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // возвращает подстроку заданной длины справа
+    //
+    // по идее, различие между strRight и end должно проявляться на текстах с разным направлением письма
+    static str end(str s, int len)
+    {
+        str ret;
+
+        if( len <= 0 )
+            return '';
+
+        ret = substr(s, strlen(s), -len);
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static str hexDump(str s)
+    {
+        int         i;
+        str         hex;
+        int         len     = strlen(s);
+        TextBuffer  ret     = new TextBuffer();
+    ;
+        for( i=1; i<=len; ++i )
+        {
+            if( ret.size() )
+                ret.appendText(' ');
+
+            hex = Int2Hex(char2num(s, i));
+
+            if( strlen(hex) mod 2 )
+            {
+                ret.appendText('0');
+            }
+
+            ret.appendText(hex);
+        }
+
+        return ret.getText();
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    //TODO
+    public static boolean isBlank(str s)
+    {
+        str ret;
+
+        return true;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    //TODO
+    public static boolean isEmptyOrBlank(str s)
+    {
+        str ret;
+
+        return true;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // добавляет указанный символ справа до нужной длины
+    // если строка уже длиннее, то ничего не делает. Поэтому результат может быть длиннее указанной длины.
+    //
+    // по идее, различие между padRight и padEnd должно проявляться на текстах с разным направлением письма
+    // но в аксапте никаких различий нет
+    static str padEnd(str s, int len, char char = ' ')
+    {
+        str ret;
+        int l = len - strlen(s);
+
+        if(l<=0)
+            return s;
+
+        ret = s + strrep(char, l);
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // добавляет указанный символ слева до нужной длины
+    // если строка уже длиннее, то ничего не делает. Поэтому результат может быть длиннее указанной длины.
+    static str padLeft(str s, int len, char char = ' ')
+    {
+        str ret;
+        int l = len - strlen(s);
+
+        if(l<=0)
+            return s;
+
+        ret = strrep(char, l) + s;
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // добавляет указанный символ справа до нужной длины
+    // если строка уже длиннее, то ничего не делает. Поэтому результат может быть длиннее указанной длины.
+    static str padRight(str s, int len, char char = ' ')
+    {
+        str ret;
+        int l = len - strlen(s);
+
+        if(l<=0)
+            return s;
+
+        ret = s + strrep(char, l);
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // добавляет указанный символ слева до нужной длины
+    // если строка уже длиннее, то ничего не делает. Поэтому результат может быть длиннее указанной длины.
+    //
+    // по идее, различие между padLeft и padStart должно проявляться на текстах с разным направлением письма
+    // но в аксапте никаких различий нет
+    static str padStart(str s, int len, char char = ' ')
+    {
+        str ret;
+        int l = len - strlen(s);
+
+        if(l<=0)
+            return s;
+
+        ret = strrep(char, l) + s;
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // делит строку на подстроки, разделенные строкой delimiterStr
+    // возвращает контейнер подстрок. Если maxSubstrings не ноль, то максимальная контейнера не будет превышать maxSubstrings.
+    // возвращает контейнер, содержащий исходную строку, если ни одного символа-разделителя не найдено.
+    //
+    // пример:
+    //      strSplitCon('ABC:=DEF:=GH',':=')   == ['ABC','DEF','GH']
+    //      strSplitCon('ABC:=DEF:=GH',':=',2) == ['ABC','DEF:=GH']
+    //      strSplitCon('ABC:=DEF:=GH',':=',1) == ['ABC:=DEF:=GH']
+    //
+    static container split(str s, str delimiterStr, int maxSubstrings = 0)
+    {
+        container ret;
+        int delimiterLen;
+        int len;
+        int posFrom = 1;
+        int pos;
+
+        if( delimiterStr == '' )
+            return [s];
+
+        delimiterLen = strlen(delimiterStr);
+        len = strlen(s);
+        do
+        {
+            maxSubstrings--;
+            if( maxSubstrings == 0 )
+                break;
+
+            pos = strscan(s, delimiterStr, posFrom, len);
+            if( pos == 0 )
+                break;
+
+            ret += substr(s, posFrom, pos-posFrom);
+            posFrom = pos+delimiterLen;
+        }
+        while( maxSubstrings );
+
+        ret += substr(s, posFrom, len);
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // делит строку на подстроки, разделенные хотя бы одним символом из delimiters (по-умолчанию это пробел, табуляция и перевод строки - whitespaces)
+    // возвращает контейнер подстрок.
+    // возвращает контейнер, содержащий исходную строку, если ни одного символа-разделителя не найдено.
+    // Если maxSubstrings не ноль, то максимальная контейнера не будет превышать maxSubstrings.
+    //
+    // пример:
+    //      strSplitChar('ABC DEF GH')        == ['ABC','DEF','GH']
+    //      strSplitChar('ABC-DEF-GH','-=')   == ['ABC','DEF','GH']
+    //      strSplitChar('ABC-DEF-GH','-=',2) == ['ABC','DEF-GH']
+    //      strSplitChar('ABC-DEF-GH','-=',1) == ['ABC-DEF-GH']
+    //
+    static container splitChar(str s, str delimiters = ' \t\n', int maxSubstrings = 0)
+    {
+        container ret;
+        int len;
+        int posFrom = 1;
+        int pos;
+
+        if( delimiters == '' )
+            return [s];
+
+        len = strlen(s);
+        do
+        {
+            maxSubstrings--;
+            if( maxSubstrings == 0 )
+                break;
+
+            pos = strfind(s, delimiters, posFrom, len);
+            if( pos == 0 )
+                break;
+
+            ret += substr(s, posFrom, pos-posFrom);
+            posFrom = pos+1;
+        }
+        while( maxSubstrings );
+
+        ret += substr(s, posFrom, len);
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // делит строку на подстроки, разделенные хотя бы одной строкой из контейнера delimiterCon (по умолчанию пробел, табуляция и переводы строк - whitespaces)
+    // результат не зависит от порядка разделителей в контейнере.
+    // возвращает контейнер подстрок. Если maxSubstrings не ноль, то максимальная контейнера не будет превышать maxSubstrings.
+    // возвращает контейнер, содержащий исходную строку, если ни одного символа-разделителя не найдено.
+    //
+    // пример:
+    //      strSplitCon('ABC=DEF:=GH',[':=','='])   == ['ABC','DEF','GH']
+    //      strSplitCon('ABC=DEF:=GH',[':=','='],2) == ['ABC','DEF:=GH']
+    //      strSplitCon('ABC=DEF:=GH',[':=','='],1) == ['ABC=DEF:=GH']
+    //
+    static container splitCon(str s, container delimiterCon = [' ','\t','\n','\r\n','\n\r'], int maxSubstrings = 0)
+    {
+        container ret;
+        int d;
+        str delimiter;
+        str delimiterStr;
+        int delimiterPos;
+        int delimiterLen;
+        int len;
+        int posFrom = 1;
+        int pos;
+
+        if( delimiterCon == connull() )
+            return [s];
+
+        len = strlen(s);
+        do
+        {
+            maxSubstrings--;
+            if( maxSubstrings == 0 )
+                break;
+
+            delimiter = conpeek(delimiterCon, 1);       // проверка выше гарантирует, что хотя бы один разделитель у нас есть
+            pos = strscan(s, delimiter, posFrom, len);  // позиция первого разделителя
+            for(d = 2; d <= conlen(delimiterCon); d++)  // позиции разделителей после первого
+            {
+                delimiterStr = conpeek(delimiterCon, d);
+                delimiterPos = strscan(s, delimiterStr, posFrom, len);
+                if( delimiterPos == 0 )
+                    continue;
+
+                if( pos && pos < delimiterPos )
+                    continue;
+
+                if( pos == delimiterPos && strlen(delimiter) >= strlen(delimiterStr) )
+                    continue;
+
+                // берем разделитель с минимальной позицией
+                // если позиция совпадает, то берем разделитель с максимальной длиной
+                delimiter = delimiterStr;
+                pos = delimiterPos;
+            }
+            if( pos == 0 )  // разделители не найдены
+                break;
+
+            ret += substr(s, posFrom, pos-posFrom);
+            posFrom = pos+strlen(delimiter);
+        }
+        while( maxSubstrings );
+
+        ret += substr(s, posFrom, len);
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // возвращает подстроку заданной длины слева
+    //
+    // по идее, различие между strLeft и start должно проявляться на текстах с разным направлением письма
+    // но в аксапте никаких различий нет
+    //
+    static str start(str s, int len)
+    {
+        str ret;
+
+        if( len <= 0 )
+            return '';
+
+        ret = substr(s, 1, len);
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // возвращает подстроку заданной длины слева
+    //
+    // в X++ есть ключевое слово left. Поэтому обявить метод с именем left нельзя
+    static str strLeft(str s, int len)
+    {
+        str ret;
+
+        if( len <= 0 )
+            return '';
+
+        ret = substr(s, 1, len);
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // возвращает подстроку заданной длины справа
+    static str strRight(str s, int len)
+    {
+        str ret;
+
+        if( len<=0 )
+            return '';
+
+        ret = substr(s, strlen(s), -len);
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // возвращает подстроку заданной длины с указанного символа
+    // len может быть отрицательным числом.
+    static str take(str s, int len, int startFrom = 1)
+    {
+        str ret = substr(s, startFrom, len);
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // убирает указанные символы в начале и в конце строки
+    // по умолчанию, убирает пробелы, табуляцию и переводы строк
+    static str trim(str s, str ws = ' \t\r\n')
+    {
+        str ret;
+        int len = strlen(s);
+        int fromPos = strnfind(s, ws, 1, len);
+        int toPos = strnfind(s, ws, len, -len);
+
+        if( fromPos && fromPos <= toPos )
+        {
+            ret = substr(s, fromPos, toPos - fromPos + 1);
+        }
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    //TODO
+    public static str trimEnd(str s, str ws = ' \t\r\n')
+    {
+        str ret;
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // удаляет отступ, который применим для каждой строки в многострочном тексте
+    // табуляцию рассматривает как непробельный значащий символ
+    // работает как trimIndent в Kotlin, https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.text/trim-indent.html
+    // см. также https://openjdk.java.net/jeps/355
+    public static str trimIndent(str s)
+    {
+        return TextUtil::trimIndent(s);
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    //TODO
+    public static str trimStart(str s, str ws = ' \t\r\n')
+    {
+        str ret;
+
+        return ret;
+    }
+}

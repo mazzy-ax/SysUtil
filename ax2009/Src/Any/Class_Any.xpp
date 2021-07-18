@@ -1,0 +1,378 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+// класс содержит неизменяемое значение любого типа
+// чтобы переприсвоить значение создайте новый объект этого типа
+//
+// Чем отличается этот класс от Anytype и от SysAnyType?
+// 1.
+// Аксапта позволяет установить произвольное значение в переменную типа anytype только один раз.
+// Во время первой инициализации тип переменной фиксируется, в дальнейшем тип изменить нельзя.
+//
+// Anytype var = 1;
+// var = 2;         // ok
+// var = '';        // результат не определен. В большинстве версий аксапты будет 0;
+//
+// 2.
+// Чтобы обойти эту проблему в Аксапту ввели тип SysAnyType
+// SysAnyType позволяет в любой момент установить действительно любое значение.
+// Но ради этого тип сделали очень тяжелым - в куче хранится map, key и сам объект в качестве value
+// кроме того, каждое обращение к value - это lookup внутри map
+//
+// SysAnyType var = new SysAnyType(1);
+// var.value('');   // будет хранить пустую строку
+//
+// 3.
+// Данный класс Any не позволяет изменять значение хранимого объекта.
+// Поэтому данный класс может просто хранить ref на объект произвольного типа
+// Но! переприсвоить значение можно просто пересоздав объект Any
+//
+// Any var = new Any(1);        // ok
+// var = new Any('');           // ok
+//
+// у Any есть несколько специализированных конструкторов и обычный construct
+//
+// Any var = Any::constuct(1);  // ok
+// var = Any::constuct('');     // ok
+//
+// Класс проявляется в цикле (обратите внимание на специализированный конструктор conpeek)
+//
+// container con = [1, '', 31\01\2019];
+// Any var;
+// for(i=1; i<=conlen(con); ++i)
+// {
+//     var = Any::conpeek(con, i);
+// }
+class Any
+{
+    Anytype value;
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // рекурсивно заполняет textBuffer
+    protected textBuffer addToTextBuffer(
+        str         _sep            = ',',
+        boolean     _queryValue     = false,
+        TextBuffer  _textBuffer     = null)
+    {
+        Types   type    = typeof(value);
+        int     i;
+        int     len;
+        str     s;
+
+        if (_textBuffer == null)
+        {
+            _textBuffer = new TextBuffer();
+        }
+
+        switch(type)
+        {
+            case Types::Container:
+                len = conlen(value);
+                for(i=1; i<=len; ++i)
+                {
+                    if(i>1)
+                    {
+                        _textBuffer.appendText(_sep);
+                    }
+                    _textBuffer = Any::conpeek(value, i).addToTextBuffer(_sep, _queryValue, _textBuffer);
+                }
+                break;
+
+            case Types::Class:
+                if (SysDictClass::isEqualOrSuperclass(classidget(value), classnum(Set)))
+                {
+                    _textBuffer = Any::construct(ConUtil::fromSet(value)).addToTextBuffer(_sep, _queryValue, _textBuffer);
+                    break;
+                }
+                else if (SysDictClass::isEqualOrSuperclass(classidget(value), classnum(List)))
+                {
+                    _textBuffer = Any::construct(ConUtil::fromList(value)).addToTextBuffer(_sep, _queryValue, _textBuffer);
+                    break;
+                }
+                else if (SysDictClass::isEqualOrSuperclass(classidget(value), classnum(Array)))
+                {
+                    _textBuffer = Any::construct(ConUtil::fromArray(value)).addToTextBuffer(_sep, _queryValue, _textBuffer);
+                    break;
+                }
+                // no break! проваливаемся ниже
+            case Types::Record:
+            case Types::AnyType:
+            case Types::BLOB:
+            case Types::void:
+                throw error(Error::unsupportedEnum(funcname(), type));
+
+            default:
+                s = _queryValue ? SysQuery::value(value) : strfmt('%1', value);
+                _textBuffer.appendText(s);
+                break;
+        }
+
+        return _textBuffer;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public Any ensureEmpty()
+    {
+        if (this.value())
+        {
+            throw error(Error::wrongUseOfFunction(funcname()));
+        }
+
+        return this;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public Any ensureInTypes(container typeCon)
+    {
+        if (confind(typeCon, this.type()))
+        {
+            return this;
+        }
+
+        throw error(Error::wrongUseOfFunction(funcname()));
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public Any ensureNotEmpty()
+    {
+        if (this.value())
+        {
+            return this;
+        }
+
+        throw error(Error::wrongUseOfFunction(funcname()));
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public Any ensureType(Types type, int potentialAncestorId = 0)
+    {
+        if (AnytypeUtil::isType(this.value(), type, potentialAncestorId))
+        {
+            return this;
+        }
+
+        throw error(Error::wrongUseOfFunction(funcname()));
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public boolean equalsTo(Any type2)
+    {
+        //Is one of them null ?
+        if (!type2)
+        {
+            return false;
+        }
+
+        //Are their types different ?
+        if (this.type() != type2.type())
+        {
+            return false;
+        }
+
+        //They are the same type. Is this type void ?
+        if (this.type() == Types::void)
+        {
+            return true;
+        }
+
+        //Are their values different ?
+        if (this.value() != type2.value())
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    void new(Anytype _value = null)
+    {
+        value = _value;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public anytype toNullValue()
+    {
+        return nullValueBaseType(this.type());
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public str toQueryValue()
+    {
+        str ret;
+
+        switch (this.type())
+        {
+            case Types::Class:
+            case Types::Container:
+                ret = this.addToTextBuffer(',', true).getText();
+                break;
+
+            case Types::Record:
+            case Types::AnyType:
+            case Types::BLOB:
+            case Types::void:
+                throw error(Error::unsupportedEnum(funcname(), this.type()));
+
+            default:
+                ret = SysQuery::value(value);
+                break;
+        }
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public str toString(str sep = ',')
+    {
+        // поскольку этот метод может вызваться в отладчике еще до инициализации,
+        // то в этом методе нельзя использовать методы класса и нельзя бросать исключение
+        // и ни в коем случае не бросаем исключение на неинициализированные значения
+        str ret = AnytypeUtil::toString(this.value(), sep);
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    final public Types type()
+    {
+        Types type = typeof(value);
+
+        return type;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // только чтение! см. комментарий к classDeclaration
+    final public AnyType value()
+    {
+        return value;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // принимает данные в контейнере, который состоит из контейнеров - значение и метка
+    // выдает ошибки для всех пустых значений
+    // если хотя бы одно значение пустое, то возвращает false
+    // если все значения не пустые, то возвращает true
+    //
+    // пример использования:
+    //     Any::checkAllNotEmpty([[purchId, 'Закупка'], [emplId, 'Ответственный']]);
+    //
+    public static boolean checkAllNotEmpty(container pairs, str txt = 'Значение не должно быть пустым. Укажите значение для %1.')
+    {
+        boolean     ret = true;
+
+        container   pair;
+        str         label;
+
+        int         i;
+        int         len = conlen(pairs);
+        ;
+
+        for (i=1; i<=len; ++i)
+        {
+            pair  = ConUtil::peekAsContainer(pairs, i);
+            label = conpeek(pair, 2);
+
+            if( !conpeek(pair, 1) )
+            {
+                ret = CheckFailed(strfmt(txt, label));
+            }
+        }
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static Any conpeek(container con, int idx)
+    {
+        anytype value   = conpeek(con, idx);  // не делаем дополнительных проверок: к случае чего, аксапта выбросит исключение про контейнеры
+        Any     ret     = Any::construct(value);
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static Any construct(Anytype value)
+    {
+        return new Any(value);
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static Any field(Common record, fieldId fieldid)
+    {
+        anytype value   = record.(fieldid);  // не делаем дополнительных проверок: к случае чего, аксапта выбросит исключение про поля в записи
+        Any     ret     = Any::construct(value);
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static boolean isEqual(Any type1, Any type2)
+    {
+        //Are both null ?
+        if (!type1 && !type2)
+        {
+            return true;
+        }
+
+        //Is one of them null ?
+        if (!type1 || !type2)
+        {
+            return false;
+        }
+
+        //Are their types different ?
+        if (type1.type() != type2.type())
+        {
+            return false;
+        }
+
+        //They are the same type. Is this type void ?
+        if (type1.type() == Types::void)
+        {
+            return true;
+        }
+
+        //Are their values different ?
+        if (type1.value() != type2.value())
+        {
+            return false;
+        }
+
+        return true;
+    }
+}

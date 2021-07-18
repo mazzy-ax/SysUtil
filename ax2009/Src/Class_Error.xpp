@@ -1,0 +1,134 @@
+// This is a framework class. Customizing this class may cause problems with future upgrades to the software.
+class Error
+{
+
+    private static FormBuildDataSource mainFormDatasource(Form form)
+    {
+        FormBuildDataSource    formDataSource;
+        int                    i;
+        SysDictTable           dictTable;
+    ;
+        for (i=1; i<= form.dataSourceCount(); i++)
+        {
+            formDataSource = form.dataSource(i);
+            dictTable = new SysDictTable(formDataSource.table());
+
+            //Find main table
+            if (!formDataSource.joinSource() &&
+                form.name() == SysRecordTemplate::getFormName(dictTable.id()))
+            {
+                return formDataSource;
+            }
+        }
+        return form.dataSource(1);
+    }
+
+    static LabelType missingFormActiveBuffer(FormName name,
+                                             str bufferType = '')
+    {
+        if (bufferType)
+        {
+            return strfmt("@SYS19096", name, bufferType);
+        }
+        return strfmt("@SYS22678", name);
+    }
+
+    //Do not use!
+    //Declare method as abstract instead or call Error::missingOverride();
+    #obsolete static LabelType missingOverload(str name)
+    {
+        return Error::missingOverride(name);
+    }
+
+    //Declare method as abstract if possible
+    public static LabelType missingOverride(identifiername name)
+    {
+        return strfmt("@SYS18885",name);
+    }
+
+    public static LabelType missingParameter(Object caller)
+    {
+        FormBuildDataSource formMainDataSource;
+        FormRun             formRun;
+        FormDesign          formDesign;
+
+        if (caller)
+        {
+            if(SysDictClass::is(caller,classnum(FormRun)))
+            {
+                    formRun            = caller;
+                    formDesign         = formRun.design();
+                    formMainDataSource = Error::mainFormDatasource(formRun.form());
+
+                    if (formMainDataSource)
+                    {
+                        if (formDesign && formDesign.caption())
+                            return strfmt("@SYS19096", formDesign.caption(), tableid2pname(formMainDataSource.table()));
+
+                        return strfmt("@SYS19096", formRun.name(), tableid2pname(formMainDataSource.table()));
+                    }
+
+                    if (formDesign && formDesign.caption())
+                        return strfmt("@SYS22862", formDesign.caption());
+
+                    return strfmt("@SYS22862", formRun.name());
+            }
+        }
+        return "@SYS83964";
+    }
+
+    static LabelType missingRecord(str name)
+    {
+        return strfmt("@SYS19324",name);
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // в качестве описания можно использовать название переменной
+    public static LabelType unsupportedEmptyString(str _funcName, anytype _description = '')
+    {
+        LabelType ret = strfmt("unsupported empty string in %1 %2", _funcName, _description);
+
+        return ret;
+        }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static LabelType unsupportedEnum(str _funcName, anytype _enumValue = '')
+    {
+        LabelType ret = strfmt("Unsupported enum <%1> in %2", _enumValue, _funcName);
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // в качестве описания можно использовать название переменной
+    public static LabelType unsupportedNull(str _funcName, anytype _description = '')
+    {
+        LabelType ret = strfmt("unsupported Null in %1 %2", _funcName, _description);
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static LabelType unsupportedType(str _funcName, anytype type = '')
+    {
+        LabelType ret = strfmt("unsupported Type %1 - %2", type, _funcName);
+
+        ret += TextUtil::callStack();
+
+        return ret;
+    }
+
+    static LabelType wrongUseOfFunction(str name)
+    {
+        return strfmt("@SYS22828",name);
+    }
+
+}

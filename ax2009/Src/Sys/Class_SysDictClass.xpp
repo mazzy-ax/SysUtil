@@ -1,0 +1,891 @@
+// This is a framework class. Customizing this class may cause problems with future upgrades to the software.
+public class SysDictClass extends DictClass implements SysDictXmlReflectionProvider, SysDictXmlDocumentationProvider
+{
+    #XmlDocumentation
+
+    /*
+        This methods will return false, if:
+         * The class is abstract
+         * The class doesn't implement required abstract methods
+         * The new method has parameters
+    */
+    public boolean allowMakeObject()
+    {
+        str text;
+        XppCompiler         compiler;
+        ExecutePermission   permission;
+        ;
+
+        if (this.isAbstract())
+            return false;
+
+        permission = new ExecutePermission();
+        permission.assert();
+
+        // BP deviation documented
+        compiler = new XppCompiler();
+        text = strfmt('%1 test(){return new %1();}',this.name());
+
+        return compiler.compile(text);
+    }
+
+    boolean hasObjectMethod(
+        identifiername  methodName
+        )
+    {
+        SysDictMethod   dictMethod = new SysDictMethod(UtilElementType::ClassInstanceMethod,this.id(),methodName);
+
+        if (! dictMethod)
+            return false;
+
+        if (! dictMethod.compiledOk())
+            return false;
+
+        return true;
+    }
+
+    boolean hasStaticMethod(identifiername  methodName)
+    {
+        SysDictMethod   dictMethod = new SysDictMethod(UtilElementType::ClassStaticMethod,this.id(),methodName);
+
+        if (! dictMethod)
+            return false;
+
+        if (! dictMethod.compiledOk())
+            return false;
+
+        return true;
+    }
+
+    //Returns set of classid's of those classes that are implementing the specified interface (_id).
+    public List implementedBy()
+    {
+        Dictionary      dictionary = new Dictionary();
+        SysDictClass    sysDictClass;
+        List            implementList = new List(Types::Integer);
+        List            classList = new List(Types::Integer);
+        Counter         counter;
+        int             classCount;
+        classId         classId;
+        ;
+
+        classCount = dictionary.classCnt();
+        for (counter=1;counter<=classCount;counter++)
+        {
+            classId = dictionary.classCnt2Id(counter);
+            sysDictClass = new SysDictClass(classId);
+
+            if (sysDictClass.isImplementing(this.id()))
+                implementList.addEnd(classId);
+        }
+
+        return implementList;
+    }
+
+    //Extended version of the DictClass.extend(.) that checks if the object - or
+    //any of its superclasses are extending the specified class
+    boolean isExtending(classId _superClassId)
+    {
+        boolean ret = false;
+        SysDictClass sysDictClass;
+        ;
+
+        if (this.extend() == _superClassId)
+        {
+            ret = true;
+        }
+
+        if (!ret && this.extend())
+        {
+            sysDictClass = new SysDictClass(this.extend());
+            ret = sysDictClass.isExtending(_superClassId);
+        }
+
+        return ret;
+    }
+
+
+    //Extended version of the DictClass.implements(.) that checks if the object - or
+    //any of its superclasses are implementing the specified interface
+    boolean isImplementing(classId _interfaceId)
+    {
+        int local;
+        boolean ret = false;
+        SysDictClass    sysDictClass;
+        int             implementCount
+        ;
+        if (this.id() == _interfaceId)
+            return true;
+
+        implementCount = this.implementsCnt();
+        for (local=1;local<=implementCount;local++)
+        {
+            if (this.implements(local) == _interfaceId)
+            {
+                ret = true;
+                break;
+            }
+            sysDictClass = new SysDictClass(this.implements(local));
+            if(sysDictClass && sysDictClass.isImplementing(_interfaceId))
+            {
+                ret = true;
+                break;
+            }
+        }
+
+        if (!ret && this.extend())
+        {
+            sysDictClass = new SysDictClass(this.extend());
+            if (sysDictClass)
+                ret = sysDictClass.isImplementing(_interfaceId);
+        }
+
+        return ret;
+    }
+
+    //
+    // Check if the variable is an inherited variable.
+    // Need to do this check because the classDeclartion
+    // method returns all the inherited variables, not just
+    // the local variables.
+    //
+    //
+
+    public boolean isInheritedVariable( str _varName, Types _varType, int _varId )
+    {
+        #VisioUml
+        boolean             isFound = false;
+        DictMethod          objectMethod;
+
+        int                 varIndex;
+        str                 varName;
+        Types               varType;
+        int                 varId;
+        SysDictClass        parent;
+        ;
+
+        //
+        // Check this class
+        //
+
+        objectMethod =  new DictMethod( UtilElementType::ClassInstanceMethod, this.id(), #classDeclaration );
+        for ( varIndex=1; varIndex <= objectMethod.varCnt(); varIndex++ )
+        {
+            varName = objectMethod.varName( varIndex );
+            varType = objectMethod.varType( varIndex );
+            varId = objectMethod.varId( varIndex );
+
+            if ( strlen( varName ) == strlen( _varName ) &&
+                 varName == _varName &&
+                 varType == _varType &&
+                 varId == _varId )
+            {
+                isFound = true;
+                break;
+            }
+        }
+
+        // Check parent class
+
+        if ( !isFound )
+        {
+            parent = new SysDictClass( this.extend() );
+
+            if ( parent )
+            {
+                isFound = parent.isInheritedVariable( _varName, _varType, _varId );
+            }
+        }
+
+        return isFound;
+    }
+
+
+    boolean isMethodActual(identifiername _methodName)
+    {
+        int i;
+        for (i=1; i<=this.objectMethodCnt(); i++)
+        {
+            if (this.objectMethod(i) == _methodName)
+                return true;
+        }
+        return false;
+    }
+
+    public boolean isSystemClass()
+    {
+        classId id = this.id();
+
+        switch (id)
+        {
+            case classnum(VersionControl):
+            case classnum(Global):
+            case classnum(ClassFactory):
+            case classnum(Info):
+            case classnum(Site):
+            case classnum(Company):
+            case classnum(Application):
+            case classnum(Session):
+                return false;
+        }
+
+        return isSysId(id);
+    }
+
+    public Set methods(
+        boolean _includeInstanceMethods = true,
+        boolean _includeStaticMethods = true,
+        boolean _includeInheritedMethods = true)
+    {
+        return this.methodsRecursive(_includeInstanceMethods, _includeStaticMethods, _includeInheritedMethods, null);
+    }
+
+    classId methodsActualClassId(identifiername _methodName)
+    {
+        if (this.isMethodActual(_methodName))
+            return this.id();
+
+        return this.superMethodsClassId(_methodName);
+    }
+
+    protected Set methodsRecursive(
+        boolean _includeInstanceMethods,
+        boolean _includeStaticMethods,
+        boolean _includeInheritedMethods,
+        Set     _overriddenMethods)
+    {
+        #SysBPCheck
+        int cnt;
+        int i;
+        classId classId = this.id();
+        SysDictMethod dictMethod;
+        Set set = new Set(Types::Class);
+        Set setMethodName = new Set(Types::String);
+
+        if (_overriddenMethods)
+        {
+            setMethodName = _overriddenMethods;
+        }
+        else
+        {
+            setMethodName = new Set(Types::String);
+        }
+
+        //
+        // Include instance methods
+        //
+        if (_includeInstanceMethods)
+        {
+            cnt = this.objectMethodCnt();
+            for (i=1; i<=cnt; i++)
+            {
+                if (this.objectMethod(i) != #MethodNameClassDeclaration)
+                {
+                    //
+                    // Skip if method is overridden
+                    //
+                    if (!_overriddenMethods || !_overriddenMethods.in(this.objectMethod(i)))
+                    {
+                        dictMethod = new SysDictMethod(UtilElementType::ClassInstanceMethod, classId, this.objectMethod(i));
+                        set.add(dictMethod);
+                        setMethodName.add(dictMethod.name());
+                    }
+                }
+            }
+        }
+
+        //
+        // Include static methods
+        //
+        if (_includeStaticMethods)
+        {
+            cnt = this.staticMethodCnt();
+            for (i=1; i<=cnt; i++)
+            {
+                dictMethod = new SysDictMethod(UtilElementType::ClassStaticMethod, classId, this.staticMethod(i));
+                set.add(dictMethod);
+            }
+        }
+
+        //
+        // Include inherited methods
+        //
+        if (_includeInstanceMethods && _includeInheritedMethods)
+        {
+            if (this.extend())
+            {
+                set = Set::union(set, new SysDictClass(this.extend()).methodsRecursive(true, false, true, setMethodName));
+            }
+            else
+            {
+                //
+                // Include Object, even if the inheritance isn't explicitly specified
+                //
+                if (this.name() != classstr(Object))
+                {
+                    set = Set::union(set, new SysDictClass(classnum(Object)).methodsRecursive(true, false, true, setMethodName));
+                }
+            }
+        }
+
+        return set;
+    }
+
+    public Map objectMethods2ClassId(boolean _includeExtendedClasses = true)
+    {
+        Map             methodNames = new Map(Types::String,Types::Integer);
+        int             i;
+
+        if (_includeExtendedClasses && this.extend())
+        {
+            methodNames = new SysDictClass(this.extend()).objectMethods2ClassId(true);
+        }
+
+        for (i=1; i<=this.objectMethodCnt(); i++)
+        {
+            if (! methodNames.exists(this.objectMethod(i)))
+            {
+                methodNames.insert(this.objectMethod(i),this.id());
+            }
+        }
+
+        return methodNames;
+    }
+
+    public Set objectMethodSet(boolean _includeInheritedMethods = true)
+    {
+        Set methodNames = new Set(Types::String);
+        int i;
+
+        for (i=1; i<=this.objectMethodCnt(); i++)
+        {
+            methodNames.add(this.objectMethod(i));
+        }
+
+        if (_includeInheritedMethods && this.extend())
+        {
+            methodNames = Set::union(methodNames, new SysDictClass(this.extend()).objectMethodSet(true));
+        }
+        return methodNames;
+    }
+
+    xRefPath path()
+    {
+        return xRefNames::calcPath(xRefKind::Class,this.name(),'',this.id());
+    }
+
+    public TreeNodePath pathForDeveloperDocumentation()
+    {
+        #AOT
+        TreeNodePath treeNodePath;
+
+        if (this.isSystemClass())
+        {
+            treeNodePath = #SystemClassesPath+#AOTDelimiter+this.name();
+        }
+        else
+        {
+            treeNodePath = #ApplicationDeveloperDocClassesPath+#AOTDelimiter+this.name();
+        }
+        return treeNodePath;
+    }
+
+    classId superMethodsClassId(identifiername _methodName)
+    {
+        SysDictClass dictClass = new SysDictClass(this.extend());
+
+        while (dictClass)
+        {
+            if (dictClass.isMethodActual(_methodName))
+            {
+                return dictClass.id();
+            }
+
+            dictClass = new SysDictClass(dictClass.extend());
+        }
+
+        // no actual method found for this.name(),_methodName;
+        return 0;
+    }
+
+    public str syntax()
+    {
+        #SysBPCheck
+        SysDictMethod classDeclarationDictMethod = new SysDictMethod(UtilElementType::ClassInstanceMethod, this.id(), #MethodNameClassDeclaration);
+
+        if (classDeclarationDictMethod)
+            return classDeclarationDictMethod.syntax();
+
+        return '';
+    }
+
+    public str toString()
+    {
+        return strfmt('%1 [%2]', this.name(), this.id());
+    }
+
+    TreeNode treeNode()
+    {
+        TreeNode treeNode = TreeNode::findNode(this.path());
+        if (!treeNode)
+        {
+            throw error(strfmt("@SYS28152",this.path()));
+        }
+        return treeNode;
+    }
+
+    public XML xmlDocumentation()
+    {
+        //
+        // Read from file if available
+        //
+        XML xml = this.xmlDocumentationFromFile();
+
+        if (!xml)
+        {
+            //
+            // If file is not available, extract from the source code
+            //
+            xml = this.xmlDocumentationFromMethods();
+        }
+        return xml;
+    }
+
+    //
+    // This method can only be used on the client tier.
+    //
+    protected XML xmlDocumentationFromFile()
+    {
+        int infologLine;
+        InfologData errorData;
+        SysInfologEnumerator enum;
+        str errorMessage;
+        SysTreeNode sysTreeNode = SysTreeNode::newTreeNodePath(this.path());
+        XML xml;
+        SysVersionControlSystem versionControlSystem;
+        Filename filename;
+        str filePath;
+        str fileExtension;
+        XmlReader xmlReader;
+        #file
+
+        if (this.objectOnServer())
+            throw error(strfmt("@SYS19306", funcname()));
+
+        if (versioncontrol && versioncontrol.parmSysVersionControlSystem())
+        {
+            versionControlSystem = versioncontrol.parmSysVersionControlSystem();
+            [filePath, filename, fileExtension] = fileNameSplit(versionControlSystem.fileName(sysTreeNode));
+
+            filename = filePath + filename + #xml;
+            if (WinAPI::fileExists(filename))
+            {
+                //
+                // Read the contents of the <members> tag
+                //
+                infologLine = infolog.line();
+                try
+                {
+                    //BP Deviation documented
+                    xmlReader = XmlReader::newFile(filename);
+                    while (xmlReader.read())
+                    {
+                        if (xmlReader.nodeType() == XmlNodeType::Element &&
+                            xmlReader.name() == #XmlMembers)
+                        {
+                            xml = xmlReader.readInnerXml();
+                        }
+                    }
+                }
+                catch (Exception::Error)
+                {
+                    errorData = infolog.cut(infologLine+1);
+                    enum = SysInfologEnumerator::newData(errorData);
+                    while (enum.moveNext())
+                    {
+                        errorMessage += (errorMessage?',':'')+strrem(enum.currentMessage(), '\n\t');
+                    }
+                    xml = strfmt('<member name="!:%1 (%2)"/>', this.name(), errorMessage);
+                }
+            }
+        }
+        return xml;
+    }
+
+    protected XML xmlDocumentationFromMethods()
+    {
+        TextBuffer textBuffer = new TextBuffer();
+        Set methods = this.methods(true, true, false);
+        SetEnumerator enum;
+        SysDictMethod dictMethod;
+        #SysBpCheck
+    ;
+        //
+        // Include ClassDeclaration in the list of methods, as it contains the documentation for the class.
+        //
+
+        methods.add(new SysDictMethod(UtilElementType::ClassInstanceMethod, this.id(), #MethodNameClassDeclaration));
+
+        enum = methods.getEnumerator();
+        while (enum.moveNext())
+        {
+            dictMethod = enum.current();
+            textBuffer.appendText(dictMethod.xmlDocumentation(true));
+        }
+
+        return textBuffer.getText();
+    }
+
+    public XML xmlQualifiedName()
+    {
+        return strfmt('T:%1', this.name());
+    }
+
+    public void xmlReflection(XmlWriter _xmlWriter)
+    {
+    ;
+        _xmlWriter.writeStartElement(#XmlApi);
+        _xmlWriter.writeAttributeString(#XmlId, this.xmlQualifiedName());
+
+        this.xmlReflectionApiData(_xmlWriter);
+        this.xmlReflectionTypeData(_xmlWriter);
+        this.xmlReflectionFamily(_xmlWriter);
+        this.xmlReflectionImplements(_xmlWriter);
+        this.xmlReflectionSyntax(_xmlWriter);
+        this.xmlReflectionElements(_xmlWriter);
+        this.xmlReflectionContainers(_xmlWriter);
+        this.xmlReflectionFile(_xmlWriter);
+
+        _xmlWriter.writeEndElement();
+
+        this.xmlReflectionMembers(_xmlWriter);
+    }
+
+    protected void xmlReflectionApiData(XmlWriter _xmlWriter)
+    {
+    ;
+        _xmlWriter.writeStartElement(#XmlApiData);
+        _xmlWriter.writeAttributeString(#XmlName, this.name());
+        _xmlWriter.writeAttributeString(#XmlGroup, #XmlGroupType);
+        _xmlWriter.writeAttributeString(#XmlSubGroup, this.isInterface() ? #XmlSubGroupInterface : #XmlSubGroupClass);
+        _xmlWriter.writeEndElement();
+    }
+
+    protected void xmlReflectionContainers(XmlWriter _xmlWriter)
+    {
+    ;
+        _xmlWriter.writeStartElement(#XmlContainers);
+        _xmlWriter.writeStartElement(#XmlType);
+        _xmlWriter.writeAttributeString(#XmlApi, #XmlRootProject);
+        _xmlWriter.writeEndElement();
+        _xmlWriter.writeEndElement();
+    }
+
+    protected void xmlReflectionElements(XmlWriter _xmlWriter)
+    {
+        #SysBPCheck
+        SysDictMethod dictMethod;
+        SetEnumerator enum = this.methods(true).getEnumerator();
+
+        _xmlWriter.writeStartElement(#XmlElements);
+
+        while (enum.moveNext())
+        {
+            dictMethod = enum.current();
+            _xmlWriter.writeStartElement(#XmlElement);
+            _xmlWriter.writeAttributeString(#XmlApi, dictMethod.xmlQualifiedName());
+            _xmlWriter.writeEndElement();
+        }
+
+        _xmlWriter.writeEndElement();
+    }
+
+    protected void xmlReflectionFamily(XmlWriter _xmlWriter)
+    {
+        SysDictClass sysDictClass;
+        List ancestors = new List(Types::String);
+        Set descendents = new Set(Types::String);
+        boolean objectFound;
+
+    void writeList(Enumerator enum)
+    {
+        while (enum.moveNext())
+        {
+            _xmlWriter.writeStartElement(#XmlType);
+            _xmlWriter.writeAttributeString(#XmlApi, strfmt('T:%1', enum.current()));
+            _xmlWriter.writeEndElement();
+        }
+    }
+    ;
+        //
+        // Find ancestors
+        //
+        sysDictClass = new SysDictClass(this.extend());
+        while (sysDictClass)
+        {
+            if (sysDictClass.id() == classnum(Object))
+                objectFound = true;
+
+            ancestors.addEnd(sysDictClass.name());
+            sysDictClass = new SysDictClass(sysDictClass.extend());
+        }
+
+        if (!objectFound && this.id() != classnum(Object))
+        {
+            ancestors.addEnd(classstr(Object));
+        }
+
+        //
+        // Find descendents
+        //
+        descendents = Set::create(xRefTypeHierarchy::descendents(Types::Class, this.id()));
+
+        //
+        // Write xml
+        //
+        _xmlWriter.writeStartElement(#XmlFamily);
+
+        _xmlWriter.writeStartElement(#XmlAncestors);
+        writeList(ancestors.getEnumerator());
+        _xmlWriter.writeEndElement();
+
+        _xmlWriter.writeStartElement(#XmlDescendents);
+        writeList(descendents.getEnumerator());
+        _xmlWriter.writeEndElement();
+
+        _xmlWriter.writeEndElement();
+    }
+
+    protected void xmlReflectionFile(XmlWriter _xmlWriter)
+    {
+        TreeNodePath treeNodePath = this.pathForDeveloperDocumentation();
+        DocNode docNode;
+
+        if (treeNodePath)
+        {
+            docNode = TreeNode::findNode(treeNodePath);
+
+            if (docNode &&
+                docNode.hTMLHelpEnabled() &&
+                docNode.hTMLHelpTopic())
+            {
+                _xmlWriter.writeElementString(#XmlFile, docNode.hTMLHelpTopic());
+            }
+        }
+    }
+
+    protected void xmlReflectionImplements(XmlWriter _xmlWriter)
+    {
+        int i;
+
+        if (this.implementsCnt())
+        {
+            _xmlWriter.writeStartElement(#XmlImplements);
+
+            for (i=1; i<=this.implementsCnt(); i++)
+            {
+                _xmlWriter.writeStartElement(#XmlType);
+                _xmlWriter.writeAttributeString(#XmlApi, strfmt('T:%1', extendedTypeId2DisplayName(Types::Class, this.implements(i))));
+                _xmlWriter.writeEndElement();
+            }
+            _xmlWriter.writeEndElement();
+        }
+    }
+
+    protected void xmlReflectionMembers(XmlWriter _xmlWriter)
+    {
+        SysDictXmlReflectionProvider xmlReflectionProvider;
+        SetEnumerator enum = this.methods(true, true, false).getEnumerator();
+
+        while (enum.moveNext())
+        {
+            xmlReflectionProvider = SysDictClass::as(enum.current(), classnum(SysDictXmlReflectionProvider));
+            if (xmlReflectionProvider)
+            {
+                xmlReflectionProvider.xmlReflection(_xmlWriter);
+            }
+        }
+    }
+
+    protected void xmlReflectionSyntax(XmlWriter _xmlWriter)
+    {
+        _xmlWriter.writeElementString(#XmlSyntax, this.syntax());
+    }
+
+    protected void xmlReflectionTypeData(XmlWriter _xmlWriter)
+    {
+        _xmlWriter.writeStartElement(#XmlTypeData);
+        _xmlWriter.writeAttributeString(#XmlId, int2str(this.id()));
+        _xmlWriter.writeAttributeString(#XmlFinal, this.isFinal() ? 'true' : 'false');
+        _xmlWriter.writeAttributeString(#XmlAbstract, this.isAbstract() ? 'true' : 'false');
+        _xmlWriter.writeAttributeString(#XmlRunOn, strfmt('%1', this.RunMode()));
+        _xmlWriter.writeEndElement();
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    static public Object as(Object _class, classId _classId)
+    {
+        if (_class && SysDictClass::is(_class, _classId))
+            return _class;
+
+        return null;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static SysDictClass construct(ClassId classId)
+    {
+        return new SysDictClass(classId);
+    }
+
+    //Returns set of classid's of those classes that are implementing the specified interface (_id).
+    //If _onlyLeafClasses is specified as true no superclasses are included.
+    public static Set getImplements(classId _id, boolean _onlyLeafClasses = true)
+    {
+        Dictionary dictionary = new Dictionary();
+        SysDictClass sysDictClass;
+        boolean removed;
+        Set set = new Set(Types::Integer);
+        SetIterator setIterator = new SetIterator(set);
+        int i;
+        ;
+
+        for (i=1;i<=dictionary.classCnt();i++)
+        {
+            sysDictClass = new SysDictClass(dictionary.classCnt2Id(i));
+            if (sysDictClass.isImplementing(_id))
+            {
+                set.add(sysDictClass.id());
+            }
+        }
+
+        if (_onlyLeafClasses)
+        {
+            //Only leaf classes are included in return set
+            setIterator.begin();
+            while (setIterator.more())
+            {
+                removed = false;
+                sysDictClass = new SysDictClass(setIterator.value());
+                while (sysDictClass.extend())
+                {
+                    removed = removed | set.remove(sysDictClass.extend());
+                    sysDictClass = new SysDictClass(sysDictClass.extend());
+                }
+                if (removed)
+                    setIterator.begin(); //restart search
+                else
+                    setIterator.next();  //
+            }
+        }
+
+        return set;
+    }
+
+    public static anytype invokeObjectMethod(Object _object, identifiername _methodName, boolean _tryBaseClass = false)
+    {
+        DictClass  dictClass = new DictClass(classidget(_object));
+        DictClass  dictClassBase;
+        DictMethod dictMethod;
+        int i;
+    ;
+        for (i=1; i<=dictClass.objectMethodCnt(); i++)
+        {
+            if (dictClass.objectMethod(i) == _methodName)
+            {
+                dictMethod = dictClass.objectMethodObject(i);
+                if (dictMethod.parameterCnt() == 0)
+                {
+                    // invokeObjectMethod is listed as a dangerous API. Just suppress BP error;
+                    // CAS is implemented by DictClass::callObject.
+
+                    // BP deviation documented
+                    return dictClass.callObject(_methodName, _object);
+                }
+                throw error(strfmt("@SYS87800", _methodName));
+            }
+        }
+
+        if (_tryBaseClass && dictClass.extend())
+        {
+            dictClassBase = new DictClass(dictClass.extend());
+
+            // BP deviation documented
+            return SysDictClass::invokeObjectMethod(dictClassBase.makeObject(), _methodName, _tryBaseClass);
+        }
+
+        throw error(strfmt("@SYS60360", _methodName));
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static boolean is(Object _class, classId _classId)
+    {
+        boolean ret = false;
+
+        if( _classId )
+        {
+            ret = SysDictClass::isEqualOrSuperclass(classidget(_class), _classId);
+
+            if( !ret )
+            {
+                ret = new SysDictClass(classidget(_class)).isImplementing(_classId);
+            }
+        }
+
+        return ret;
+    }
+
+    static boolean isEqualOrSuperclass(     // not: isSuperclass
+        classId  _id,
+        classId  _potentialAncestorId
+        )
+    {
+        // is Equal?
+
+        if (_id == _potentialAncestorId)
+            return true;
+
+        // is ascendant?
+        return SysDictClass::isSuperclass(_id,_potentialAncestorId);
+    }
+
+    static boolean isSuperclass(     // not: IsEqualOrSuperclass
+        classId  _id,
+        classId  _potentialAncestorId
+        )
+    {
+        DictClass dictClass = new DictClass(_id);
+        while (dictClass)
+        {
+            if (dictClass.extend() == _potentialAncestorId)
+                return true;
+            dictClass = new DictClass(dictClass.extend());
+        }
+        return false;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static ListEnumerator subClassListEnumerator(ClassId classId)
+    {
+        DictClass        dc =   new DictClass(classId);
+        List             list = dc ? dc.extendedBy() : null;
+        ListEnumerator   le   = list ? list.getEnumerator() : null;
+
+        return le;
+    }
+
+    static classId superClass(
+        classId  _id
+        )
+    {
+        DictClass dictClass = new DictClass(_id);
+        return dictClass.extend();
+    }
+}

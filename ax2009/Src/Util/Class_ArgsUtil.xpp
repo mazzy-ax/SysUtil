@@ -1,0 +1,397 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+class ArgsUtil
+{
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // это Util-класс, содержащий только статические методы
+    // нет смысла создавать объекты этого класса
+    private void new()
+    {
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static void assertCallerFormName(Args args, FormName formName, str _funcname = '')
+    {
+        if( ArgsUtil::callerFormName(args) == formName)
+            return;
+
+        throw error(Error::wrongUseOfFunction(_funcname ? _funcname : funcname()));
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static void assertCallerType(Args args, classId potentialAncestorClassId, str _funcname = '')
+    {
+        if( ArgsUtil::checkCallerType(args, potentialAncestorClassId) )
+            return;
+
+        throw error(Error::wrongUseOfFunction(_funcname ? _funcname : funcname()));
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static void assertEnum(Args args, Anytype enum, str _funcname = '')
+    {
+        if ( ArgsUtil::checkEnum(args, enum) )
+            return;
+
+        throw error(Error::missingRecord(_funcname ? _funcname : funcname()));
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static void assertEnumType(Args args, EnumId enumId, str _funcname = '')
+    {
+        if( ArgsUtil::checkEnumType(args, enumId) )
+            return;
+
+        throw error(Error::wrongUseOfFunction(_funcname ? _funcname : funcname()));
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static void assertFormDatasource(Args args, str _funcname = '')
+    {
+        if (args && args.dataset() && args.record().isFormDataSource())
+            return;
+
+        throw error(Error::wrongUseOfFunction(_funcname ? _funcname : funcname()));
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static void assertParm(Args args, str matchPattern = '.', str _funcname = '')
+    {
+        if ( ArgsUtil::checkParm(args, matchPattern) )
+            return;
+
+        throw error(Error::missingRecord(_funcname ? _funcname : funcname()));
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static void assertRecord(Args args, TableId tableId = 0, str _funcname = '')
+    {
+        if ( ArgsUtil::checkRecord(args, tableId) )
+            return;
+
+        throw error(Error::missingRecord(_funcname ? _funcname : funcname()));
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static void assertRecordExists(Args args, TableId tableId = 0, str _funcname = '')
+    {
+        if ( ArgsUtil::checkRecordExists(args, tableId) )
+            return;
+
+        throw error(Error::missingRecord(_funcname ? _funcname : funcname()));
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static void assertRecordTableIds(Args args, container tableIds, str _funcname = '')
+    {
+        if ( ArgsUtil::checkRecordTableIds(args, tableIds) )
+            return;
+
+        throw error(Error::missingRecord(_funcname ? _funcname : funcname()));
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static Object caller(Args args, classId potentialAncestorClassId)
+    {
+        Object ret = args ? SysDictClass::as(args.caller(), potentialAncestorClassId) : null;
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static str callerFormName(Args args)
+    {
+        FormRun formRun = ArgsUtil::caller(args, classnum(FormRun));
+        str formName = formRun ? formRun.form().name() : '';
+
+        return formName;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static boolean checkCallerType(Args args, classId potentialAncestorClassId)
+    {
+        boolean checkOk = args && SysDictClass::is(args.caller(), potentialAncestorClassId);
+        ;
+
+        return checkOk;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static boolean checkEnum(Args args, Anytype enum)
+    {
+        boolean checkOk;
+
+        if( args && typeof(enum) == types::Enum )
+        {
+            checkOk = (enum == args.parmEnum());
+        }
+
+        return checkOk;
+    }
+
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static boolean checkEnumType(Args args, EnumId enumId)
+    {
+        boolean checkOk = (args && args.parmEnumType() == enumId);
+
+        return checkOk;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // параметр parm содержит паттерн.
+    // возвращает true, если parm-строка соответствует regexp-выражению в matchPattern (метод использует функцию match для проверки)
+    // если не указать matchPattern, то возвращает true, если parm не пустой (содержит хотя бы один символ)
+    // возвращает true, если matchPattern является пустой строкой
+    public static boolean checkParm(Args args, str matchPattern = '.')
+    {
+        boolean checkOk = (args && match(matchPattern, args.parm()));
+
+        return checkOk;
+    }
+
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // запись из указанной таблицы (или любой таблицы для tableId = 0)
+    public static boolean checkRecord(Args args, TableId tableId = 0)
+    {
+        boolean checkOk = (args != null);
+        int     dataset;
+
+        if( checkOk )
+        {
+            dataset = args.dataset();
+            checkOk = (dataset != 0) && (tableId == 0 || dataset == tableId);
+        }
+
+        return checkOk;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // запись существует (recId != 0) и запись из указанной таблицы (или любой таблицы для tableId = 0)
+    public static boolean checkRecordExists(Args args, TableId tableId = 0)
+    {
+        boolean checkOk = (ArgsUtil::checkRecord(args, tableId) && args.record() && args.record().RecId != 0);
+    ;
+
+        return checkOk;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // возвращает true, если:
+    // * контейнер содержит tableId, совпадающий с tableId таблицы
+    // * контейнер содержит 0
+    // * контейнер пустой
+    // возвращает false в остальных случаях
+    public static boolean checkRecordTableIds(Args args, container tableIds)
+    {
+        boolean checkOk = (args != null);
+        int     dataset;
+
+        if( checkOk && tableIds )
+        {
+            dataset = args.dataset();
+            checkOk = confind(tableIds, dataset) || confind(tableIds, 0);
+        }
+
+        return checkOk;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static Args copyArgs(Args fromArgs, Args toArgs = null)
+    {
+        if (fromArgs)
+        {
+            if (!toArgs)
+            {
+                toArgs = new Args();
+            }
+
+            SysArgs::copyArgs(fromArgs, toArgs);
+        }
+
+        return toArgs;
+    }
+
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // убедиться что в аргументах enum указанного типа и
+    // вернуть значение этого enum из аргументов
+    // бросает исключение, если enum не указанного типа
+    public static int enum(Args args, EnumId enumId, str _funcname = '')
+    {;
+        ArgsUtil::assertEnumType(args, enumId, _funcname);
+
+        return args.parmEnum();
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // тоже самое, что и ArgsUtil::getEnum()
+    // но если в аргументах не нужный enum не выдает ошибку, а возвращает дефолтное значение.
+    public static int enumDefault(Args args, anytype defaultEnumValue)
+    {
+        if( typeof(defaultEnumValue) == Types::Enum )
+        {
+            if( ArgsUtil::checkEnumType(args, AnytypeUtil::enumId(defaultEnumValue)) )
+            {
+                return args.parmEnum();
+            }
+
+            return defaultEnumValue;
+        }
+
+        throw error::wrongUseOfFunction(funcname());
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static container markedList(Args args, TableId tableId = 0, str _funcname = '')
+    {
+        List            ret = new List(Types::Int64);
+        FormDataSource  fds;
+        common          record;
+
+        if( ArgsUtil::checkRecord(args, tableId) )
+        {
+            fds = args.record().dataSource();
+            if( fds && fds.anyMarked() )
+            {
+                // marked records
+                for( record = fds.getFirst(true) ; record ; record = fds.getNext() )
+                {
+                    ret.addEnd(record.RecId);
+                }
+            }
+
+            if( ret.elements() == 0 )
+            {
+                // or a record itself
+                record = ArgsUtil::record(args, tableId, _funcname);
+                ret.addEnd(record.RecId);
+            }
+        }
+
+        return ret.pack();
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static container markedRecIds(Args args, TableId tableId = 0, str _funcname = '')
+    {
+        container       ret;
+        FormDataSource  fds;
+        common          record;
+
+        if( ArgsUtil::checkRecord(args, tableId) )
+        {
+            fds = args.record().dataSource();
+            if( fds && fds.anyMarked() )
+            {
+                // marked records
+                for( record = fds.getFirst(true) ; record ; record = fds.getNext() )
+                {
+                    ret += record.RecId;
+                }
+            }
+
+            if( !ret )
+            {
+                // or a record itself
+                record = ArgsUtil::record(args, tableId, _funcname);
+                ret += record.RecId;
+            }
+        }
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static container markedSet(Args args, TableId tableId = 0, str _funcname = '')
+    {
+        Set             ret = new Set(Types::Int64);
+        FormDataSource  fds;
+        common          record;
+
+        if( ArgsUtil::checkRecord(args, tableId) )
+        {
+            fds = args.record().dataSource();
+            if( fds && fds.anyMarked() )
+            {
+                // marked records
+                for( record = fds.getFirst(true) ; record ; record = fds.getNext() )
+                {
+                    ret.add(record.RecId);
+                }
+            }
+
+            if( ret.elements() == 0 )
+            {
+                // or a record itself
+                record = ArgsUtil::record(args, tableId, _funcname);
+                ret.add(record.RecId);
+            }
+        }
+
+        return ret.pack();
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static Common record(Args args, TableId tableId = 0, str _funcname = '')
+    {;
+        ArgsUtil::assertRecord(args, tableId, _funcname);
+
+        return args.record();
+    }
+}

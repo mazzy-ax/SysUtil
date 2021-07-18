@@ -1,0 +1,87 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+final class AnyPrevCurrent
+{
+    Any curr;
+    Any prev;
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // сюда можно передать параметр любого типа, включая объект типа Any
+    final public boolean changed(anytype newCurrent = null)
+    {
+        boolean ret;
+
+        if( !prmisdefault(newCurrent) )
+        {
+            this.current(newCurrent);
+        }
+
+        ret = prev && !Any::isEqual(curr, prev);
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // сюда можно передать параметр любого типа, включая объект типа Any
+    final public anytype current(anytype newCurrent = null)
+    {
+        anytype ret;
+
+        if( !prmIsDefault(newCurrent) )
+        {
+            prev = curr;
+            curr = Any::construct(newCurrent);
+        }
+
+        if( curr )
+        {
+            ret = curr.value();
+        }
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // сюда можно передать параметр любого типа, включая объект типа Any
+    final public anytype prev(anytype newPrev = null)
+    {
+        anytype ret;
+
+        if( !prmIsDefault(newPrev) )
+        {
+            prev = Any::construct(newPrev);
+        }
+
+        if( prev )
+        {
+            ret = prev.value();
+        }
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public void reset()
+    {
+        prev = null;
+        curr = null;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static AnyPrevCurrent construct()
+    {
+        return new AnyPrevCurrent();
+    }
+
+}

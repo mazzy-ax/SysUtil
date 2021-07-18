@@ -1,0 +1,2054 @@
+///   <summary />
+///
+/// <remarks>
+///    This class enables you to create, read, update, and delete X++ code and metadata. Make sure that the user has access to the <see cref="Development security key (SysDevelopment)" /> before calling
+///    this API.
+/// </remarks>
+// This is a framework class. Customizing this class may cause problems with future upgrades to the software.
+class SysQuery extends Query
+{
+    #Query
+
+    #define.companyId(1)
+    #define.isSelected(2)
+
+    /// <summary>
+    /// Adds the fields of an index to the order by list of a <c>QueryBuildDataSource</c> object.
+    /// </summary>
+    /// <param name="indexName">
+    /// The index name.
+    /// </param>
+    /// <param name="qbds">
+    /// The <c>QueryBuildDataSource</c> object.
+    /// </param>
+    public static void addIndexToOrderBy(str indexName, QueryBuildDataSource qbds)
+    {
+        DictIndex dictIdx;
+        int idxID;
+        tableID tableID;
+        int pos, fldCount;
+        ;
+
+        if (qbds)
+        {
+            tableID = qbds.table();
+            idxID = indexname2id(tableID, indexName);
+
+            dictIdx = new DictIndex(tableID, idxID);
+            if (dictIdx)
+            {
+                fldCount = dictIdx.numberOfFields();
+                for (pos = 1; pos <= fldCount; pos++)
+                {
+                    qbds.addOrderByField(dictIdx.field(pos));
+                }
+            }
+        }
+    }
+
+
+    static QueryBuildRange addLockRange_RU(QueryBuildDataSource _queryBuildDataSource,
+                                           fieldId              _fieldId,
+                                           str                  _value,
+                                           boolean              _clear = false)
+    {
+        QueryBuildRange queryBuildRange;
+
+        if (_queryBuildDataSource && _fieldId)
+        {
+            if (_clear && _queryBuildDataSource.findRange(_fieldId))
+            {
+                _queryBuildDataSource.clearRange(_fieldId);
+            }
+
+            queryBuildRange = _queryBuildDataSource.addRange(_fieldId);
+            queryBuildRange.value(_value);
+            queryBuildRange.status(RangeStatus::Locked);
+        }
+
+        return queryBuildRange;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    static void addRangesFromCon(QueryBuildDataSource qbds, FieldId fieldId, container con)
+    {
+        ConEnumerator ce;
+
+        if( qbds && fieldId && con )
+        {
+            ce = ConEnumerator::construct(con);
+            while (ce && ce.moveNext())
+            {
+                qbds.addRange(fieldId).value(queryValue(ce.current()));
+            }
+        }
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    static void addRangesFromEnumerator(QueryBuildDataSource qbds, FieldId fieldId, Enumerator e)
+    {
+        if( qbds && fieldId )
+        {
+            while (e && e.moveNext())
+            {
+                qbds.addRange(fieldId).value(queryValue(e.current()));
+            }
+        }
+    }
+
+    // Can't be an instance method because new queryRun() until takes a query!
+    static void addRangesFromKeyData(
+        QueryBuildDataSource    qbds,
+        KeyData                 keyData     // Must be a unique list of values!
+        )
+    {
+        Map                     keyDataMap;
+        MapEnumerator           me;
+
+        // A local a method is used because the a variable can change type for each while loop
+        anytype a()
+        {
+            anytype a;
+            [a] = me.currentValue();
+            return a;
+        }
+        //Only do Map::create() when container has at least 4 parameters. version,domain type,
+        //range type and size
+        if (conlen(keyData) >= 4)
+        {
+            keyDataMap = Map::create(keyData);
+
+            me = keyDataMap.getEnumerator();
+            while (me.moveNext())
+            {
+                qbds.addRange(me.currentKey()).value(queryValue(a()));
+            }
+        }
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    static void addRangesFromList(QueryBuildDataSource qbds, FieldId fieldId, List list)
+    {
+        ListEnumerator le;
+
+        if( qbds && fieldId && list )
+        {
+            le = list.getEnumerator();
+            while (le && le.moveNext())
+            {
+                qbds.addRange(fieldId).value(queryValue(le.current()));
+            }
+        }
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    static void addRangesFromSet(QueryBuildDataSource qbds, FieldId fieldId, Set set)
+    {
+        SetEnumerator se;
+
+        if( qbds && fieldId && set )
+        {
+            se = set.getEnumerator();
+            while (se && se.moveNext())
+            {
+                qbds.addRange(fieldId).value(queryValue(se.current()));
+            }
+        }
+    }
+
+    public static Query addTableRelation(Query query, tableId tableId)
+    {
+        Query                   retQuery = new Query(query.pack());
+        QueryBuildDataSource    qbds1;
+        QueryBuildDataSource    qbds2;
+
+        qbds1 = retQuery.dataSourceNo(1);
+        qbds2 = qbds1.addDataSource(tableId);
+
+        qbds2.relations(true);
+
+        return retQuery;
+    }
+
+    // AOSRunMode::called
+    public client server static Query copyDynalinks(Query _newQuery, Query _originalQuery)
+    {
+        QueryBuildDynalink      dynaLink;
+        QueryBuildDataSource    newDataSource;
+        QueryBuildDataSource    originalDataSource;
+        int                     dataSourceCnt;
+        int                     dynalinkCnt;
+        int                     i, j;
+
+        if (_originalQuery &&
+            _newQuery)
+        {
+            dataSourceCnt = _originalQuery.dataSourceCount();
+
+            for (i=1; i <= dataSourceCnt; i++)
+            {
+                originalDataSource  = _originalQuery.dataSourceNo(i);
+                if (originalDataSource.enabled())
+                {
+                    newDataSource       = _newQuery.dataSourceNo(i);
+                    dynalinkCnt         = originalDataSource.dynalinkCount();
+
+                    for ( j=1; j <= dynalinkCnt; j++)
+                    {
+                        dynaLink = originalDataSource.dynalink(j);
+                        newDataSource.addDynalink(dynaLink.field(), dynaLink.cursor(), dynaLink.dynamicField());
+                    }
+                }
+            }
+        }
+        return _newQuery;
+    }
+
+    public client server static Integer countLoops(QueryRun _queryRun)
+    {
+        container c = SysQuery::countPrim(_queryRun.pack(false));
+
+        return conpeek(c,2);
+    }
+
+    private server static container countPrim(container _queryPack)
+    {
+        Query                   countQuery;
+        QueryRun                countQueryRun;
+        QueryBuildDataSource    qbds;
+        QueryBuildFieldList     qbfl;
+        Common                  common;
+        Integer                 counter;
+        Integer                 loops;
+        ;
+        countQueryRun   = new QueryRun(_queryPack);
+        countQuery      = countQueryRun.query();
+        qbds            = countQuery.dataSourceNo(1);
+        qbds.update(false);
+        qbds.sortClear();
+        countQuery.clearGroupBy();
+        countQuery.clearOrderBy();
+        qbfl = qbds.fields();
+        qbfl.dynamic(false);
+        qbfl.clearFieldList();
+        if (countQuery.dataSourceCount() == 1)
+            qbds.addSelectionField(fieldnum(Common,RecId),SelectionField::Count);
+
+        countQueryRun   = new QueryRun(countQuery);
+
+        while (countQueryRun.next())
+        {
+            common  = countQueryRun.get(countQuery.dataSourceNo(1).table());
+            counter += common.RecId;
+            loops++;
+        }
+
+        return [counter,loops];
+    }
+
+    public client server static Integer countTotal(QueryRun _queryRun)
+    {
+        container c = SysQuery::countPrim(_queryRun.pack(false));
+
+        return conpeek(c,1);
+    }
+
+    /*
+    Deletes ranges in Q which is in InitQ.
+    */
+    public static void deleteDynalinks(Query q, Query initQ, int initQdsNo = 1)
+    {
+        QueryBuildRange     toQbr;
+        QueryBuildDynalink  dyna;
+        Counter             fromI = 1;
+        fieldId             id;
+        int                 qdsNo = initQdsNo;
+        Counter             toI;
+
+        if (! initQ.dataSourceNo(initQdsNo))
+            throw error(strfmt("@SYS23667",funcname()));
+
+        if (! q)
+            throw error(strfmt("@SYS23669",funcname()));
+
+        if (! q.dataSourceNo(1))
+            throw error(strfmt("@SYS23667",funcname()));
+
+        if (q.dataSourceCount() >= initQdsNo)
+        {
+            if (q.dataSourceNo(initQdsNo).file() != initQ.dataSourceNo(initQdsNo).file())
+            {
+                   throw error(strfmt("@SYS23668",funcname()));
+            }
+        }
+
+        if (! initQ)
+            return;
+
+        fromI = 1;
+        while (fromI <= initQ.dataSourceNo(initQdsNo).dynalinkCount())
+        {
+            dyna    = initQ.dataSourceNo(initQdsNo).dynalink(fromI);
+            id      = dyna.field();
+            toQbr   = null;
+            if (q.dataSourceNo(qdsNo).findRange(id))
+            {
+                toI = 1;
+                while (toI)
+                {
+                    toQbr  = q.dataSourceNo(qdsNo).findRange(id,toI);
+
+                    if (! toQbr)
+                        break;
+
+                    // If To and From values are equal then emthy range
+                    if (toQbr.value() && toQbr.value() == dyna.cursor().(dyna.dynamicField()))
+                        toQbr.value('');
+
+                    toI++;
+                }
+            }
+
+            fromI++;
+        }
+    }
+
+    public static Set disabledDataSourceSet(Query _query)
+    {
+        Set                  disabledDataSourceSet   = new Set(Types::Integer);
+        QueryBuildDataSource queryBuildDataSource;
+        Counter              dataSourceCnt           = _query.dataSourceCount();
+        Counter              childCnt;
+        int                  i;
+
+
+        for (i=1; i<=dataSourceCnt; i++)
+        {
+            queryBuildDataSource = _query.dataSourceNo(i);
+            if (!disabledDataSourceSet.in(queryBuildDataSource.uniqueId()) &&
+                !queryBuildDataSource.enabled())
+            {
+                disabledDataSourceSet.add(queryBuildDataSource.uniqueId());
+
+                childCnt = queryBuildDataSource.childDataSourceCount();
+                if (childCnt)
+                {
+                    SysQuery::disabledDataSourceSetChildren(disabledDataSourceSet, queryBuildDataSource, childCnt);
+                }
+            }
+        }
+
+        return disabledDataSourceSet;
+    }
+
+    private static void disabledDataSourceSetChildren(Set _disabledDataSourceSet, QueryBuildDataSource _queryBuildDataSource, Counter _childCnt)
+    {
+        QueryBuildDataSource childDataSource;
+        int                  i;
+        Counter              counter;
+
+        for (i=1; i<=_childCnt; i++)
+        {
+            childDataSource = _queryBuildDataSource.childDataSourceNo(i);
+            _disabledDataSourceSet.add(childDataSource.uniqueId());
+
+            counter = childDataSource.childDataSourceCount();
+            if (counter)
+            {
+                SysQuery::disabledDataSourceSetChildren(_disabledDataSourceSet, childDataSource, counter);
+            }
+        }
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static QueryGroupByField findGroupByField(
+        Query                   _query,
+        QueryBuildDataSource    _qbds,
+        fieldId                 _fieldId)
+    {
+        int                 groupFields;
+        int                 i;
+        QueryGroupByField   queryGroupByField;
+
+        if (_query && _qbds)
+        {
+            groupFields = _query.groupByFieldCount();
+            for (i=1; i <= groupFields; ++i)
+            {
+                queryGroupByField = _query.groupByField(i);
+
+                if (queryGroupByField
+                    && queryGroupByField.fieldID() == _fieldId
+                    && queryGroupByField.dataSource().table() == _qbds.table())
+                {
+                    break;
+                }
+            }
+        }
+
+        return queryGroupByField;
+    }
+
+    public static QueryBuildDataSource findOrCreateDataSource(Query _query, tableId _tableId, tableId _parentTableId = 0)
+    {
+        QueryBuildDataSource    queryBuildDataSource;
+        QueryBuildDataSource    parentDataSource;
+        ;
+        if (_query)
+        {
+            queryBuildDataSource = _query.dataSourceTable(_tableId);
+
+            if (!queryBuildDataSource)
+            {
+                if (_parentTableId)
+                {
+                    parentDataSource = _query.dataSourceTable(_parentTableId);
+
+                    if (parentDataSource)
+                    {
+                        queryBuildDataSource = parentDataSource.addDataSource(_tableId);
+                    }
+                }
+                else
+                {
+                    queryBuildDataSource = _query.addDataSource(_tableId);
+                }
+            }
+        }
+        return queryBuildDataSource;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static QueryGroupByField findOrCreateGroupByField(Query _query, QueryBuildDataSource _queryBuildDataSource, fieldId _fieldId)
+    {
+        QueryGroupByField    queryGroupByField;
+
+        if (_query && _queryBuildDataSource)
+        {
+            queryGroupByField = SysQuery::findGroupByField(_query, _queryBuildDataSource, _fieldId);
+
+            if (!queryGroupByField)
+            {
+                queryGroupByField = _queryBuildDataSource.addGroupByField(_fieldId);
+            }
+        }
+
+        return queryGroupByField;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static QueryBuildRange findOrCreateRange(QueryBuildDataSource _queryBuildDataSource, fieldId _fieldId)
+    {
+        QueryBuildRange queryBuildRange;
+
+        if (_queryBuildDataSource)
+        {
+            queryBuildRange = _queryBuildDataSource.findRange(_fieldId);
+
+            if (!queryBuildRange && _fieldId)
+            {
+                queryBuildRange = _queryBuildDataSource.addRange(_fieldId);
+            }
+        }
+        return queryBuildRange;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // использует уже существующий range или добавляет новый
+    // сразу устанавливает value (включая контейнер), выполняет экранирование
+    public static QueryBuildRange findOrCreateRangeValue(
+        QueryBuildDataSource    _queryBuildDataSource,
+        fieldId                 _fieldId,
+        Anytype                 _value)
+    {
+        QueryBuildRange     queryBuildRange     = SysQuery::findOrCreateRange(_queryBuildDataSource, _fieldId);
+        str                 strValue;
+
+        if (queryBuildRange)
+        {
+            strValue = SysQuery::value(_value);
+            queryBuildRange.value(strValue);
+        }
+
+        return queryBuildRange;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // использует уже существующий range или добавляет новый
+    // сразу устанавливает value (включая контейнер), выполняет экранирование
+    public static QueryBuildRange findOrCreateRangeValueNot(
+        QueryBuildDataSource    _queryBuildDataSource,
+        fieldId                 _fieldId,
+        Anytype                 _value)
+    {
+        QueryBuildRange     queryBuildRange     = SysQuery::findOrCreateRange(_queryBuildDataSource, _fieldId);
+        str                 strValue;
+
+        if (queryBuildRange)
+        {
+            strValue = SysQuery::valueNot(_value);
+            queryBuildRange.value(strValue);
+        }
+
+        return queryBuildRange;
+    }
+
+    public static int findSortingNo_W(QueryBuildDataSource _queryBuildDataSource, fieldId _fieldId)
+    {
+        Counter sortfieldCount = _queryBuildDataSource.sortFieldCount();
+        int     i;
+        int     sortingNo;
+
+        for (i = 1; i <= sortfieldCount && !sortingNo; i++)
+        {
+            if (_fieldId == _queryBuildDataSource.sortField(i))
+            {
+                sortingNo = i;
+            }
+        }
+        return sortingNo;
+    }
+
+    /*MAN
+    Method to test a packed queryrun container is legal.
+    */
+    public static boolean isPackedOk(PackedQueryRun packed)
+    {
+        boolean     ret;
+
+        ret = packed && conlen(packed) > 0;
+
+        return ret;
+    }
+
+    public static void mergeRanges(Query       q,
+                                   Query       initQ,
+                                   int         initQdsNo = 1,
+                                   boolean     alwaysAddDatasource     = false,
+                                   boolean     addSameFieldRange       = true)
+    {
+        QueryBuildRange     fromQbr;
+        QueryBuildRange     toQbr;
+        QueryBuildDynalink  dyna;
+        Counter             fromI = 1;
+        int                 qdsNo = initQdsNo;
+        Counter             toI;
+        tableId             tableId;
+        DictField           dictField;
+        int                 dictIndex;
+        int                 originalId;
+
+        void add()
+        {
+            q.addDataSource(initQ.dataSourceNo(initQdsNo).file());
+            qdsNo = q.dataSourceCount();
+        }
+
+        void findToQbr(fieldId id)
+        {
+            originalId  = id;
+            id          = fieldExt2Id(id);
+            toQbr       = null;
+
+            // get table id & dictField
+            tableId = q.dataSourceNo(qdsNo).table();
+            dictField = new DictField(tableId,id);
+            dictIndex = originalId >> 16;
+
+            // If this is a dimension field, get range using the array index, otherwise get range with id
+            if ( ((dictField.arraySize() > 1) && q.dataSourceNo(qdsNo).findRange(fieldId2Ext(id, dictIndex))) ||
+                ((dictField.arraySize() <= 1) && q.dataSourceNo(qdsNo).findRange(id)) )
+            {
+                // If same range is found, then next range
+                if (! addSameFieldRange)
+                    continue;
+
+                toI = 1;
+                while (toI)
+                {
+                    // is this a Dimension field?
+                    if (dictField.arraySize() > 1)
+                        toQbr  = q.dataSourceNo(qdsNo).findRange(fieldId2Ext(id, dictIndex),toI);
+                    else
+                        toQbr  = q.dataSourceNo(qdsNo).findRange(id,toI);
+
+                    if (! toQbr)
+                        break;
+
+                    // If To value is empty, use it later
+                    if (! toQbr.value())
+                        break;
+
+                    // If To and From values are equal then add new range later
+                    if (toQbr.value() == fromQbr.value())
+                        break;
+
+                    toI++;
+                }
+            }
+            if (! toQbr             ||
+                (addSameFieldRange  &&
+                 toQbr              &&
+                 toQbr.value()      &&
+                 fromQbr.value()    &&
+                 toQbr.value()      != fromQbr.value()
+                )
+               )
+            {
+
+                if (dictField.arraySize() > 1)
+                {
+                    // yes, working with Dimension
+                    toQbr  = q.dataSourceNo(qdsNo).addRange(fieldId2Ext(id, dictIndex));
+                }
+                else
+                {
+                    toQbr  = q.dataSourceNo(qdsNo).addRange(id);
+                }
+            }
+        }
+
+
+        // Start
+
+        if (! initQ)
+            throw error(strfmt("@SYS23669",funcname()));
+
+        if (! initQ.dataSourceNo(initQdsNo))
+            throw error(strfmt("@SYS23667",funcname()));
+
+        if (! q)
+            throw error(strfmt("@SYS23669",funcname()));
+
+        if (q.dataSourceCount() >= initQdsNo)
+        {
+            if (q.dataSourceNo(initQdsNo).file() != initQ.dataSourceNo(initQdsNo).file())
+            {
+                if (alwaysAddDatasource)
+                    add();
+                else
+                   throw error(strfmt("@SYS23668",funcname()));
+            }
+        }
+        else
+            add();
+
+        if (! initQ)
+            return;
+
+        for (fromI=1;fromI<=initQ.dataSourceNo(initQdsNo).rangeCount();fromI++)
+        {
+            fromQbr = initQ.dataSourceNo(initQdsNo).range(fromI);
+
+            findToQbr(fromQbr.field());
+
+            if (toQbr)
+            {
+                // Only set if From has a value
+                if (fromQbr.value())
+                    toQbr.value(fromQbr.value());
+
+                switch (fromQbr.status())
+                {
+                    case RangeStatus::Locked:
+                        if (toQbr.status() == RangeStatus::Open)
+                            toQbr.status(RangeStatus::Locked);
+                        break;
+                    case RangeStatus::Hidden:
+                        switch (toQbr.status())
+                        {
+                            case RangeStatus::Open,RangeStatus::Locked:
+                                toQbr.status(RangeStatus::Hidden);
+                                break;
+                        }
+                        break;
+                }
+            }
+
+        }
+
+        fromI = 1;
+        while (fromI <= initQ.dataSourceNo(initQdsNo).dynalinkCount())
+        {
+            dyna =  initQ.dataSourceNo(initQdsNo).dynalink(fromI);
+
+            findToQbr(dyna.field());
+
+            if (toQbr)
+                toQbr.value(queryValue(dyna.cursor().(dyna.dynamicField())));
+
+            fromI++;
+        }
+    }
+
+
+    private static client server container packDataSource(Query _query, int _dataSourceUniqueId, int _queryNextUniqueId, int dataSourceNo)
+    {
+        QueryBuildDataSource    queryBuildDataSource = _query.dataSourceUniqueId(_dataSourceUniqueId);
+        QueryBuildRange         queryBuildRange;
+        QueryBuildDataSource    childDataSource;
+        QueryBuildLink          queryBuildLink;
+        DictIndex               dictIndex;
+        QueryBuildDataSource    groupByDataSource;
+        QueryBuildDataSource    orderByDataSource;
+        QueryGroupByField       groupByField;
+        QueryOrderByField       orderByField;
+        container               dataSourcePack;
+        container               rangePack;
+        container               sortingPack;
+        container               indexPack;
+        container               relatedTablesPack;
+        container               linkPack;
+        container               groupByPack;
+        container               orderByPack;
+        boolean                 linkAuto;
+        int                     position;
+        int                     i;
+        int                     elements;
+
+        if (queryBuildDataSource.enabled())
+        {
+            // Pack table-Id
+            dataSourcePack = conins(dataSourcePack, #packTableIdPos, [queryBuildDataSource.table()]);
+
+            // Pack links
+            if (_dataSourceUniqueId >= _queryNextUniqueId)
+            {
+                if (queryBuildDataSource.relations())
+                {
+                    linkAuto = true;
+                }
+                else
+                {
+                    position = 0;
+                    elements = queryBuildDataSource.linkCount();
+                    for (i=1; i<=elements; i++)
+                    {
+                        queryBuildLink =  queryBuildDataSource.link(i);
+                        position++;
+                        linkPack       = conins(linkPack, position, [queryBuildLink.field(), queryBuildLink.relatedField()]);
+                    }
+                }
+            }
+            dataSourcePack = conins(dataSourcePack, #packLinkPos, [linkAuto, linkPack]);
+
+            // Pack ranges
+            position = 0;
+            elements = queryBuildDataSource.rangeCount();
+            for (i=1; i <= elements; i++)
+            {
+                queryBuildRange = queryBuildDataSource.range(i);
+    //            if (queryBuildRange.status() == RangeStatus::Open ||
+    //                queryBuildDataSource.uniqueId() >= _queryNextUniqueId)
+    //            {
+                    position++;
+                    rangePack       = conins(rangePack, position, [queryBuildRange.field(), queryBuildRange.label(), queryBuildRange.value(), queryBuildRange.status(), queryBuildRange.doesRangeNodeBelongToCompositeQuery()]);
+    //            }
+            }
+            dataSourcePack = conins(dataSourcePack, #packRangePos, rangePack);
+
+            // Sorting
+            // Pack only the first index.
+            position = 0;
+            elements = queryBuildDataSource.sortIndexCount();
+            for (i=1; i <= elements; i++)
+            {
+                dictIndex   = new DictIndex(queryBuildDataSource.table(), queryBuildDataSource.sortIndex(i));
+                if(dictIndex)
+                {
+                    position++;
+                    indexPack = conins(indexPack, position, dictIndex.id());
+                    break;
+                }
+            }
+
+            dataSourcePack = conins(dataSourcePack, #packSortingPos, [indexPack, sortingPack]);
+
+            // Tables added in the query dialog
+            position = 0;
+            elements = queryBuildDataSource.childDataSourceCount();
+            for (i=1; i <= elements; i++)
+            {
+                childDataSource = queryBuildDataSource.childDataSourceNo(i);
+                if (childDataSource.uniqueId() >= _queryNextUniqueId &&
+                    childDataSource.enabled())
+                {
+                    position++;
+                    relatedTablesPack = conins(relatedTablesPack, position, SysQuery::packDataSource(_query, childDataSource.uniqueId(), _queryNextUniqueId, dataSourceNo + i));
+                }
+            }
+            dataSourcePack = conins(dataSourcePack, #packRelatedTablesPos, relatedTablesPack);
+
+            if (dataSourceNo == 1)
+            {
+                // Clear any order by fields
+                // that mirror sort indexes.
+                SysQuery::packHandleSortIndex(_query);
+
+                // Pack group by fields
+                elements = _query.groupByFieldCount();
+                position = 0;
+                for (i=1; i <= elements; i++)
+                {
+                    groupByField = _query.groupByField(i);
+                    groupByDataSource = groupByField.dataSource();
+                    if (groupByDataSource.enabled())
+                    {
+                        position++;
+                        groupByPack = conins(groupByPack, position,
+                                            [groupByDataSource.uniqueID(),
+                                            groupByField.fieldID(),
+                                            groupByField.autoHeader(),
+                                            groupByField.autoHeaderDetailLevel(),
+                                            groupByField.autoSum(),
+                                            groupByField.autoSumDetailLevel()]);
+                    }
+                }
+                dataSourcePack = conins(dataSourcePack, #packGroupByPos, groupByPack);
+
+                // Pack order by fields
+                elements = _query.orderByFieldCount();
+                position = 0;
+                for (i=1; i <= elements; i++)
+                {
+                    orderByField = _query.orderByField(i);
+                    orderByDataSource = orderByField.dataSource();
+                    if (orderByDataSource.enabled())
+                    {
+                        position++;
+                        orderByPack = conins(orderByPack, position,
+                                            [orderByDataSource.uniqueID(),
+                                            orderByField.fieldID(),
+                                            orderByField.direction(),
+                                            orderByField.autoHeader(),
+                                            orderByField.autoHeaderDetailLevel(),
+                                            orderByField.autoSum(),
+                                            orderByField.autoSumDetailLevel()]);
+                    }
+                }
+                dataSourcePack = conins(dataSourcePack, #packOrderByPos, orderByPack);
+            }
+        }
+        return dataSourcePack;
+    }
+
+    private static void packHandleSortIndex(Query q)
+    {
+        QueryBuildDataSource currentDataSource;
+        QueryBuildDataSource targetDataSource;
+        QueryBuildDataSource currentRoot;
+        List rootList = new List(Types::Integer);
+        List groupList;
+        ListEnumerator rootListEnumerator;
+        ListEnumerator groupListEnumerator;
+
+        Map groupMap = new Map(Types::Integer, Types::Class);
+
+        DictTable dictTable;
+        DictIndex dictIndex;
+        QueryOrderByField orderByField;
+
+        int i;
+        int rootKey;
+        int elements;
+        int orderByFieldIndex;
+        int orderByFieldCount = q.orderByFieldCount();
+
+        boolean isEligible;
+        boolean foundSortIndex;
+        ;
+
+        // Determine the group of data sources
+        // that will be executed as a unit.
+        elements = q.dataSourceCount();
+        for (i=1; i <= elements; I++)
+        {
+            currentDataSource = q.dataSourceNo(i);
+
+            // Get top most parent data source.
+            currentRoot = currentDataSource;
+            while (currentRoot.joined())
+            {
+                dictTable = new DictTable(currentRoot.table());
+                if (dictTable && dictTable.isTmp())
+                {
+                    break;
+                }
+
+                dictTable = new DictTable(currentRoot.parentDataSource().table());
+                if (dictTable && dictTable.isTmp())
+                {
+                    break;
+                }
+                currentRoot = currentRoot.parentDataSource();
+            }
+
+            if (groupMap.exists(currentRoot.uniqueId()))
+            {
+                groupList = groupMap.lookup(currentRoot.uniqueId());
+            }
+            else
+            {
+                rootList.addEnd(currentRoot.uniqueId());
+                groupList = new List(Types::Class);
+                groupMap.insert(currentRoot.uniqueId(), groupList);
+
+            }
+            groupList.addEnd(currentDataSource);
+        }
+
+
+        // Enumerate through each data source group.
+        // The root list contains the key into the groupMap.
+        rootListEnumerator = rootList.getEnumerator();
+        while (rootListEnumerator.moveNext())
+        {
+            rootKey = rootListEnumerator.current();
+            if (groupMap.exists(rootKey))
+            {
+                groupList = groupMap.lookup(rootKey);
+                groupListEnumerator = groupList.getEnumerator();
+                foundSortIndex = false;
+                isEligible = true;
+
+                // Loop through each data source in the group.
+                while (groupListEnumerator.moveNext() && isEligible)
+                {
+                    currentDataSource = groupListEnumerator.current();
+
+                    // If the data source is part of the group by list
+                    // then the sort index (if any) is invalid and should be ignored.
+                    elements = q.groupByFieldCount();
+                    for (i = 1; i <= elements; i++)
+                    {
+                        if (q.groupByField(i).dataSource().uniqueId() == currentDataSource.uniqueId())
+                        {
+                            isEligible = false;
+                            break;
+                        }
+                    }
+
+                    dictIndex = null;
+                    if (currentDataSource.sortIndexCount())
+                    {
+                        // Find the first valid index.
+                        elements = currentDataSource.sortIndexCount();
+                        for (i=1; i <= elements; i++)
+                        {
+                            dictIndex = new DictIndex(currentDataSource.table(), currentDataSource.sortIndex(i));
+                            if (dictIndex)
+                            {
+                                break;
+                            }
+                        }
+                    }
+
+                    if (dictIndex)
+                    {
+                        if (!foundSortIndex)
+                        {
+                            // Set the orderByFieldIndex to the first order by field
+                            // that matches the current data source.
+                            foundSortIndex = true;
+                            for (orderByFieldIndex = 1; orderByFieldIndex <= orderByFieldCount; orderByFieldIndex++)
+                            {
+                                orderByField = q.orderByField(i);
+                                targetDataSource = orderByField.dataSource();
+                                if (targetDataSource.uniqueId() == currentDataSource.uniqueId())
+                                {
+                                    break;
+                                }
+                            }
+                        }
+
+                        elements = dictIndex.numberOfFields();
+                        if (elements  != currentDataSource.sortFieldCount())
+                        {
+                            isEligible = false;
+                            break;
+                        }
+
+                        for (i = 1; i <= elements; i++)
+                        {
+                            if (orderByFieldIndex <= orderByFieldCount)
+                            {
+                                targetDataSource = q.orderByField(orderByFieldIndex).dataSource();
+
+                                orderByFieldIndex++; // set index to next field in order by list.
+
+                                if (targetDataSource.sortField(i)       != dictIndex.field(i)||
+                                    targetDataSource.sortDirection(i)   != SortOrder::Ascending ||
+                                    targetDataSource.autoHeader(i) ||
+                                    targetDataSource.autoSum(i) ||
+                                    targetDataSource.autoHeaderDetailLevel(i) ||
+                                    targetDataSource.autoSumDetailLevel(i))
+                                {
+                                    isEligible = false;
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                // Could not match all sort index fields,
+                                // so we should fail at this point.
+                                isEligible = false;
+                                break;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        for (i = 1; i <= orderByFieldCount; i++)
+                        {
+                            orderByField = q.orderByField(i);
+                            targetDataSource = orderByField.dataSource();
+                            if (targetDataSource.uniqueId() == currentDataSource.uniqueId())
+                            {
+                                isEligible = false;
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                // We have processed all data source for
+                // the group.  If we found sort indexes
+                // and they align with the order by fields,
+                // then we will clear them for the data source group.
+                if (foundSortIndex && isEligible)
+                {
+                    groupListEnumerator.reset();
+                    while (groupListEnumerator.moveNext())
+                    {
+                        currentDataSource = groupListEnumerator.current();
+                        currentDataSource.orderMode(OrderMode::OrderBy);
+                        currentDataSource.sortClear();
+                    }
+
+                }
+            }
+        }
+    }
+
+
+    public static client server container packRangeAndSortorder(Query _query, int _queryNextUniqueId = 0)
+    {
+        QueryBuildDataSource queryBuildDataSource;
+        container            queryPack;
+        container            companyRangesPack;
+        container            internalsPack;
+        int                  queryNextUniqueId = _queryNextUniqueId;
+        int                  dataSourceCnt;
+        int                  i, j;
+
+        if (_query)
+        {
+            dataSourceCnt = _query.dataSourceCount();
+
+            if (!queryNextUniqueId)
+            {
+                queryNextUniqueId = _query.getNextUniqueId();
+            }
+
+            for (i=1; i <= dataSourceCnt; i++)
+            {
+                queryBuildDataSource = _query.dataSourceNo(i);
+                if (queryBuildDataSource.uniqueId() < queryNextUniqueId &&
+                    queryBuildDataSource.enabled())
+                {
+                    j++;
+                    queryPack = conins(queryPack, j, SysQuery::packDataSource(_query, queryBuildDataSource.uniqueId(), queryNextUniqueId, i));
+                }
+            }
+
+            if (_query.allowCrossCompany())
+            {
+                companyRangesPack = _query.getCompanyRange();
+            }
+            else
+            {
+                companyRangesPack = connull();
+            }
+
+            internalsPack = _query.packInternals();
+        }
+
+        return [#packCompanyRangeAndInternalsVersion, queryPack, companyRangesPack, internalsPack];
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static Query query(
+        TableId     _tableId,
+        FieldId     _fieldId    = 0,
+        Anytype     _value      = null)
+    {
+        Query                   q       = new Query();
+        QueryBuildDataSource    qbds    = q.addDataSource(_tableId);
+
+        if (_fieldId && qbds && !prmisdefault(_value))
+        {
+            SysQuery::findOrCreateRangeValue(qbds, _fieldId, _value);
+        }
+
+        return q;
+    }
+
+    // This method will traverse dynalinks on QueryBuildDataSource represented by _queryDynaBdsNo
+    // and convert current dyna-record into ranges and values on that QueryBuildDataSource
+    static client server void queryAddDynaCursorAsRangeAndValue(
+        Query   _query,             // new query
+        Query   _queryDyna,         // query having external links (=dyna links)
+        Integer _queryDynaBdsNO     // queryBuildDataSource on _queryDyna having external links
+        )
+    {
+        QueryBuildRange     toQbr;
+        QueryBuildDynalink  qbDyna;
+        Counter             dynaLinkNo = 1;
+        Counter             toI;
+        DictField           dictField;
+        Integer             dictIndex;
+        Integer             originalId;
+        Integer             queryDsNO = _queryDynaBdsNO;
+        fieldId             id;
+        ;
+        if (!_queryDynaBdsNO)
+            return;
+
+        if (!_query || !_queryDyna)
+            throw error(strfmt("@SYS23669",funcname()));
+
+        if (!_queryDyna.dataSourceNo(_queryDynaBdsNO))
+            throw error(strfmt("@SYS23667",funcname()));
+
+        if (_query.dataSourceCount() < _queryDynaBdsNO || _query.dataSourceNo(_queryDynaBdsNO).file() != _queryDyna.dataSourceNo(_queryDynaBdsNO).file())
+        {
+            _query.addDataSource(_queryDyna.dataSourceNo(_queryDynaBdsNO).file());
+            queryDsNO = _query.dataSourceCount();
+        }
+        while (dynaLinkNo <= _queryDyna.dataSourceNo(_queryDynaBdsNO).dynalinkCount())
+        {
+            qbDyna      = _queryDyna.dataSourceNo(_queryDynaBdsNO).dynalink(dynaLinkNo);
+            id          = fieldExt2Id(qbDyna.field());
+            originalId  = id;
+            toQbr       = null;
+
+            if (_query.dataSourceNo(queryDsNO).findRange(id))
+            {
+                toI = 1;
+                while (true)
+                {
+                    toQbr  = _query.dataSourceNo(queryDsNO).findRange(id,toI);
+                    if (!toQbr || !toQbr.value() || toQbr.value() == queryValue(qbDyna.cursor().(qbDyna.dynamicField())))
+                        break;
+                    toI++;
+                }
+            }
+            if (!toQbr || (toQbr && toQbr.value() && queryValue(qbDyna.cursor().(qbDyna.dynamicField())) && toQbr.value() != queryValue(qbDyna.cursor().(qbDyna.dynamicField()))))
+            {
+                // is this a Dimension field?
+                dictField = new DictField(_query.dataSourceNo(queryDsNO).table(),id);
+
+                if (dictField.arraySize() > 1)
+                {
+                    // yes, working with Array field
+                    dictIndex = originalId >> 16;
+                    toQbr  = _query.dataSourceNo(queryDsNO).addRange(fieldId2Ext(id, dictIndex));
+                }
+                else
+                {
+                    toQbr  = _query.dataSourceNo(queryDsNO).addRange(id);
+                }
+            }
+            if (toQbr)
+                toQbr.value(queryValue(qbDyna.cursor().(qbDyna.dynamicField())));
+
+            dynaLinkNo++;
+        }
+    }
+
+
+    static client server void queryAddUniqueRangeAndValue(
+        Query   _query,
+        Common  _source
+        )
+    {
+        Common                  callerBuffer = _source;
+        SysDictTable            sysDictTable = new SysDictTable(callerBuffer.TableId);
+        QueryBuildDataSource    qbd;
+        QueryBuildRange         qbr;
+        DictIndex               dictIndex;
+        Integer                 indexId;
+        Integer                 i;
+        fieldId                 fieldId;
+
+        void indexAddUniqueRangesAndValues()
+        {
+            for (i=1;i<=dictIndex.numberOfFields();i++)
+            {
+                fieldId = dictIndex.field(i);
+                qbr = qbd.findRange(fieldId);
+                if (!qbr)
+                    qbr = qbd.addRange(fieldId);
+                qbr.status(RangeStatus::Locked);
+                qbr.value(queryValue(callerBuffer.(fieldId)));
+            }
+        }
+        ;
+        if (!callerBuffer.RecId)
+            return;
+
+        dictIndex   = sysDictTable.firstUniqueIndex();
+        qbd         = _query.dataSourceTable(callerBuffer.TableId);
+
+        if (dictIndex)
+        {
+            indexAddUniqueRangesAndValues();
+        }
+        else
+        {
+            indexId = sysDictTable.indexNext(0);
+            if (indexId)
+            {
+                dictIndex = sysDictTable.indexObject(indexId);
+                indexAddUniqueRangesAndValues();
+            }
+            fieldId = fieldnum(Common,RecId);
+            qbr = qbd.findRange(fieldId);
+            if (!qbr)
+                qbr = qbd.addRange(fieldId);
+            qbr.status(RangeStatus::Locked);
+            qbr.value(queryValue(callerBuffer.RecId));
+        }
+    }
+
+
+    static Query queryFromKeyData(
+        tableId         tableId,
+        KeyData         keyData     // Should be a unique list!
+        )
+    {
+        Query                   q;
+        QueryBuildDataSource    qbds;
+
+        q    = new Query();
+        qbds = q.addDataSource(tableId);
+        SysQuery::addRangesFromKeyData(qbds,keyData);
+
+        return q;
+    }
+
+    public static Query queryFromTableRelation(Common _parentTable, tableId _relationTableId, boolean _update = false, boolean _noRelationNoRecords = true)
+    {
+        Query           query;
+        DictRelation    dictRelation;
+        Counter         c;
+        ;
+
+        dictRelation = new DictRelation(_relationTableId);
+        dictRelation.loadTableRelation(_parentTable.TableId);
+
+        query = new Query();
+        query.addDataSource(_relationTableId);
+
+        if (_noRelationNoRecords && dictRelation.lines() == 0)
+        {
+            query.dataSourceTable(_relationTableId).addRange(fieldnum(Common, TableId)).value(queryValue(0));
+        }
+
+        for (c=1; c <= dictRelation.lines(); c++)
+        {
+            switch (dictRelation.lineType(c))
+            {
+                case TableRelation::Field:
+                    query.dataSourceTable(_relationTableId).addRange(dictRelation.lineTableValue(c)).value(queryValue(_parentTable.(dictRelation.lineExternTableValue(c))));
+                    break;
+
+                case TableRelation::ExternFixed:
+                    if (_noRelationNoRecords && _parentTable.(dictRelation.lineExternTableValue(c)) != dictRelation.lineTableValue(c))
+                    {
+                        query.dataSourceTable(_relationTableId).addRange(fieldnum(Common, TableId)).value(queryValue(0));
+                    }
+                    break;
+
+                case TableRelation::ThisFixed:
+                    query.dataSourceTable(_relationTableId).addRange(dictRelation.lineTableValue(c)).value(queryValue(dictRelation.lineExternTableValue(c)));
+                    break;
+            }
+        }
+
+        query.dataSourceTable(_relationTableId).update(_update);
+
+        return query;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static QueryRun queryRun(
+        TableId     _tableId,
+        FieldId     _fieldId    = 0,
+        Anytype     _value      = null)
+    {
+        Query       q   = SysQuery::query(_tableId, _fieldId, _value);
+        QueryRun    qr  = new QueryRun(q);
+
+        return qr;
+    }
+
+    public static str range(anytype _from, anytype _to)
+    {
+        str     range;
+        // <GEEU>
+        boolean hasFrom = _from || (typeof(_from) != Types::String && typeof(_from) != Types::Date);
+        boolean hasTo   = _to || (typeof(_to) != Types::String && typeof(_to) != Types::Date);
+        // </GEEU>
+
+        /* <SYS>
+        if (_from)
+        </SYS> */
+        // <GEEU>
+        if (hasFrom)
+        // </GEEU>
+        {
+            /* <SYS>
+            range += queryValue(_from);
+            </SYS> */
+            // <GEEU>
+            range = queryValue(_from);
+            // </GEEU>
+        }
+        /* <SYS>
+        if (_from || _to)
+        </SYS> */
+        // <GEEU>
+        if (hasFrom || hasTo)
+        // </GEEU>
+        {
+            range += '..';
+        }
+        /* <SYS>
+        if (_to)
+        </SYS> */
+        // <GEEU>
+        else
+        {
+            range = SysQuery::valueEmptyString();
+        }
+        if (hasTo)
+        // </GEEU>
+        {
+            range += queryValue(_to);
+        }
+
+        return range;
+    }
+
+    // AOSRunMode::client
+    static client server int tableOccurrence(Query query, tableId tableId, int dataSourceNo)
+    {
+        DictTable               dictTable;
+        QueryBuildDataSource    dataSource;
+        int                     i;
+        int                     tableOccurrence;
+        ;
+
+        for (i = 1; i <= dataSourceNo; i++)
+        {
+            dataSource      = query.dataSourceNo(i);
+            dictTable       = new DictTable(dataSource.table());
+
+            if (tableId == dictTable.id())
+            {
+                tableOccurrence++;
+            }
+        }
+
+        return tableOccurrence;
+    }
+
+    // AOSRunMode::client
+    static client server str tableOccurrenceText(int tableOccurrence)
+    {
+        if (tableOccurrence > 1)
+            return strfmt('(%1)', tableOccurrence);
+
+        return '';
+    }
+
+    // получить из запроса n записей, начиная со startFrom
+    public static QueryRun take(Query q, int n, int startFrom = 1)
+    {
+        QueryRun qr = new QueryRun(q);
+
+        qr = QueryRunUtil::take(qr, n, startFrom);
+
+        return qr;
+    }
+
+    /// <summary>
+    /// Unpacks the ranges contained by the companyRanges container and adds them
+    /// to the query passed in.
+    /// </summary>
+    /// <param name="query">
+    /// The Query to add the company ranges to.
+    /// </param>
+    /// <param name="companyRanges">
+    /// The container containing the company ranges.
+    /// </param>
+    /// <remarks>
+    /// The container passed in must be in the same format as the container that is retrieved
+    /// from the query on the query.GetCompanyRanges() call.
+    /// </remarks>
+    private static client server void unpackCompanyRanges(Query query, container companyRanges)
+    {
+        container companyRange;
+        int numRanges;
+        int i;
+        boolean allSelected = true;
+        ;
+
+        if(query.allowCrossCompany())
+        {
+            query.clearCompanyRange();
+
+            numRanges = conlen(companyRanges);
+            for(i = 1; i <= numRanges; i++)
+            {
+                companyRange = conpeek(companyRanges, i);
+                if(conpeek(companyRange, #isSelected))
+                {
+                    query.addCompanyRange(conpeek(companyRange, #companyId));
+                }
+                else
+                {
+                    allSelected = false;
+                }
+            }
+
+            if(allSelected)
+            {
+                //If all of the companies are selected that is the equivalent of having a cleared list
+                query.clearCompanyRange();
+            }
+        }
+    }
+
+    private static client server void unpackDataSource(Query                _query,
+                                                       container            _dataSourcePack,
+                                                       QueryBuildDataSource _queryBuildDataSource,
+                                                       Map                  _origRangeMap,
+                                                       Map                  _childDataSourceMap,
+                                                       boolean              _origDataSource,
+                                                       boolean              _unpackOnlyOpenRanges,
+                                                       int                  dataSourceNo)
+    {
+        QueryBuildDataSource    childDataSource;
+        QueryBuildDataSource    tempDataSource;
+        QueryBuildRange         queryBuildRange;
+        QueryGroupByField       groupByField;
+        QueryOrderByField       orderbyField;
+        SysDictField            sysDictField;
+        SysDictField            arrayField;
+        DictTable               dictTable;
+        DictIndex               dictIndex;
+        tableId                 tableId;
+        tableId                 relatedTableId;
+        fieldId                 fieldId;
+        fieldId                 relatedFieldId;
+        Range                   range;
+        RangeStatus             rangeStatus;
+        LabelType               rangeLabel;
+        SortOrder               sortOrder;
+        boolean                 autoHeader;
+        boolean                 autoSum;
+        boolean                 linkAuto;
+        container               linkPack;
+        container               rangePack;
+        container               origRangePack;
+        container               indexPack;
+        container               sortingPack;
+        container               relatedTablesPack;
+        container               pack;
+        container               childDataSourcePack;
+        container               groupByPack;
+        container               orderByPack;
+        MapIterator             mapIterator;
+        Set                     rangeNoAddSet;
+        int                     elements;
+        int                     position;
+        int                     autoHeaderDetailLevel;
+        int                     autoSumDetailLevel;
+        int                     i, j;
+        int                     uniqueID;
+        boolean                 rangeBelongsToComposite;
+        ;
+        [tableId] = conpeek(_dataSourcePack, #packTableIdPos);
+
+        if (dataSourceNo == 1)
+        {
+            if(!_query.isCompositeQuery())
+            {
+                _query.clearGroupBy();
+            }
+            _query.clearOrderBy();
+        }
+
+        if (tableId == _queryBuildDataSource.table())
+        {
+            // unpack link
+            [linkAuto, linkPack] = conpeek(_dataSourcePack, #packLinkPos);
+
+            if (!_origDataSource)
+            {
+                if (linkAuto)
+                {
+                    _queryBuildDataSource.relations(true);
+                }
+                else
+                {
+                    elements = conlen(linkPack);
+                    for (i=1; i<=elements; i++)
+                    {
+                        [fieldId, relatedFieldId] = conpeek(linkPack, i);
+
+                        if (new SysDictField(_queryBuildDataSource.parentDataSource().table(), fieldId) &&
+                            new SysDictField(tableId, relatedFieldId))
+                        {
+                            _queryBuildDataSource.addLink(fieldId, relatedFieldId);
+                        }
+                    }
+                }
+            }
+            // unpack ranges
+            _queryBuildDataSource.clearRanges();
+
+            rangeNoAddSet = new Set(Types::Integer);
+            if (_origRangeMap &&
+                _origRangeMap.exists(_queryBuildDataSource.uniqueId()))
+            {
+                origRangePack = _origRangeMap.lookup(_queryBuildDataSource.uniqueId());
+                elements      = conlen(origRangePack);
+                for (i=1; i<=elements; i++)
+                {
+                    [fieldId, rangeLabel, range, rangeStatus, rangeBelongsToComposite] = conpeek(origRangePack, i);
+
+                    if (!fieldId)
+                    {
+                        fieldId = fieldnum(Common, TableId);
+                    }
+
+                    queryBuildRange = _queryBuildDataSource.addRange(fieldId);
+                    queryBuildRange.value(range);
+                    queryBuildRange.status(rangeStatus);
+                    queryBuildRange.label(rangeLabel);
+                    if (rangeBelongsToComposite)
+                    {
+                        queryBuildRange.associateRangeNodeToCompositeQuery();
+                    }
+
+                    sysDictField = new SysDictField(tableId, queryBuildRange.field());
+
+                    if (sysDictField.arrayIndex())
+                    {
+                        if (sysDictField.arrayIndex() == 1)
+                        {
+                            rangeNoAddSet.add(fieldExt2Id(sysDictField.id()));
+                        }
+                        rangeNoAddSet.add(sysDictField.id());
+                    }
+                    else
+                    {
+                        rangeNoAddSet.add(sysDictField.id());
+                        for (j=1; j <= sysDictField.arraySize(); j++)
+                        {
+                            arrayField = new SysDictField(tableId, sysDictField.id(), j);
+                            rangeNoAddSet.add(arrayField.id());
+                        }
+
+                    }
+                }
+            }
+
+            rangePack   = conpeek(_dataSourcePack, #packRangePos);
+            elements    = conlen(rangePack);
+            for (i=1; i<=elements; i++)
+            {
+                [fieldId, rangeLabel, range, rangeStatus, rangeBelongsToComposite] = conpeek(rangePack, i);
+
+                sysDictField     = new SysDictField(tableId, fieldId);
+
+                if (sysDictField &&
+                    !rangeNoAddSet.in(sysDictField.id()) &&
+                    sysDictField.saveContents() &&
+                    (rangeStatus == RangeStatus::Open || !_origDataSource || !_unpackOnlyOpenRanges))
+                {
+                    queryBuildRange = _queryBuildDataSource.addRange(fieldId);
+                    queryBuildRange.label(rangeLabel);
+                    queryBuildRange.value(range);
+                    queryBuildRange.status(rangeStatus);
+                    if (rangeBelongsToComposite)
+                    {
+                        queryBuildRange.associateRangeNodeToCompositeQuery();
+                    }
+                }
+            }
+
+            // unpack sorting
+            _queryBuildDataSource.clearSortIndex();
+
+            [indexPack, sortingPack] = conpeek(_dataSourcePack, #packSortingPos);
+            elements                 = conlen(indexPack);
+            for (i=1; i<=elements; i++)
+            {
+                dictIndex   = new DictIndex(tableId, conpeek(indexPack, i));
+
+                if(dictIndex)
+                {
+                    _queryBuildDataSource.addSortIndex(dictIndex.id());
+                }
+            }
+
+            position = 0;
+            elements = conlen(sortingPack);
+            for (i=1; i<=elements; i++)
+            {
+                [fieldId, sortOrder, autoHeader, autoSum, autoHeaderDetailLevel, autoSumDetailLevel] = conpeek(sortingPack, i);
+
+                sysDictField = new SysDictField(tableId, fieldId);
+
+                if (sysDictField &&
+                    sysDictField.saveContents())
+                {
+                    position++;
+                    _queryBuildDataSource.addSortField(fieldId);
+                    _queryBuildDataSource.sortDirection(position, sortOrder);
+                    _queryBuildDataSource.autoHeader(position, autoHeader);
+                    _queryBuildDataSource.autoHeaderDetailLevel(position, autoHeaderDetailLevel);
+                    _queryBuildDataSource.autoSum(position, autoSum);
+                    _queryBuildDataSource.autoSumDetailLevel(position, autoSumDetailLevel);
+                }
+            }
+
+            // Unpack tables
+            if (_queryBuildDataSource.allowAdd() == QueryAllowAdd::AllFields)
+            {
+                relatedTablesPack   = conpeek(_dataSourcePack, #packRelatedTablesPos);
+                elements            = conlen(relatedTablesPack);
+
+                if (_childDataSourceMap)
+                {
+                    if (_childDataSourceMap.exists(_queryBuildDataSource.uniqueId()))
+                    {
+                        mapIterator = new MapIterator(_childDataSourceMap.lookup(_queryBuildDataSource.uniqueId()));
+                    }
+                }
+
+                for (i=1; i<=elements; i++)
+                {
+                    pack             = conpeek(relatedTablesPack, i);
+                    childDataSource  = null;
+
+                    if (mapIterator)
+                    {
+                        mapIterator.begin();
+                        while (mapIterator.more())
+                        {
+                            childDataSourcePack = mapIterator.value();
+
+                            if (conpeek(childDataSourcePack, #packTableIdPos) == conpeek(pack, #packTableIdPos) &&
+                                conpeek(childDataSourcePack, #packLinkPos)    == conpeek(pack, #packLinkPos))
+                            {
+                                childDataSource = _query.dataSourceUniqueId(mapIterator.key());
+                                childDataSource.enabled(true);
+                                break;
+                            }
+                            mapIterator.next();
+                        }
+                    }
+
+                    if (childDataSource)
+                    {
+                        SysQuery::unpackDataSource(_query, pack, childDataSource, _origRangeMap, _childDataSourceMap, true, _unpackOnlyOpenRanges, dataSourceNo + i);
+                    }
+                    else
+                    {
+                        [relatedTableId] = conpeek(pack, #packTableIdPos);
+                        dictTable        = new DictTable(relatedTableId);
+
+                        if (dictTable)
+                        {
+                            childDataSource = _queryBuildDataSource.addDataSource(relatedTableId);
+                            childDataSource.joinMode(JoinMode::ExistsJoin);
+                            childDataSource.fetchMode(QueryFetchMode::One2One);
+                            SysQuery::unpackDataSource(_query, pack, childDataSource, _origRangeMap, _childDataSourceMap, false, _unpackOnlyOpenRanges, dataSourceNo + i);
+                        }
+                    }
+                }
+            }
+
+            // Unpack Group By Fields
+            if (dataSourceNo == 1)
+            {
+                groupByPack = conpeek(_dataSourcePack, #packGroupByPos);
+                elements = conlen(groupByPack);
+                for (i=1; i<=elements; i++)
+                {
+                    [uniqueID, fieldID, autoHeader, autoHeaderDetailLevel, autoSum, autoSumDetailLevel] = conpeek(groupByPack, i);
+                    tempDataSource = _query.dataSourceUniqueId(uniqueID);
+                    if (tempDataSource)
+                    {
+                         sysDictField = new SysDictField(tempDataSource.table(), fieldId);
+
+                        if (sysDictField && ! _query.isCompositeQuery())
+                        {
+                            groupByField = tempDataSource.addGroupByField(fieldID);
+                            groupByField.autoHeader(autoHeader);
+                            groupByField.autoHeaderDetailLevel(autoHeaderDetailLevel);
+                            groupByField.autoSum(autoSum);
+                            groupByField.autoSumDetailLevel(autoSumDetailLevel);
+                        }
+                    }
+                }
+
+                // Unpack Order By Fields
+                orderByPack = conpeek(_dataSourcePack, #packOrderByPos);
+                elements = conlen(orderByPack);
+                for (i=1; i<=elements; i++)
+                {
+                    [uniqueID, fieldID, sortOrder, autoHeader, autoHeaderDetailLevel, autoSum, autoSumDetailLevel] = conpeek(orderByPack, i);
+                    tempDataSource = _query.dataSourceUniqueId(uniqueID);
+                    if (tempDataSource)
+                    {
+                         sysDictField = new SysDictField(tempDataSource.table(), fieldId);
+
+                        if (sysDictField &&
+                            sysDictField.saveContents())
+                        {
+                            orderByField = tempDataSource.addOrderByField(fieldID, sortOrder);
+                            orderByField.autoHeader(autoHeader);
+                            orderByField.autoHeaderDetailLevel(autoHeaderDetailLevel);
+                            orderByField.autoSum(autoSum);
+                            orderByField.autoSumDetailLevel(autoSumDetailLevel);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public static client server boolean unpackRangeAndSortorder(Query _query, container _pack, int _queryNextUniqueId = 0, boolean _unpackOnlyOpenRanges = true)
+    {
+        boolean                 ok;
+        QueryBuildDataSource    queryBuildDataSource;
+        QueryBuildDataSource    parentDataSource;
+        QueryBuildRange         queryBuildRange;
+        container               queryPack;
+        container               pack;
+        container               rangeFieldPack;
+        container               tmp;
+        int                     elements;
+        int                     dataSourcePackElements;
+        int                     rangeCnt;
+        int                     i, j, k;
+        int                     packVersion;
+        int                     queryNextUniqueId   = _queryNextUniqueId;
+        Map                     rangePackMap        = new Map(Types::Integer, Types::Container);
+        Map                     childDataSourceMap  = new Map(Types::Integer, Types::Class);
+        Map                     map;
+        ;
+
+        if (_query)
+        {
+            elements    = _query.dataSourceCount();
+            pack        = SysQuery::updatePackedRangesAndSorting(_pack, queryNextUniqueId);
+
+            if (pack)
+            {
+                ok          = true;
+                packVersion = conpeek(pack, 1);
+                queryPack   = conpeek(pack, 2);
+
+                if (queryPack)
+                {
+                    if (!queryNextUniqueId)
+                    {
+                        queryNextUniqueId = _query.getNextUniqueId();
+                    }
+
+                    if (_unpackOnlyOpenRanges)
+                    {
+                        for (i = 1; i <= elements; i++)
+                        {
+                            queryBuildDataSource    = _query.dataSourceNo(i);
+                            rangeCnt                = queryBuildDataSource.rangeCount();
+                            rangeFieldPack          = connull();
+                            k                       = 0;
+
+                            for (j=1; j<=rangeCnt; j++)
+                            {
+                                queryBuildRange = queryBuildDataSource.range(j);
+                                if (queryBuildRange &&
+                                    queryBuildRange.status() != RangeStatus::Open)
+                                {
+                                    tmp            = [queryBuildRange.field(), queryBuildRange.label(), queryBuildRange.value(), queryBuildRange.status()];
+                                    k++;
+                                    rangeFieldPack = conins(rangeFieldPack, k, tmp);
+                                }
+                            }
+                            rangePackMap.insert(queryBuildDataSource.uniqueId(), rangeFieldPack);
+                        }
+                    }
+
+                    for (i = 1; i <= elements; i++)
+                    {
+                        queryBuildDataSource    = _query.dataSourceNo(i);
+                        childDataSourceMap.insert(queryBuildDataSource.uniqueId(), new Map(Types::Integer, Types::Container));
+
+                        if (queryBuildDataSource.uniqueId() >= queryNextUniqueId)
+                        {
+                            if (queryBuildDataSource.level() == 1)
+                            {
+                                queryBuildDataSource.enabled(true);
+                            }
+                            else
+                            {
+                                parentDataSource = queryBuildDataSource.parentDataSource();
+                                if (parentDataSource)
+                                {
+                                    queryBuildDataSource.enabled(true);
+                                    map = childDataSourceMap.lookup(parentDataSource.uniqueId());
+                                    map.insert(queryBuildDataSource.uniqueId(), SysQuery::packDataSource(_query, queryBuildDataSource.uniqueId(), queryNextUniqueId, i));
+                                }
+                                queryBuildDataSource.enabled(false);
+                            }
+                        }
+                    }
+
+                    dataSourcePackElements = conlen(queryPack);
+                    j                      = 0;
+
+                    for (i=1; i <= _query.dataSourceCount(); i++)
+                    {
+                        queryBuildDataSource    = _query.dataSourceNo(i);
+
+                        if (dataSourcePackElements > j &&
+                            queryBuildDataSource.enabled() &&
+                            (queryBuildDataSource.uniqueId() < queryNextUniqueId ||
+                             queryBuildDataSource.level() == 1))
+                        {
+                            j++;
+                            SysQuery::unpackDataSource(_query,
+                                                       conpeek(queryPack, j),
+                                                       queryBuildDataSource,
+                                                       rangePackMap,
+                                                       childDataSourceMap,
+                                                       true,
+                                                       _unpackOnlyOpenRanges,
+                                                       i);
+                        }
+                    }
+                }
+
+                if (packVersion >= #packCompanyRangeAndInternalsVersion)
+                {
+                    SysQuery::unpackCompanyRanges(_query, conpeek(pack, 3));
+                    _query.unpackInternals(conpeek(pack, 4));
+                }
+            }
+        }
+
+        return ok;
+    }
+
+    public static client server container updatePackedRangesAndSorting(container _pack, int _queryNextUniqueId = 0)
+    {
+        container               pack;
+        int                     version;
+        ;
+
+        if (typeof(conpeek(_pack, 1)) == Types::Integer)
+        {
+            version     = conpeek(_pack, 1);
+        }
+
+        if (version >= #packRangeAndSortVersion)
+        {
+            pack = _pack;
+        }
+        else
+        {
+            if (queryIsPackedOk(_pack))
+            {
+                pack = SysQuery::packRangeAndSortorder(new Query(_pack), _queryNextUniqueId);
+            }
+        }
+
+        return pack;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static str value(anytype a)
+    {
+        str quotableStr = ' *",.()\\';
+        str s;
+        int t;
+
+        str doEscape(str s1)
+        {
+            int i = 1;
+            int pos;
+            int len = strlen(s1);
+            str result;
+            pos = strfind(s1, quotableStr, i, len - i + 1);
+            while (pos)
+            {
+                result += substr(s1, i, pos - i) + '\\' + substr(s1, pos, 1);
+                i = pos + 1;
+                if (i<=len)
+                    pos = strfind(s1, quotableStr, i, len - i + 1);
+                else
+                    pos = 0;
+            }
+
+            if (i == 1)
+                return s1;
+
+            if (i<=len)
+                result += substr(s1, i, len - i + 1);
+
+            return result;
+        }
+
+        t = typeof(a);
+        switch (t)
+        {
+            case Types::Enum:
+                return enum2Value(a);
+            case Types::Real:
+                return num2str(a,0,16,1,0);
+            case Types::Date:
+            case Types::UtcDateTime:
+                return strfmt('\"%1\"',a);  // must be double quotes
+            case
+                Types::String,
+                Types::RString,
+                Types::VarString:
+            {
+                s = a;
+                if (!s)
+                    return SysQuery::valueEmptyString();
+                return strfmt('%1',doEscape(s));  // must be double quotes
+            }
+            //mazzy 03.12.2019 -->
+            case Types::Container:
+                return Any::construct(a).toQueryValue();
+            case Types::Class:
+                if (SysDictClass::isEqualOrSuperclass(classidget(a), classnum(Set)) ||
+                    SysDictClass::isEqualOrSuperclass(classidget(a), classnum(List)) ||
+                    SysDictClass::isEqualOrSuperclass(classidget(a), classnum(Array)))
+                {
+                    return Any::construct(a).toQueryValue();
+                }
+           //mazzy 03.12.2019 <--
+        }
+        // <GEEU>
+
+        // to avoid stack trace on unsupported value 'null'
+        if (! new DictEnum(enumnum(Types)).value2Symbol(t))
+            return SysQuery::valueUnlimited();
+
+            // </GEEU>
+        return strfmt('%1',a);
+    }
+
+    // Used when you want to have a range which must have a blank value
+    // use this method for future compability
+    public static str valueEmptyString()
+    {
+        return '\"\"';
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static str valueNot(anytype a)
+    {
+        str ret;
+        int i;
+        int len;
+        container con;
+        ;
+
+        switch(typeof(a))
+        {
+            case Types::Container:
+                len = conlen(a);
+                for( i=1; i<=len; ++i)
+                {
+                    con += SysQuery::valueNot(conpeek(a, i));
+                }
+                ret = con2str(con);
+                break;
+
+            case Types::Class:
+                if (SysDictClass::isEqualOrSuperclass(a, classnum(Set)))
+                {
+                    ret = SysQuery::valueNot(ConUtil::fromArray(a));
+                    break;
+                }
+                else if (SysDictClass::isEqualOrSuperclass(a, classnum(List)))
+                {
+                    ret = SysQuery::valueNot(ConUtil::fromList(a));
+                    break;
+                }
+                else if (SysDictClass::isEqualOrSuperclass(a, classnum(Array)))
+                {
+                    ret = SysQuery::valueNot(ConUtil::fromArray(a));
+                    break;
+                }
+                // no break! проваливаемся ниже
+            default:
+                ret = strfmt('!%1',SysQuery::value(a));
+                break;
+        }
+
+        return ret;
+    }
+
+    // Used when you want to have a range which must NOT have a blank value
+    // use this method for future compability
+    public static str valueNotEmptyString()
+    {
+        return '!\"\"';
+    }
+
+
+    // Used when you want to have a completely open range, no limitations; "a blank range"
+    // use this method for future compability
+    public static str valueUnlimited()
+    {
+        return '';
+    }
+}

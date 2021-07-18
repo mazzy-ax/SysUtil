@@ -1,0 +1,572 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+class RecordUtil
+{
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // это Util-класс, содержащий только статические методы
+    // нет смысла создавать объекты этого класса
+    private void new()
+    {
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static RecordCacheLevel cacheLookup(Common rec)
+    {
+        RecordCacheLevel ret = RecordUtil::dictTable(rec).cacheLookup();
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static Common clone(Common orig, RefTableId expectedTableId = 0)
+    {
+        Common clone;
+
+        if( expectedTableId && expectedTableId != orig.TableId && expectedTableId != RecordUtil::commonTableId() )
+        {
+            throw error(strFmt('%1: Не совпадают TableId. Ожидается %2, фактическое значение %3',
+                            funcname(),
+                            SysDictTable::construct(expectedTableId).toString(),
+                            SysDictTable::construct(orig.TableId).toString()
+            ));
+        }
+
+        clone.data(orig);
+
+        return clone;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static Common commonRecord()
+    {
+        Common rec;
+
+        return rec;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static TableId commonTableId()
+    {
+        // Common rec;
+        //
+        // return rec.TableId;
+
+        return 65535;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // всегда возвращает not nullable объект. Полезно в выражениях
+    public static DictTable dictTable(Common rec)
+    {
+        DictTable dt = new DictTable(rec.TableId);
+
+        if( !dt )
+        {
+            dt = new DictTable(RecordUtil::commonTableId());
+        }
+
+        return dt;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // ищет по значениям из полей, которые входят в уникальный индекс
+    public static Common findFromUniqueIndexFields(Common rec)
+    {
+        KeyData     keyData     = SysDictTable::getKeyData(rec).pack();
+        Common      ret         = SysDictTable::findFromKeyData(rec.TableId, keyData);
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static anytype getFieldValue(Common record, FieldId fieldid)
+    {
+        // не делаем дополнительных проверок: к случае чего, аксапта выбросит исключение про поля в записи
+        anytype value = record.(fieldid);
+
+        return value;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // возвращает строку, которая содержит значения указанных в контейнере, ключевых и обязательных полей
+    // каждое поле задействовано в контейнере только один раз
+    //
+    // порядок возвращаемых значений:
+    // сначала идут значения из полей, которые указаны пользователем,
+    // затем полей из уникальных индексов, затем обязательные поля
+    //
+    // как правило, метод используется в информационных сообщениях
+    //
+    // пример использования:
+    // str s = SysDictTable::getInfo(rContractTable, [fieldnum(rContractTable,CurrencyCode)]);
+    //
+    // в стандартной Аксапте уникальный индекс состоит из полей RContractPartnerType, RContractCode, RContractAccount
+    // результат будет похож на: "RContractTable[CurrencyCode, RContractPartnerType, RContractCode, RContractAccount]"
+    public static str getInfo(
+        Common      rec,
+        anytype     fieldIdCollection       = null, // Integer, Container, List, Set, Map, implements Enumerable or getEnumerator method
+        anytype     uniqueCollection        = null, // Integer, Container, List, Set, Map, implements Enumerable or getEnumerator method
+        anytype     mandatoryCollection     = null) // Integer, Container, List, Set, Map, implements Enumerable or getEnumerator method
+    {
+        str valueInfo = RecordUtil::getValuesInfo(rec, fieldIdCollection, uniqueCollection, mandatoryCollection);
+        str ret = strFmt('%1[%2]', tableId2name(rec.TableId), valueInfo);
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // возвращает контейнер, который содержит значения указанных в контейнере, ключевых и обязательных полей
+    // каждое поле задействовано в контейнере только один раз
+    //
+    // порядок возвращаемых значений:
+    // сначала идут значения из полей, которые указаны пользователем,
+    // затем полей из уникальных индексов, затем обязательные поля
+    //
+    // как правило, метод используется в unit-тестах
+    //
+    // пример использования:
+    // container values = SysDictTable::getValues(rContractTable, [fieldnum(rContractTable,CurrencyCode)]);
+    //
+    // в стандартной Аксапте уникальный индекс состоит из полей RContractPartnerType, RContractCode, RContractAccount
+    // контейнер values будет содержать 4 значения: [CurrencyCode, RContractPartnerType, RContractCode, RContractAccount]
+    public static container getValues(
+        Common      rec,
+        anytype     fieldIdCollection       = null, // Integer, Container, List, Set, Map, implements Enumerable or getEnumerator method
+        anytype     uniqueCollection        = null, // Integer, Container, List, Set, Map, implements Enumerable or getEnumerator method
+        anytype     mandatoryCollection     = null) // Integer, Container, List, Set, Map, implements Enumerable or getEnumerator method
+    {
+        Set         fields  = new Set(Types::Integer);
+        container   ret;
+
+        void appendFrom(anytype collection)
+        {
+            FieldId fieldId;
+            Enumerator e = collection ? EnumeratorUtil::getEnumerator(collection) : null;
+
+            while( e && e.moveNext() )
+            {
+                fieldId = AnytypeUtil::asInt(e.current());
+
+                if( fieldId && fields.add(fieldId) )
+                {
+                    ret += rec.(fieldId);
+                }
+            }
+        }
+
+        appendFrom(fieldIdCollection);
+        appendFrom(uniqueCollection ? uniqueCollection : SysDictTable::getUniqueIndexFields(rec.TableId));
+        appendFrom(mandatoryCollection ? mandatoryCollection : SysDictTable::getMandatoryFields(rec.TableId));
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // возвращает контейнер, который содержит значения указанных в контейнере, ключевых и обязательных полей
+    // каждое поле задействовано в контейнере только один раз
+    //
+    // порядок возвращаемых значений:
+    // сначала идут значения из полей, которые указаны пользователем,
+    // затем полей из уникальных индексов, затем обязательные поля
+    //
+    // как правило, метод используется в unit-тестах
+    //
+    // пример использования:
+    // container values = SysDictTable::getValuesInfo(rContractTable, [fieldnum(rContractTable,CurrencyCode)]);
+    //
+    // в стандартной Аксапте уникальный индекс состоит из полей RContractPartnerType, RContractCode, RContractAccount
+    // контейнер values будет содержать 4 значения: [CurrencyCode, RContractPartnerType, RContractCode, RContractAccount]
+    public static str getValuesInfo(
+        Common      rec,
+        anytype     fieldIdCollection       = null, // Integer, Container, List, Set, Map, implements Enumerable or getEnumerator method
+        anytype     uniqueCollection        = null, // Integer, Container, List, Set, Map, implements Enumerable or getEnumerator method
+        anytype     mandatoryCollection     = null) // Integer, Container, List, Set, Map, implements Enumerable or getEnumerator method
+    {
+        Set fields = new Set(Types::Integer);
+        TextBuffer text;
+
+        void appendFrom(anytype collection)
+        {
+            FieldId fieldId;
+            DictField df;
+            str info;
+            Enumerator e = EnumeratorUtil::getEnumerator(collection);
+
+            while( e && e.moveNext() )
+            {
+                fieldId = AnytypeUtil::asInt(e.current());
+
+                if( fieldId && fields.add(fieldId) )
+                {
+                    df = new DictField(rec.TableId, fieldId);
+                    info = strfmt("%1=%2", df.label(), rec.(df.id()));
+
+                    text = TextBufferUtil::appendIfNotEmpty(text, ', ');
+                    text = TextBufferUtil::append(text, info);
+                }
+            }
+        }
+
+        appendFrom(fieldIdCollection);
+        appendFrom(uniqueCollection ? uniqueCollection : SysDictTable::getUniqueIndexFields(rec.TableId));
+        appendFrom(mandatoryCollection ? mandatoryCollection : SysDictTable::getMandatoryFields(rec.TableId));
+
+        return TextBufferUtil::getText(text);
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static boolean hasTableAccess(Common rec, AccessType neededAccessType)
+    {
+        AccessType accessType = RecordUtil::dictTable(rec).rights();
+        boolean ret = (accessType >= neededAccessType);
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static boolean isCommon(Common record)
+    {
+        boolean ret = (record.TableId && record.TableId == RecordUtil::commonTableId());
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // возвращает true, если таблица не содержит ни одной записи
+    // возвращает false, если хотя бы одна запись есть.
+    //
+    // метод особенно полезен для временных таблиц
+    public static boolean isEmpty(Common record)
+    {
+        Common buf = RecordUtil::makeRecord(record.TableId);
+
+        if( record.isTmp() )
+        {
+            buf.setTmp();
+            buf.setTmpData(record);
+        }
+
+        select firstOnly buf;
+
+        return (buf.RecId == 0);
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static boolean isNull(Common record)
+    {
+        boolean ret = (record.TableId && record.TableId == RecordUtil::commonTableId());
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static Common makeRecord(TableId tableId = 0)
+    {
+        Common record;
+        DictTable dt;
+
+        if( tableId )
+        {
+            dt = new DictTable(tableId);
+            if( dt )
+            {
+                record = dt.makeRecord();
+            }
+        }
+
+        return record;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static Common makeRecordIfCommon(Common record, TableId tableId)
+    {
+        if( RecordUtil::isCommon(record) )
+        {
+            record = RecordUtil::makeRecord(tableId);
+        }
+
+        return record;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // проверяет есть ли вхожение паттерна в какое-нибудь поле
+    // проверку выполняет рекурсивно, если есть поля-контейнеры
+    public static boolean match(
+        str         pattern,
+        Common      record,
+        boolean     includeSystemFields     = false)
+    {
+        SysDictTable    sysDictTable    = new SysDictTable(record.TableId);
+        Set             fields          = sysDictTable.fields();
+        SetEnumerator   fe              = fields ? fields.getEnumerator() : null;
+        SysDictField    field;
+        Any             value;
+    ;
+        while( fe && fe.moveNext() )
+        {
+            field = fe.current();
+            if( !includeSystemFields && field.isSystem() )
+                continue;
+
+            switch( field.type() )
+            {
+                case Types::String:
+                case Types::RString:
+                case Types::VarString:
+                    value = Any::field(record, field.id());
+                    if( match(pattern, value.asString()) )
+                        return true;
+                    break;
+
+                case Types::Container:
+                    value = Any::field(record, field.id());
+                    if( ConUtil::match(pattern, value.asContainer()) )
+                        return true;
+                    break;
+
+                case Types::Record:
+                    value = Any::field(record, field.id());
+                    if( RecordUtil::match(pattern, value.asRecord()) )
+                        return true;
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+        return false;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static anytype setFieldValue(Common record, fieldId fieldid, anytype value)
+    {
+        // не делаем дополнительных проверок: к случае чего, аксапта выбросит исключение про поля в записи
+        record.(fieldid) = value;
+
+        return value;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // всегда возвращает not nullable объект. Полезно в выражениях
+    public static SysDictTable sysDictTable(Common rec)
+    {
+        SysDictTable dt = new SysDictTable(rec.TableId);
+
+        if( !dt )
+        {
+            new SysDictTable(RecordUtil::commonTableId());
+        }
+
+        return dt;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static container toCon(Common rec)
+    {
+        // первый элемент - для совместимости с Global:buf2con(), и Global::con2Buf()
+        container ret = [rec.TableId, rec];
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static boolean validateAndDelete(Common buf)
+    {
+        if( !buf.validateDelete() )
+        {
+            return false;
+        }
+
+        buf.delete();
+
+        return true;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static Common validateAndDeleteOrThrow(Common buf)
+    {;
+        RecordUtil::validateDeleteOrThrow(buf);
+        buf.delete();
+
+        return buf;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static boolean validateAndInsert(Common buf)
+    {
+        if( !buf.validateWrite() )
+        {
+            return false;
+        }
+
+        buf.insert();
+
+        return true;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static Common validateAndInsertOrThrow(Common buf)
+    {;
+        RecordUtil::validateWriteOrThrow(buf);
+        buf.insert();
+
+        return buf;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static boolean validateAndUpdate(Common buf)
+    {
+        if( !buf.validateWrite() )
+        {
+            return false;
+        }
+
+        buf.update();
+
+        return true;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static Common validateAndUpdateOrThrow(Common buf)
+    {;
+        RecordUtil::validateWriteOrThrow(buf);
+        buf.update();
+
+        return buf;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static boolean validateAndWrite(Common buf)
+    {
+        if( !buf.validateWrite() )
+        {
+            return false;
+        }
+
+        buf.write();
+
+        return true;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static Common validateAndWriteOrThrow(Common buf)
+    {;
+        RecordUtil::validateWriteOrThrow(buf);
+        buf.write();
+
+        return buf;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static boolean validateDelete(Common buf)
+    {
+        if( !buf.validateDelete() )
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static Common validateDeleteOrThrow(Common buf)
+    {
+        if( !buf.validateDelete() )
+        {
+            throw error(strFmt('Delete validation error for %1', RecordUtil::getInfo(buf)));
+        }
+
+        return buf;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static boolean validateWrite(Common buf)
+    {
+        if( !buf.validateWrite() )
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static Common validateWriteOrThrow(Common buf)
+    {
+        if( !buf.validateWrite() )
+        {
+            throw error(strFmt('Write validation error for %1', RecordUtil::getInfo(buf)));
+        }
+
+        return buf;
+    }
+}

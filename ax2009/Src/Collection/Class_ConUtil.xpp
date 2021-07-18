@@ -1,0 +1,452 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+class ConUtil
+{
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // это Util-класс, содержащий только статические методы
+    // нет смысла создавать объекты этого класса
+    private void new()
+    {
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // возвращает новый контейнер, в котором удалены все пустые элементы
+    public static container compact(container con)
+    {
+        ConEnumerator ce = ConEnumerator::construct(con);
+        container ret;
+
+        while( ce && ce.moveNext() )
+        {
+            if( ce.current() )
+            {
+                ret += ce.current();
+            }
+        }
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // возвращает новый контейнер, в котором присутствуют только уникальные объекты (дубли удалены)
+    public static container distinct(container con)
+    {
+        ConEnumerator ce = ConEnumerator::construct(con);
+        container ret;
+
+        while( ce && ce.moveNext() )
+        {
+            if( !confind(ret, ce.current()) )
+            {
+                ret += ce.current();
+            }
+        }
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static container fromArray(Array array)
+    {
+        container ret;
+        int i;
+
+        for( i=1; array && i<=array.lastIndex(); ++i )
+        {
+            ret += array.value(i);
+        }
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static container fromBlob(container blob)
+    {
+        return ContainerClass::blob2Container(blob);
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static container fromList(List list)
+    {
+        container ret;
+        ListEnumerator le = list ? list.getEnumerator() : null;
+
+        while( le && le.moveNext() )
+        {
+            ret += le.current();
+        }
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static container fromMap(Map map)
+    {
+        container ret;
+        MapEnumerator me = map ? map.getEnumerator() : null;
+
+        while( me && me.moveNext() )
+        {
+            ret += [me.currentKey(), me.currentValue()];
+        }
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static container fromSet(Set set)
+    {
+        container ret;
+        SetEnumerator se = set ? set.getEnumerator() : null;
+
+        while( se && se.moveNext() )
+        {
+            ret += se.current();
+        }
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static container fromXml(XmlNode node)
+    {
+        return containerFromXMLNode(node);
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static boolean in(anytype value, container con)
+    {
+        boolean ret = (confind(con, value) != 0);
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // проверяет есть ли вхожение паттерна в какую-нибудь строку внутри контейнера
+    // проверку выполняет рекурсивно
+    public static boolean match(
+        str         pattern,
+        container   con)
+    {
+        int     len     = conlen(con);
+        int     i;
+        Any     value;
+
+        for( i=1; i<=len; ++i )
+        {
+            value = Any::conpeek(con, i);
+
+            switch( value.type() )
+            {
+                case Types::String:
+                case Types::RString:
+                case Types::VarString:
+                    if( match(pattern, value.asString()) )
+                        return true;
+                    break;
+
+                case Types::Container:
+                    if( ConUtil::match(pattern, value.asContainer()) )
+                        return true;
+                    break;
+
+                case Types::Record:
+                    if( SysRecord::match(pattern, value.asRecord()) )
+                        return true;
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+        return false;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static anytype peekAs(container con, int idx, anytype asValue)
+    {
+        anytype ret = AnytypeUtil::as(conpeek(con, idx), asValue);
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static container peekAsContainer(container con, int idx)
+    {
+        container ret = AnytypeUtil::asContainer(conpeek(con, idx));
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static Date peekAsDate(container con, int idx)
+    {
+        Date ret = AnytypeUtil::asDate(conpeek(con, idx));
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static UtcDateTime peekAsDateTime(container con, int idx)
+    {
+        utcdatetime ret = AnytypeUtil::asDateTime(conpeek(con, idx));
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static anytype peekAsEnum(container con, int idx, enumId enumId = 0)
+    {
+        anytype ret = AnytypeUtil::asEnum(conpeek(con, idx), enumId);
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static GUID peekAsGUID(container con, int idx)
+    {
+        GUID ret = AnytypeUtil::asGUID(conpeek(con, idx));
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static int peekAsInt(container con, int idx)
+    {
+        int ret = AnytypeUtil::asInt(conpeek(con, idx));
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static Int64 peekAsInt64(container con, int idx)
+    {
+        Int64 ret = AnytypeUtil::asInt64(conpeek(con, idx));
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static Real peekAsReal(container con, int idx)
+    {
+        Real ret = AnytypeUtil::asInt(conpeek(con, idx));
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static int64 peekAsRecId(container con, int idx)
+    {
+        Int64 ret = AnytypeUtil::asRecId(conpeek(con, idx));
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static Common peekAsRecord(container con, int idx, TableId tableId = 0)
+    {
+        Common ret = AnytypeUtil::asRecord(conpeek(con, idx), tableId);
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static anytype peekAsType(container con, int idx, Types type, int potentialAncestorId = 0)
+    {
+        anytype ret = AnytypeUtil::asType(conpeek(con, idx), type, potentialAncestorId);
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static container remove(container con, anytype value)
+    {
+        int i = confind(con, value);
+
+        if( i )
+        {
+            con = condel(con, i, 1);
+        }
+
+        return con;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static container removeAll(container con, anytype value)
+    {
+        int i;
+
+        do
+        {
+            i = confind(con, value);
+            if( i )
+            {
+                con = condel(con, i, 1);
+            }
+        }
+        while( i );
+
+        return con;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static Array toArray(container con, Array array = null)
+    {
+        Any any;
+        int i;
+        int len = conlen(con);
+
+        for( i=1; i<=len; ++i )
+        {
+            any = Any::conpeek(con, i);
+
+            if( !array )
+            {
+                array = new Array(any.type());
+            }
+
+            if( any.type() == array.typeId() )
+            {
+                array.value(i, any.value());
+            }
+        }
+
+        return array;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static container toBlob(container con)
+    {
+        ContainerClass containerClass = new ContainerClass(con);
+        return containerClass.toBlob();
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static List toList(container con, List list = null)
+    {
+        Any any;
+        int i;
+        int len = conlen(con);
+
+        for( i=1; i<=len; ++i )
+        {
+            any = Any::conpeek(con, i);
+
+            if( !list )
+            {
+                list = new List(any.type());
+            }
+
+            if( any.type() == list.typeId() )
+            {
+                list.addEnd(any.value());
+            }
+        }
+
+        return list;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static Set toSet(container con, Set set = null)
+    {
+        Any any;
+        int i;
+        int len = conlen(con);
+
+        for( i=1; i<=len; ++i )
+        {
+            any = Any::conpeek(con, i);
+
+            if( !set )
+            {
+                set = new Set(any.type());
+            }
+
+            if( any.type() == set.typeId() )
+            {
+                set.add(conpeek(con, i));
+            }
+        }
+
+        return set;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static str toStr(container con, str sep = ',')
+    {
+        str ret = TextBufferUtil::appendContainer(null, con, sep).getText();
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static str toXmlString(container con, int indent = 0)
+    {
+        return XMLString(con, types::Container, indent);
+    }
+}

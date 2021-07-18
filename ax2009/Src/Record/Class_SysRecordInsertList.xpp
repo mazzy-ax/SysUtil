@@ -1,0 +1,114 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+class SysRecordInsertList extends RecordInsertlist
+{
+    boolean skipValidateWrite;
+
+    int elements;
+    int lastInserted;
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // добавляет запись к набору RecordInsertList
+    // перед добавлением выполняет validateVrite, если это не запрещено параметрами класса
+    public int add(Common record)
+    {
+        int ret;
+
+        if (this.skipValidateWrite() || record.validateWrite())
+        {
+            ret = super(record);    // внимание! на клиенте всегда возвращает 0
+            elements++;
+        }
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // всего элементов было добавлено в этот список
+    public int elements()
+    {
+        return elements;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // возвращает число записей, которые были вставлены в базу данной командой
+    public int insertDatabase()
+    {
+        int ret;
+
+        if( elements )
+        {
+            ret = super();
+        }
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public boolean skipValidateWrite(boolean _skipValidateWrite = skipValidateWrite)
+    {
+        skipValidateWrite = _skipValidateWrite;
+        return skipValidateWrite;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // создает объект на сервере
+    // используйте new(), если вы хотите вручную управлять местом создания объекта
+    public server static SysRecordInsertList construct(
+        TableId     tableId,
+        boolean     skipInsertMethod    = false,
+        boolean     skipDatabaseLog     = false,
+        boolean     skipEvents          = false,
+        boolean     skipAosValidation   = false,
+        boolean     skipRLSValidation   = false,
+        boolean     skipValidateWrite   = false)
+    {
+        SysRecordInsertList ril = new SysRecordInsertList(
+                                        tableId,
+                                        skipInsertMethod,
+                                        skipDatabaseLog,
+                                        skipEvents,
+                                        skipAosValidation,
+                                        skipRLSValidation);
+        ;
+
+        ril.skipValidateWrite(skipValidateWrite);
+
+        return ril;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // создает объект на сервере
+    // используйте new(), если вы хотите вручную управлять местом создания объекта
+    public server static SysRecordInsertList fromRecord(
+        Common      record,
+        boolean     skipValidateWrite   = false,
+        boolean     skipRLSValidation   = record.recordLevelSecurity())
+    {
+        SysRecordInsertList     ril     = SysRecordInsertList::construct(
+                                                record.tableId,
+                                                record.skipDataMethods(),
+                                                record.skipDatabaseLog(),
+                                                record.skipEvents(),
+                                                record.skipAosValidation(),
+                                                skipRLSValidation);
+        ;
+
+        ril.skipValidateWrite(skipValidateWrite);
+
+        return ril;
+    }
+}

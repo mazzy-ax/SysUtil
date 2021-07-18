@@ -1,0 +1,76 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+class ListUtil
+{
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // это Util-класс, содержащий только статические методы
+    // нет смысла создавать объекты этого класса
+    private void new()
+    {
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // создать list для хранения значений, тип которых совпадает с типом переменной value
+    public static List newBy(anytype value)
+    {
+        Types type = typeof(value);
+        List ret = new List(type);
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static container toCon(List list)
+    {
+        container ret;
+        ListEnumerator le = list.getEnumerator();
+
+        while( le.moveNext() )
+        {
+            ret += le.current();
+        }
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static Set toSet(List list)
+    {
+        Set set;
+        ListEnumerator le;
+
+        if (list)
+        {
+            set = new Set(list.typeId());
+
+            le = list.getEnumerator();
+            while (le.moveNext())
+            {
+                set.add(le.current());
+            }
+        }
+
+        return set;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static str toStr(List list, str sep = ',')
+    {
+        ListEnumerator le = list ? list.getEnumerator() : null;
+        str ret = TextBufferUtil::appendEnumerator(null, le, sep).getText();
+
+        return ret;
+    }
+}

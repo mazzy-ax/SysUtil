@@ -1,0 +1,97 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+public class ConEnumerator implements Enumerator
+{
+    int         idx;
+    int         len;
+    container   con;
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public anytype current()
+    {
+        // никаких проверок:
+        // если индекс выходит за границы контейнера, то conPeek возвратит целый 0
+        return conPeek(con, idx);
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public str definitionString()
+    {
+        return 'container enumerator';
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // метод публичный, чтобы объект данного класса можно было создавать из classFactory и инициализировать из всевозможных unpack
+    // не вызывайте этот метод напрямую
+    public void init(container _con)
+    {
+        con = _con;
+        len = conlen(con);
+    }
+
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public boolean moveNext()
+    {
+        idx++;
+
+        return (idx <= len);
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public void new(container _con = connull())
+    {
+        this.init(con);
+    }
+
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public void reset()
+    {
+        idx = 0;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public str toString()
+    {
+        // поскольку этот метод может вызваться в отладчике еще до инициализации,
+        // то в этом методе нельзя использовать методы класса и нельзя бросать исключение
+        // и ни в коем случае не бросаем исключение на неинициализированные значения
+        return AnytypeUtil::toString(this.current());
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static server ConEnumerator construct(container con)
+    {
+        ConEnumerator conEnumerator = new ConEnumerator(con);
+
+        return conEnumerator;
+    }
+
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static ClassDescription description()
+    {
+        return "An enumerator to traverse a container.";
+    }
+
+}

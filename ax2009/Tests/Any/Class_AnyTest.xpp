@@ -1,0 +1,196 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+class AnyTest extends SysTestCase
+{
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    void testConpeek()
+    {
+        container con = [1, '', 31\01\2019, ['inside'], 2019-01-31T13:00:00];
+        Any any;
+        ;
+
+        any = Any::conpeek(con, 1);
+        this.assertEquals(conpeek(con,1), any.value());
+
+        any = Any::conpeek(con, 2);
+        this.assertEquals(conpeek(con, 2), any.value());
+
+        any = Any::conpeek(con, 3);
+        this.assertEquals(conpeek(con, 3), any.value());
+
+        any = Any::conpeek(con, 4);
+        this.assertEquals(conpeek(con, 4), any.value());
+
+        any = Any::conpeek(con, 5);
+        this.assertEquals(conpeek(con, 5), any.value());
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    void testConstruct()
+    {
+        //TO DO проверить все типы
+        int i = 1;
+        str s = 'test';
+        Voucher v = 'voucher';
+        Any any;
+        ;
+
+        any = Any::construct(i);
+        this.assertEquals(i, any.value());
+
+        any = Any::construct(s);
+        this.assertEquals(s, any.value());
+
+        any = Any::construct(v);
+        this.assertEquals(v, any.value());
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    void testEqualsTo()
+    {
+        //TO DO проверить все типы
+        int i = 1;
+        str s = 'test';
+        Voucher v = 'voucher';
+        Date d = systemdateget();
+        utcdatetime dt = DateTimeUtil::utcNow();
+        container c = [1, '', d];
+
+        Any any1 = Any::construct(i);
+        Any any2;
+        ;
+
+        any2 = Any::construct(i);
+        this.assertTrue(any1.equalsTo(any2));
+        this.assertTrue(any2.equalsTo(any1));
+
+        this.assertFalse(any1.equalsTo(null));
+        this.assertFalse(any2.equalsTo(null));
+
+        any2 = Any::construct(s);
+        this.assertFalse(any1.equalsTo(any2));
+        this.assertFalse(any2.equalsTo(any1));
+
+        any2 = Any::construct(v);
+        this.assertFalse(any1.equalsTo(any2));
+        this.assertFalse(any2.equalsTo(any1));
+
+        any2 = Any::construct(d);
+        this.assertFalse(any1.equalsTo(any2));
+        this.assertFalse(any2.equalsTo(any1));
+
+        any2 = Any::construct(dt);
+        this.assertFalse(any1.equalsTo(any2));
+        this.assertFalse(any2.equalsTo(any1));
+
+        any2 = Any::construct(c);
+        this.assertFalse(any1.equalsTo(any2));
+        this.assertFalse(any2.equalsTo(any1));
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    void testField()
+    {
+        UserInfo userInfo;
+        Any any;
+        ;
+
+        select firstOnly userInfo;
+
+        any = Any::field(userInfo, fieldnum(Userinfo, RecId));
+        this.assertEquals(userInfo.RecId, any.value());
+
+        any = Any::field(userInfo, fieldnum(Userinfo, dataAreaId));
+        this.assertEquals(userInfo.dataAreaId, any.value());
+
+        any = Any::field(userInfo, fieldnum(Userinfo, createdDateTime));
+        this.assertEquals(userInfo.createdDateTime, any.value());
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    void testIsEqual()
+    {
+        //TO DO проверить все типы
+        int i = 1;
+        str s = 'test';
+        Voucher v = 'voucher';
+        Date d = systemdateget();
+        utcdatetime dt = DateTimeUtil::utcNow();
+        container c = [1, '', d];
+
+        Any any1 = Any::construct(i);
+        Any any2;
+        ;
+
+        any2 = Any::construct(i);
+        this.assertTrue(Any::isEqual(any1, any2));
+        this.assertTrue(Any::isEqual(any2, any1));
+
+        this.assertTrue(Any::isEqual(null, null));
+        this.assertFalse(Any::isEqual(any1, null));
+        this.assertFalse(Any::isEqual(null, any2));
+
+        any2 = Any::construct(s);
+        this.assertFalse(Any::isEqual(any1, any2));
+        this.assertFalse(Any::isEqual(any2, any1));
+
+        any2 = Any::construct(v);
+        this.assertFalse(Any::isEqual(any1, any2));
+        this.assertFalse(Any::isEqual(any2, any1));
+
+        any2 = Any::construct(d);
+        this.assertFalse(Any::isEqual(any1, any2));
+        this.assertFalse(Any::isEqual(any2, any1));
+
+        any2 = Any::construct(dt);
+        this.assertFalse(Any::isEqual(any1, any2));
+        this.assertFalse(Any::isEqual(any2, any1));
+
+        any2 = Any::construct(c);
+        this.assertFalse(Any::isEqual(any1, any2));
+        this.assertFalse(Any::isEqual(any2, any1));
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    void testToString()
+    {
+        //TO DO проверить все типы
+        Any any;
+        ;
+
+        any = Any::construct(1);
+        this.assertEquals('1', any.toString());
+
+        any = Any::construct('test');
+        this.assertEquals('test', any.toString());
+
+        any = Any::construct(31\12\2019);
+        this.assertEquals(strfmt('%1',31\12\2019), any.toString());
+
+        any = Any::construct(2019-12-31T13:01:00);
+        this.assertEquals(strfmt('%1',2019-12-31T13:01:00), any.toString());
+
+        any = Any::construct([1, '', [31\12\2019]]);
+        this.assertEquals('1,,31.12.2019', any.toString());
+
+        any = Any::construct(appl);
+        this.assertEquals('Class', any.toString());
+
+        any = Any::construct(SysUserInfo::find());
+        this.assertEquals('Record', any.toString());
+    }
+}

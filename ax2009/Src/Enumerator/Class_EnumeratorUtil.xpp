@@ -1,0 +1,131 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+class EnumeratorUtil
+{
+
+    // это Util-класс, содержащий только статические методы
+    // нет смысла создавать объекты этого класса
+    private void new()
+    {
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static anytype asEnumerable(anytype value)
+    {
+        if( EnumeratorUtil::isEnumerable(value) )
+        {
+            return value;
+        }
+
+        return null;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static anytype asEnumerator(anytype value)
+    {
+        if( EnumeratorUtil::isEnumerable(value) )
+        {
+            return value;
+        }
+
+        return null;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // возвращает объект, у которого можно вызвать метод moveNext или Null
+    public static Enumerator getEnumerator(anytype value)
+    {
+        Object obj;
+
+        if( EnumeratorUtil::isEnumerable(value) )
+        {
+            switch( typeof(value) )
+            {
+                case Types::Container:
+                    return ConEnumerator::construct(value);
+
+                case Types::Class:
+                    if( value )
+                    {
+                        obj = value; // проверка isEnumerable гарантирует, что метод getEnumerator существует и определен правильно
+                        return obj.getEnumerator();
+                    }
+                    else
+                    {
+                        return null;
+                    }
+                    break;
+            }
+        }
+
+        if( value )
+        {
+            return OneValueEnumerator::construct(value);
+        }
+
+        return null; // можно вручную создать enumerator на коллекцию из одного null, если кто-то захочет
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // возвращает true для значения, для которого можно получить enumerator
+    public static boolean isEnumerable(anytype value)
+    {
+        Types type = typeof(value);
+        SysDictMethod sdm;
+        ;
+
+        switch( type )
+        {
+            case Types::Container:
+                return true;
+
+            case Types::Class:
+                if( value )
+                {
+                    if( AnytypeUtil::isList(value) )
+                        return true;
+
+                    if( AnytypeUtil::isMap(value) )
+                        return true;
+
+                    if( AnytypeUtil::isSet(value) )
+                        return true;
+
+                    if( AnytypeUtil::isClass(value, classnum(Enumerable)) )
+                        return true;
+
+                    // утиная типизация: есть метод getEnumerator,
+                    // у которого нет параметров и который возвращает объект
+                    sdm = new SysDictMethod(UtilElementType::ClassInstanceMethod, classidget(value), identifierstr(getEnumerator));
+                    if( sdm &&
+                        sdm.parameterCnt() == 0 &&
+                        sdm.returnType() == Types::Class &&
+                        SysDictClass::construct(sdm.returnId()).isImplementing(classnum(Enumerator)) )
+                    {
+                        return true;
+                    }
+                }
+                break;
+        }
+
+        return false;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // возвращает true для значения, для которого можно получить enumerator
+    public static boolean isEnumerator(anytype value)
+    {
+        return AnytypeUtil::isImplements(value, classnum(Enumerator));
+    }
+}
