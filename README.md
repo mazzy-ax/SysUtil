@@ -17,7 +17,7 @@
 * в Sys* классах (SysArgs, SysDataArea, SysDictTable, SysCLRType и т.д.)
 * в *Util классах (AifUtil, AifWebReferenceUtil и еще несколько, могут содержать не только статические методы)
 
-Также для размещения служебных методов используется всякая разножопица вида: GlobalWeb, Global_<DevLogin>, <PartnerCompanyPrefix>_Tool, Dev_Base и подобные странные названия, понятные только автору.
+Также для размещения служебных методов используется всякая разножопица вида: GlobalWeb, Global_&lt;DevLogin&gt;, &lt;PartnerCompanyPrefix&gt;_Tool, Dev_Base и подобные странные названия, понятные только автору.
 
 Ограничения:
 
