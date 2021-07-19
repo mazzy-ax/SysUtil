@@ -13965,9 +13965,9 @@ Formatversion: 1
       ENDNODE
       ENDGROUP
       
-    GROUP #StringUtil
+    GROUP #Str
       PROPERTIES
-        Name                #StringUtil
+        Name                #Str
         ProjectGroupType    #Classes
         GroupMask           #
         PreventEditProperties #No
