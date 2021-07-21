@@ -1,0 +1,346 @@
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    static void addRangesFromCon(QueryBuildDataSource qbds, FieldId fieldId, container con)
+    {
+        ConEnumerator ce;
+
+        if( qbds && fieldId && con )
+        {
+            ce = ConEnumerator::construct(con);
+            while (ce && ce.moveNext())
+            {
+                qbds.addRange(fieldId).value(queryValue(ce.current()));
+            }
+        }
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    static void addRangesFromEnumerator(QueryBuildDataSource qbds, FieldId fieldId, Enumerator e)
+    {
+        if( qbds && fieldId )
+        {
+            while (e && e.moveNext())
+            {
+                qbds.addRange(fieldId).value(queryValue(e.current()));
+            }
+        }
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    static void addRangesFromList(QueryBuildDataSource qbds, FieldId fieldId, List list)
+    {
+        ListEnumerator le;
+
+        if( qbds && fieldId && list )
+        {
+            le = list.getEnumerator();
+            while (le && le.moveNext())
+            {
+                qbds.addRange(fieldId).value(queryValue(le.current()));
+            }
+        }
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    static void addRangesFromSet(QueryBuildDataSource qbds, FieldId fieldId, Set set)
+    {
+        SetEnumerator se;
+
+        if( qbds && fieldId && set )
+        {
+            se = set.getEnumerator();
+            while (se && se.moveNext())
+            {
+                qbds.addRange(fieldId).value(queryValue(se.current()));
+            }
+        }
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static QueryGroupByField findGroupByField(
+        Query                   _query,
+        QueryBuildDataSource    _qbds,
+        fieldId                 _fieldId)
+    {
+        int                 groupFields;
+        int                 i;
+        QueryGroupByField   queryGroupByField;
+
+        if (_query && _qbds)
+        {
+            groupFields = _query.groupByFieldCount();
+            for (i=1; i <= groupFields; ++i)
+            {
+                queryGroupByField = _query.groupByField(i);
+
+                if (queryGroupByField
+                    && queryGroupByField.fieldID() == _fieldId
+                    && queryGroupByField.dataSource().table() == _qbds.table())
+                {
+                    break;
+                }
+            }
+        }
+
+        return queryGroupByField;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static QueryGroupByField findOrCreateGroupByField(Query _query, QueryBuildDataSource _queryBuildDataSource, fieldId _fieldId)
+    {
+        QueryGroupByField    queryGroupByField;
+
+        if (_query && _queryBuildDataSource)
+        {
+            queryGroupByField = SysQuery::findGroupByField(_query, _queryBuildDataSource, _fieldId);
+
+            if (!queryGroupByField)
+            {
+                queryGroupByField = _queryBuildDataSource.addGroupByField(_fieldId);
+            }
+        }
+
+        return queryGroupByField;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static QueryBuildRange findOrCreateRange(QueryBuildDataSource _queryBuildDataSource, fieldId _fieldId)
+    {
+        QueryBuildRange queryBuildRange;
+
+        if (_queryBuildDataSource)
+        {
+            queryBuildRange = _queryBuildDataSource.findRange(_fieldId);
+
+            if (!queryBuildRange && _fieldId)
+            {
+                queryBuildRange = _queryBuildDataSource.addRange(_fieldId);
+            }
+        }
+        return queryBuildRange;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // использует уже существующий range или добавляет новый
+    // сразу устанавливает value (включая контейнер), выполняет экранирование
+    public static QueryBuildRange findOrCreateRangeValue(
+        QueryBuildDataSource    _queryBuildDataSource,
+        fieldId                 _fieldId,
+        Anytype                 _value)
+    {
+        QueryBuildRange     queryBuildRange     = SysQuery::findOrCreateRange(_queryBuildDataSource, _fieldId);
+        str                 strValue;
+
+        if (queryBuildRange)
+        {
+            strValue = SysQuery::value(_value);
+            queryBuildRange.value(strValue);
+        }
+
+        return queryBuildRange;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // использует уже существующий range или добавляет новый
+    // сразу устанавливает value (включая контейнер), выполняет экранирование
+    public static QueryBuildRange findOrCreateRangeValueNot(
+        QueryBuildDataSource    _queryBuildDataSource,
+        fieldId                 _fieldId,
+        Anytype                 _value)
+    {
+        QueryBuildRange     queryBuildRange     = SysQuery::findOrCreateRange(_queryBuildDataSource, _fieldId);
+        str                 strValue;
+
+        if (queryBuildRange)
+        {
+            strValue = SysQuery::valueNot(_value);
+            queryBuildRange.value(strValue);
+        }
+
+        return queryBuildRange;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static Query query(
+        TableId     _tableId,
+        FieldId     _fieldId    = 0,
+        Anytype     _value      = null)
+    {
+        Query                   q       = new Query();
+        QueryBuildDataSource    qbds    = q.addDataSource(_tableId);
+
+        if (_fieldId && qbds && !prmisdefault(_value))
+        {
+            SysQuery::findOrCreateRangeValue(qbds, _fieldId, _value);
+        }
+
+        return q;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static QueryRun queryRun(
+        TableId     _tableId,
+        FieldId     _fieldId    = 0,
+        Anytype     _value      = null)
+    {
+        Query       q   = SysQuery::query(_tableId, _fieldId, _value);
+        QueryRun    qr  = new QueryRun(q);
+
+        return qr;
+    }
+
+    // получить из запроса n записей, начиная со startFrom
+    public static QueryRun take(Query q, int n, int startFrom = 1)
+    {
+        QueryRun qr = new QueryRun(q);
+
+        qr = QueryRunUtil::take(qr, n, startFrom);
+
+        return qr;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static str value(anytype a)
+    {
+        str quotableStr = ' *",.()\\';
+        str s;
+        int t;
+
+        str doEscape(str s1)
+        {
+            int i = 1;
+            int pos;
+            int len = strlen(s1);
+            str result;
+            pos = strfind(s1, quotableStr, i, len - i + 1);
+            while (pos)
+            {
+                result += substr(s1, i, pos - i) + '\\' + substr(s1, pos, 1);
+                i = pos + 1;
+                if (i<=len)
+                    pos = strfind(s1, quotableStr, i, len - i + 1);
+                else
+                    pos = 0;
+            }
+
+            if (i == 1)
+                return s1;
+
+            if (i<=len)
+                result += substr(s1, i, len - i + 1);
+
+            return result;
+        }
+
+        t = typeof(a);
+        switch (t)
+        {
+            case Types::Enum:
+                return enum2Value(a);
+            case Types::Real:
+                return num2str(a,0,16,1,0);
+            case Types::Date:
+            case Types::UtcDateTime:
+                return strfmt('\"%1\"',a);  // must be double quotes
+            case
+                Types::String,
+                Types::RString,
+                Types::VarString:
+            {
+                s = a;
+                if (!s)
+                    return SysQuery::valueEmptyString();
+                return strfmt('%1',doEscape(s));  // must be double quotes
+            }
+            //mazzy 03.12.2019 -->
+            case Types::Container:
+                return Any::construct(a).toQueryValue();
+            case Types::Class:
+                if (SysDictClass::isEqualOrSuperclass(classidget(a), classnum(Set)) ||
+                    SysDictClass::isEqualOrSuperclass(classidget(a), classnum(List)) ||
+                    SysDictClass::isEqualOrSuperclass(classidget(a), classnum(Array)))
+                {
+                    return Any::construct(a).toQueryValue();
+                }
+           //mazzy 03.12.2019 <--
+        }
+        // <GEEU>
+
+        // to avoid stack trace on unsupported value 'null'
+        if (! new DictEnum(enumnum(Types)).value2Symbol(t))
+            return SysQuery::valueUnlimited();
+
+            // </GEEU>
+        return strfmt('%1',a);
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static str valueNot(anytype a)
+    {
+        str ret;
+        int i;
+        int len;
+        container con;
+        ;
+
+        switch(typeof(a))
+        {
+            case Types::Container:
+                len = conlen(a);
+                for( i=1; i<=len; ++i)
+                {
+                    con += SysQuery::valueNot(conpeek(a, i));
+                }
+                ret = con2str(con);
+                break;
+
+            case Types::Class:
+                if (SysDictClass::isEqualOrSuperclass(a, classnum(Set)))
+                {
+                    ret = SysQuery::valueNot(ConUtil::fromArray(a));
+                    break;
+                }
+                else if (SysDictClass::isEqualOrSuperclass(a, classnum(List)))
+                {
+                    ret = SysQuery::valueNot(ConUtil::fromList(a));
+                    break;
+                }
+                else if (SysDictClass::isEqualOrSuperclass(a, classnum(Array)))
+                {
+                    ret = SysQuery::valueNot(ConUtil::fromArray(a));
+                    break;
+                }
+                // no break! проваливаемся ниже
+            default:
+                ret = strfmt('!%1',SysQuery::value(a));
+                break;
+        }
+
+        return ret;
+    }

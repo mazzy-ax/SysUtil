@@ -1,0 +1,44 @@
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // в качестве описания можно использовать название переменной
+    public static LabelType unsupportedEmptyString(str _funcName, anytype _description = '')
+    {
+        LabelType ret = strfmt("unsupported empty string in %1 %2", _funcName, _description);
+
+        return ret;
+        }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static LabelType unsupportedEnum(str _funcName, anytype _enumValue = '')
+    {
+        LabelType ret = strfmt("Unsupported enum <%1> in %2", _enumValue, _funcName);
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // в качестве описания можно использовать название переменной
+    public static LabelType unsupportedNull(str _funcName, anytype _description = '')
+    {
+        LabelType ret = strfmt("unsupported Null in %1 %2", _funcName, _description);
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static LabelType unsupportedType(str _funcName, anytype type = '')
+    {
+        LabelType ret = strfmt("unsupported Type %1 - %2", type, _funcName);
+
+        ret += TextUtil::callStack();
+
+        return ret;
+    }

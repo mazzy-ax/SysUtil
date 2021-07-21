@@ -28,7 +28,7 @@ class EnumeratorUtil
     //
     public static anytype asEnumerator(anytype value)
     {
-        if( EnumeratorUtil::isEnumerable(value) )
+        if( EnumeratorUtil::isEnumerator(value) )
         {
             return value;
         }
@@ -81,7 +81,6 @@ class EnumeratorUtil
     {
         Types type = typeof(value);
         SysDictMethod sdm;
-        ;
 
         switch( type )
         {
