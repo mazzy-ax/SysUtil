@@ -1,0 +1,30 @@
+
+    static public Object as(Object _class, classId _classId)
+    {
+        if (_class && SysDictClass::is(_class, _classId))
+            return _class;
+
+        return null;
+    }
+
+    public static SysDictClass construct(ClassId classId)
+    {
+        return new SysDictClass(classId);
+    }
+
+    public static boolean is(Object _class, classId _classId)
+    {
+        boolean ret = false;
+
+        if( _classId )
+        {
+            ret = SysDictClass::isEqualOrSuperclass(classidget(_class), _classId);
+
+            if( !ret )
+            {
+                ret = new SysDictClass(classidget(_class)).isImplementing(_classId);
+            }
+        }
+
+        return ret;
+    }

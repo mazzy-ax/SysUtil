@@ -1,0 +1,724 @@
+//
+// mazzy, https://github.com/mazzy-ax/StrUtil
+//
+// Класс RecordList содержит список записей из таблиц *разного типа* (в том числе могут быть типа Common)
+// для записей всех типов вполне успешно срабатывают табличные методы initValue, validateWrite, write, insert, update и т.д.
+// класс позволяет единообразно обслуживать записи из списка
+//
+// класс во многом похож на RecordLinkList. отличия:
+// * работает предсказуемым образом
+// * гарантировано держит все записи в памяти
+// * позволяет создавать несколько энумераторов и делать вложенные циклы по одному списку
+// * не вмешивается и не копирует записи, поэтому внутренние флаги и проперти в записи сохраняются.
+//   это значит что:
+//   * методы update получат правильный флаг forupdate
+//   * оператор next будет правильно работать с записями, которые выбраны из списка
+//   * запись из map останется записью из map
+// * методы pack/unpack позволяют эффективно передавать значения между клиентом и сервером (внутренние флаги и проперти сбрасываются)
+// * методы validateDelete и validateWrite сначала проверят все записи, лишь потом выполнят действия для всех записей
+// * реализованы методы merge и appendList и другие методы базового класса List
+//
+// по сравнению с RecordLinkList этот класс не позволяет:
+// * получить доступ к записи по индексу (см. второй параметр в RecordLinkList.get)
+// * перейти к предыдущей записи в цикле (см. метод RecordLinkList.prev)
+// * удалять элементы из списка
+//
+// TODO добавить выборку табличных буферов из QueryRun
+class RecordList extends List
+{
+    Set tableIds;
+
+    public anytype addEnd(anytype value)
+    {
+        Common buf = this.assignable(value);
+
+        if( this.isAssignableBuf(buf) )
+        {
+            buf = super(value);
+            this.tableIds().add(buf.TableId);
+        }
+
+        return buf;
+    }
+
+    public anytype addStart(anytype value)
+    {
+        Common buf = this.assignable(value);
+
+        if( this.isAssignableBuf(buf) )
+        {
+            buf = super(value);
+            this.tableIds().add(buf.TableId);
+        }
+
+        return buf;
+    }
+
+    // возвращает число добавленных элементов
+    public int appendEnumerator(Enumerator e, int maxElements = 0)
+    {
+        int elements;
+        Common buf;
+
+        while( e && e.moveNext() && (maxElements == 0 || elements <= maxElements)  )
+        {
+            buf = this.addEnd(e.current());
+            elements += this.isAssignableBuf(buf);
+        }
+
+        return elements;
+    }
+
+    // @override
+    public void appendList(List list)
+    {
+        if( list &&
+            confind([Types::Record, Types::Integer, Types::String, Types::RString, Types::VarString], list.typeId()) )
+        {
+            this.appendEnumerator(list.getEnumerator());
+        }
+    }
+
+    // добавляет все отмеченные на форме записи
+    // возвращает число добавленных элементов
+    public int appendMarked(FormDataSource fds, int maxElements = 0)
+    {
+        int elements;
+        common buf = fds ? fds.getFirst(1) : null;
+
+        while( fds && buf && (maxElements == 0 || elements <= maxElements) )
+        {
+            buf = this.addEnd(buf);
+            elements = this.isAssignableBuf(buf);
+
+            buf = fds.getNext();
+        }
+
+        return elements;
+    }
+
+    // добавляет в список datasource из query, которые получат значения в выборке из базы
+    // Получится список неинициализированых буферов
+    // возвращает число добавленных элементов
+    public int appendQuery(Query q, int maxElements = 0)
+    {
+        int elements;
+        QueryBuildDataSource qbds;
+        int qbdsId;
+
+        if( q )
+        {
+            qbdsId = q.nextUniqueId();
+            while( qbdsId && (maxElements == 0 || elements <= maxElements) )
+            {
+                qbds = q.dataSourceUniqueId(qbdsId);
+
+                if (qbds &&
+                    qbds.table() &&
+                    qbds.enabled() &&
+                    confind([JoinMode::InnerJoin, JoinMode::OuterJoin], qbds.joinMode()))
+                {
+                    elements += this.addEnd(qbds.table());
+                }
+
+                qbdsId = q.nextUniqueId();
+            }
+        }
+
+        return elements;
+    }
+
+    // добавляет табличные буфера с указанными RecId
+    // возвращает число добавленных элементов
+    public int appendRecIdEnumerator(TableId tableId, Enumerator e, boolean selectForUpdate = false, int maxElements = 0)
+    {
+        int       elements;
+        RecId     recId;
+        common    buf;
+
+        while( e && e.moveNext() && (maxElements == 0 || elements <= maxElements)  )
+        {
+            recId = AnytypeUtil::asRecId(e.current());
+            if( recId )
+            {
+                buf = RecordUtil::commonRecord(); // на случай, если в списке табличные буфера разного типа
+                buf.selectForUpdate(selectForUpdate);
+                select firstonly buf where buf.RecId == recId;
+
+                buf = this.addEnd(e.current());
+                elements += this.isAssignableBuf(buf);
+            }
+        }
+
+        return elements;
+    }
+
+    // добавляет все записи из табличного буфера, который был заполнен командой select
+    // возвращает число добавленных элементов
+    //
+    // пример:
+    //
+    // {
+    //     CustTable ct;
+    //     select ct where ct.Name like 'Micro*';
+    //     SysRecordList::fromList(ct);
+    // }
+    //
+    public int appendSelect(Common selectedBuf, int maxElements = 0)
+    {
+        int elements;
+        Common buf;
+
+        while( selectedBuf && (maxElements == 0 || elements <= maxElements)  )
+        {
+            buf = this.addEnd(selectedBuf);
+            elements += this.isAssignableBuf(buf);
+
+            next selectedBuf;
+        }
+
+        return elements;
+    }
+
+    public Common assignable(anytype value)
+    {
+        Common buf = AnytypeUtil::toBuf(value);
+
+        return buf;
+    }
+
+    // выполняет удаление без валиадции.
+    // Может, стоит использовать метод validateAndDelete?
+    public RecordList deleteDatabase()
+    {
+        ListEnumerator le = this.getEnumerator();
+        Common buf;
+
+        while( le && le.moveNext() )
+        {
+            buf = le.current();         // строка для отладчика
+            buf.delete();
+        }
+
+        return this;
+    }
+
+    public boolean hasTableAccess(AccessType neededAccessType)
+    {
+        AccessType accessType = this.rights();
+        boolean ret = (accessType >= neededAccessType);
+
+        return ret;
+    }
+
+    // выполняет initValue для буферов с пустым recId.
+    public void initValue()
+    {
+        ListEnumerator le = this.getEnumerator();
+        Common buf;
+
+        while( le && le.moveNext() )
+        {
+            buf = le.current();
+            if( !buf.RecId )
+            {
+                buf.initValue();
+            }
+        }
+    }
+
+    // выполняет вставку без валиадции для буферов с пустым recId.
+    // Может, стоит использовать метод validateAndInsert?
+    public RecordList insertDatabase()
+    {
+        ListEnumerator le = this.getEnumerator();
+        Common buf;
+
+        while( le && le.moveNext() )
+        {
+            buf = le.current();
+            if( !buf.RecId )
+            {
+                buf.insert();
+            }
+        }
+
+        return this;
+    }
+
+    public boolean isAssignableBuf(Common buf)
+    {
+        boolean ret = buf.TableId && !RecordUtil::isCommon(buf);
+
+        return ret;
+    }
+
+    public void new(Types _type = Types::Record)
+    {
+        anytype contract = Debug::assert(_type == Types::Record);
+
+        super(Types::Record);
+    }
+
+    // возвращает минимальный уровень доступа
+    // пустой список записей имеет максимальный уровень доступа
+    public AccessType rights()
+    {
+        AccessType ret = AccessType::Delete;
+        AccessType rights;
+
+        SetEnumerator se = this.tableIds().getEnumerator();
+        TableId tableId;
+
+        while( se && se.moveNext() )
+        {
+            tableId = se.current();
+            rights = new DictTable(tableId).rights(); // так мы получаем права с учетом свойства таблицы maxAccessMode
+            ret = min(ret, rights);
+        }
+
+        return ret;
+    }
+
+    // устанавливает режим выборки для всех табличных буферов в true, если selectForUpdate == true
+    // не изменяет флаг у табличных буферов, если selectForUpdate == false
+    public void selectForUpdate(boolean selectForUpdate = false)
+    {
+        ListEnumerator le = this.getEnumerator();
+        Common buf;
+
+        while( selectForUpdate && le && le.moveNext() )
+        {
+            buf = le.current();
+            buf.selectForUpdate(selectForUpdate);
+        }
+    }
+
+    public void setTmp()
+    {
+        ListEnumerator le = this.getEnumerator();
+        Common buf;
+
+        while( le && le.moveNext() )
+        {
+            buf = le.current();         // строка для отладчика
+            buf.setTmp();
+        }
+    }
+
+    public Set tableIds()
+    {
+        if( !tableIds )
+            tableIds = new Set(Types::Integer);
+
+        return tableIds;
+    }
+
+    // выполняет обновление без валиадции для буферов с заполненным recId.
+    // Может, стоит использовать метод validateAndupdate?
+    public RecordList updateDatabase()
+    {
+        ListEnumerator le = this.getEnumerator();
+        Common buf;
+
+        while( le && le.moveNext() )
+        {
+            buf = le.current();
+            if( buf.RecId )
+            {
+                buf.update();
+            }
+        }
+
+        return this;
+    }
+
+    // выполняет валидацию всех записей,
+    // а затем, если валидация успешна, удаляет
+    public boolean validateAndDelete()
+    {
+        boolean valid = this.validateDelete();
+
+        if( valid )
+        {
+            this.deleteDatabase();
+        }
+
+        return valid;
+    }
+
+    public RecordList validateAndDeleteOrThrow()
+    {
+        this.validateDeleteOrThrow();
+        this.deleteDatabase();
+
+        return this;
+    }
+
+    // выполняет валидацию всех еще не вставленных записей (recId == 0),
+    // а затем, если валидация успешна, вставку еще не вставленных записей
+    public boolean validateAndInsert()
+    {
+        boolean valid = this.validateWrite();
+
+        if( valid )
+        {
+            this.insertDatabase();
+        }
+
+        return valid;
+    }
+
+    public RecordList validateAndInsertOrThrow()
+    {
+        this.validateWriteOrThrow();
+        this.insertDatabase();
+
+        return this;
+    }
+
+    // выполняет валидацию всех уже вставленных записей (recId != 0),
+    // а затем, если валидация успешна, update уже вставленных записей
+    public boolean validateAndUpdate()
+    {
+        boolean valid = this.validateWrite();
+
+        if( valid )
+        {
+            this.updateDatabase();
+        }
+
+        return valid;
+    }
+
+    public RecordList validateAndUpdateOrThrow()
+    {
+        this.validateWriteOrThrow();
+        this.writeDatabase();
+
+        return this;
+    }
+
+    // выполняет валидацию всех записей,
+    // а затем, если валидация успешна, запись всех буферов (Аксапта сама разбирается нужно вставить или обновить буфер)
+    public boolean validateAndWrite()
+    {
+        boolean valid = this.validateWrite();
+
+        if( valid )
+        {
+            this.writeDatabase();
+        }
+
+        return valid;
+    }
+
+    public RecordList validateAndWriteOrThrow()
+    {
+        this.validateWriteOrThrow();
+        this.writeDatabase();
+
+        return this;
+    }
+
+    public boolean validateDelete()
+    {
+        boolean valid = true;
+        ListEnumerator le = this.getEnumerator();
+        Common buf;
+
+        while( valid && le && le.moveNext() )
+        {
+            buf = le.current();         // строка для отладчика
+            valid = buf.validateDelete();
+        }
+
+        return valid;
+    }
+
+    public RecordList validateDeleteOrThrow()
+    {
+        if( !this.validateDelete() )
+        {
+            throw error(strFmt('Delete validation error in %1', funcname()));
+        }
+
+        return this;
+    }
+
+    public boolean validateWrite()
+    {
+        boolean valid = true;
+        ListEnumerator le = this.getEnumerator();
+        Common buf;
+
+        while( valid && le && le.moveNext() )
+        {
+            buf = le.current();         // строка для отладчика
+            valid = buf.validateWrite();
+        }
+
+        return valid;
+    }
+
+    public RecordList validateWriteOrThrow()
+    {
+        if( !this.validateWrite() )
+        {
+            throw error(strFmt('Write validation error in %1', funcname()));
+        }
+
+        return this;
+    }
+
+    // выполняет запись без валиадции всех буферов.
+    // Может, стоит использовать метод validateAndWrite?
+    public RecordList writeDatabase()
+    {
+        ListEnumerator le = this.getEnumerator();
+        Common rec;
+
+        while( le && le.moveNext() )
+        {
+            rec = le.current(); // строка для отладчика
+            rec.write();
+        }
+
+        return this;
+    }
+
+    public static RecordList construct()
+    {
+        RecordList recordList = new RecordList(Types::Record);
+
+        return recordList;
+    }
+
+    // табличные буфера как параметры, чтобы не потерять внутренние флаги
+    // такие как SelectForUpdate, formDataSource, был сделан select, isTmp
+    public static RecordList fromBuf(
+        Common buf1 = null,
+        Common buf2 = null,
+        Common buf3 = null,
+        Common buf4 = null,
+        Common buf5 = null,
+        Common buf6 = null,
+        Common buf7 = null,
+        Common buf8 = null,
+        Common buf9 = null,
+        Common buf10 = null,
+        Common buf11 = null,
+        Common buf12 = null)
+    {
+        RecordList recordList = RecordList::construct();
+
+        if( !prmisdefault(buf1) ) recordList.addEnd(buf1);
+        if( !prmisdefault(buf2) ) recordList.addEnd(buf2);
+        if( !prmisdefault(buf3) ) recordList.addEnd(buf3);
+        if( !prmisdefault(buf4) ) recordList.addEnd(buf4);
+        if( !prmisdefault(buf5) ) recordList.addEnd(buf5);
+        if( !prmisdefault(buf6) ) recordList.addEnd(buf6);
+        if( !prmisdefault(buf7) ) recordList.addEnd(buf7);
+        if( !prmisdefault(buf8) ) recordList.addEnd(buf8);
+        if( !prmisdefault(buf9) ) recordList.addEnd(buf9);
+        if( !prmisdefault(buf10) ) recordList.addEnd(buf10);
+        if( !prmisdefault(buf11) ) recordList.addEnd(buf11);
+        if( !prmisdefault(buf12) ) recordList.addEnd(buf12);
+
+        return recordList;
+    }
+
+    public static RecordList fromBuf1(Common buf)
+    {
+        RecordList recordList = RecordList::construct();
+        ;
+
+        recordList.addEnd(buf);
+
+        return recordList;
+    }
+
+    public static RecordList fromBuf2(Common buf1, Common buf2)
+    {
+        RecordList recordList = RecordList::construct();
+        ;
+
+        recordList.addEnd(buf1);
+        recordList.addEnd(buf2);
+
+        return recordList;
+    }
+
+    public static RecordList fromBuf3(Common buf1, Common buf2, Common buf3)
+    {
+        RecordList recordList = RecordList::construct();
+        ;
+
+        recordList.addEnd(buf1);
+        recordList.addEnd(buf2);
+        recordList.addEnd(buf3);
+
+        return recordList;
+    }
+
+    public static RecordList fromBuf4(Common buf1, Common buf2, Common buf3, Common buf4)
+    {
+        RecordList recordList = RecordList::construct();
+        ;
+
+        recordList.addEnd(buf1);
+        recordList.addEnd(buf2);
+        recordList.addEnd(buf3);
+        recordList.addEnd(buf4);
+
+        return recordList;
+    }
+
+    public static RecordList fromBuf5(Common buf1, Common buf2, Common buf3, Common buf4, Common buf5)
+    {
+        RecordList recordList = RecordList::construct();
+        ;
+
+        recordList.addEnd(buf1);
+        recordList.addEnd(buf2);
+        recordList.addEnd(buf3);
+        recordList.addEnd(buf4);
+        recordList.addEnd(buf5);
+
+        return recordList;
+    }
+
+    public static RecordList fromBuf6(Common buf1, Common buf2, Common buf3, Common buf4, Common buf5, Common buf6)
+    {
+        RecordList recordList = RecordList::construct();
+        ;
+
+        recordList.addEnd(buf1);
+        recordList.addEnd(buf2);
+        recordList.addEnd(buf3);
+        recordList.addEnd(buf4);
+        recordList.addEnd(buf5);
+        recordList.addEnd(buf6);
+
+        return recordList;
+    }
+
+    // табличные буфера в контейнере потеряют внутренние флаги
+    // такие как SelectForUpdate, formDataSource, был сделан select, isTmp
+    public static RecordList fromBufCon(container records, TableId tableId = 0)
+    {
+        RecordList recordList = RecordList::construct();
+        Common buf;
+        int len = conlen(records);
+        int i;
+
+        for (i=1; i<=len; i++)
+        {
+            buf = ConUtil::peekAsRecord(records, i, tableId);
+            if( tableId == 0 || RecordUtil::isNotCommon(buf) )
+            {
+                recordList.addEnd(buf);
+            }
+        }
+
+        return recordList;
+    }
+
+    public static RecordList fromCon(container tableIds_tableNames_records)
+    {
+        RecordList recordList = RecordList::construct();
+        int len = conlen(tableIds_tableNames_records);
+        int i;
+
+        for (i=1; i<=len; i++)
+        {
+            recordList.addEnd(conpeek(tableIds_tableNames_records, i));
+        }
+
+        return recordList;
+    }
+
+    public static RecordList fromEnumerator(Enumerator e, int maxElements = 0)
+    {
+        RecordList recordList = RecordList::construct();
+        ;
+
+        recordList.appendEnumerator(e, maxElements);
+
+        return recordList;
+    }
+
+    // возвращает объект, содержащий клон списка
+    // внимание: объекты (элементы списка) являются общими для старого и нового списка, а сами списки - разные
+    public static RecordList fromList(List list)
+    {
+        RecordList recordList = RecordList::construct();
+        ;
+
+        recordList.appendList(list);
+
+        return recordList;
+    }
+
+    // добавляет все отмеченные на форме записи
+    // возвращает число добавленных элементов
+    public static RecordList fromMarked(FormDataSource fds, int maxElements = 0)
+    {
+        RecordList recordList = RecordList::construct();
+        ;
+
+        recordList.appendMarked(fds, maxElements);
+
+        return recordList;
+    }
+
+    // добавляет в список те datasource из query, которые получат значения в выборке из базы
+    public static RecordList fromQuery(Query q, int maxElements = 0)
+    {
+        RecordList recordList = RecordList::construct();
+        ;
+
+        recordList.appendQuery(q, maxElements);
+
+        return recordList;
+    }
+
+    // добавляет все записи из буфера, который был заполнен командой select
+    //
+    // пример:
+    //
+    // {
+    //     ...
+    //     select custVendTable where custVendTable.Name like 'Micro*';
+    //     recordList = SysRecordList::fromSelect(custVendTable);
+    //     rle = recordList.getEnumerator()
+    //
+    //     while( rle && rle.moveNext() )
+    //     {
+    //        rle.current(); // возвращает табличный буфер
+    //     }
+    // }
+    //
+    public static RecordList fromSelect(Common rec, int maxElements = 0)
+    {
+        RecordList recordList = RecordList::construct();
+        ;
+
+        recordList.appendSelect(rec, maxElements);
+
+        return recordList;
+    }
+
+
+
+
+    public static RecordList fromTableId(TableId tableId)
+    {
+        RecordList recordList = RecordList::construct();
+        ;
+
+        recordList.addEnd(tableId);
+
+        return recordList;
+    }
+}

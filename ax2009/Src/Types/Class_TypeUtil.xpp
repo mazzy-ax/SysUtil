@@ -1,0 +1,58 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+// Util-класс реализует только статические методы.
+// не содержит внутри никаких значений.
+// не имеет смысла создавать экземпляр этого класса.
+//
+abstract class TypeUtil
+{
+
+    public static container integerTypes()
+    {
+        return [Types::Integer, Types::Int64, Types::Date, Types::Time];
+    }
+
+    public static boolean isInteger(Types type)
+    {
+        boolean ret = confind(TypeUtil::integerTypes(), type);
+
+        return ret;
+    }
+
+    public static boolean isNumeric(Types type)
+    {
+        boolean ret = confind(TypeUtil::numericTypes(), type);
+
+        return ret;
+    }
+
+    public static boolean isString(Types type)
+    {
+        boolean ret = confind(TypeUtil::stringTypes(), type);
+
+        return ret;
+    }
+
+    public static boolean isUndefined(Types type)
+    {
+        boolean ret = (type == Types::AnyType);
+
+        return ret;
+    }
+
+    public static container numericTypes()
+    {
+        return [Types::Real, Types::Integer, Types::Int64];
+    }
+
+    public static container stringTypes()
+    {
+        return [Types::String, Types::RString, Types::VarString];
+    }
+
+    public static Types undefined()
+    {
+        return Types::AnyType;
+    }
+}

@@ -1,36 +1,21 @@
 //
 // https://github.com/mazzy-ax/SysUtil
 //
-class TextBufferUtil
+// Util-класс реализует только статические методы.
+// не содержит внутри никаких значений.
+// не имеет смысла создавать экземпляр этого класса.
+//
+abstract class TextBufferUtil
 {
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    // это Util-класс, содержащий только статические методы
-    // нет смысла создавать объекты этого класса
-    private void new()
+    public static TextBuffer append(TextBuffer textOrNull, anytype valueOrCollection, str sep = ',')
     {
-    }
-
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static TextBuffer append(TextBuffer textOrNull, str s)
-    {
-        TextBuffer text = TextBufferUtil::safeNotNull(textOrNull);
-
-        if( s )
-        {
-            text.appendText(s);
-        }
+        Enumerator e = EnumeratorUtil::getEnumerator(valueOrCollection);
+        TextBuffer text = TextBufferUtil::appendEnumerator(null, e, sep);
 
         return text;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // отображаем как в отладчике
     public static TextBuffer appendCallStack(TextBuffer text, int skip = 1, container callStack = xSession::xppCallStack())
     {
@@ -51,9 +36,14 @@ class TextBufferUtil
         return text;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
+    public static TextBuffer appendCollectionItem(TextBuffer text, str s, str sep=',')
+    {
+        text = TextBufferUtil::appendIfNotEmpty(text, sep);
+        text = TextBufferUtil::appendStr(text, s);
+
+        return text;
+    }
+
     public static TextBuffer appendContainer(TextBuffer textOrNull, container con, str sep = ',')
     {
         ConEnumerator ce = ConEnumerator::construct(con);
@@ -62,12 +52,9 @@ class TextBufferUtil
         return text;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static TextBuffer appendEnumerator(TextBuffer textOrNull, Enumerator e, str sep = ',')
     {
-        TextBuffer text = TextBufferUtil::safeNotNull(textOrNull);
+        TextBuffer text = TextBufferUtil::nonNull(textOrNull);
         boolean tail;
 
         while( e && e.moveNext() )
@@ -77,7 +64,7 @@ class TextBufferUtil
                 text.appendText(sep);
             }
 
-            text.appendText(strFmt('%1', e.current()));
+            text.appendText(AnytypeUtil::toString(e.current()));
 
             tail = true;
         }
@@ -85,9 +72,6 @@ class TextBufferUtil
         return text;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static TextBuffer appendIfNotEmpty(TextBuffer text, str s)
     {
         if( s && text && text.size() )
@@ -98,12 +82,9 @@ class TextBufferUtil
         return text;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static TextBuffer appendInfolog(TextBuffer textOrNull, InfologData info = infolog.export(), str newLine = '\n')
     {
-        TextBuffer              text = TextBufferUtil::safeNotNull(textOrNull);
+        TextBuffer              text = TextBufferUtil::nonNull(textOrNull);
         boolean                 firstLine = true;
         SysInfologEnumerator    sysInfologEnumerator;
         SysInfologMessageStruct messageStruct;
@@ -133,9 +114,18 @@ class TextBufferUtil
     }
 
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
+    public static TextBuffer appendStr(TextBuffer textOrNull, str s)
+    {
+        TextBuffer text = TextBufferUtil::nonNull(textOrNull);
+
+        if( s )
+        {
+            text.appendText(s);
+        }
+
+        return text;
+    }
+
     // рассчитывает бощий отступ, который может быть применим для каждой строки в многострочном тексте
     // табуляцию рассматривает как непробельный значащий символ
     // при расчете игнорирует пустые и пробельные строки (строки, содержащие только пробелы)
@@ -184,9 +174,6 @@ class TextBufferUtil
         return ident;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // добавляет или удаляет отступ слева у каждой строки в многострочном тексте
     // пробелы справа каждой строки оставляет как есть
     // табуляцию рассматривает как непробельный значащий символ
@@ -198,7 +185,7 @@ class TextBufferUtil
     //
     public static TextBuffer changeIndent(TextBuffer textOrNull, int indentOffset)
     {
-        TextBuffer text = TextBufferUtil::safeNotNull(textOrNull);
+        TextBuffer text = TextBufferUtil::nonNull(textOrNull);
 
         if( text.size() == 0 )
             return text;
@@ -220,9 +207,18 @@ class TextBufferUtil
         return text;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
+    public static TextBuffer fromStr(str s)
+    {
+        TextBuffer text = new TextBuffer();
+
+        if( s )
+        {
+            text.appendText(s);
+        }
+
+        return text;
+    }
+
     public static str getText(TextBuffer text)
     {
         str ret = text ? text.getText() : '';
@@ -230,9 +226,6 @@ class TextBufferUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static TextBuffer newFrom(TextBuffer textOrNull)
     {
         TextBuffer text = new TextBuffer();
@@ -245,25 +238,15 @@ class TextBufferUtil
         return text;
     }
 
+    // Возвращает подходящий не nullable объект.
+    // Полезно в выражениях, чтобы быть уверенным, что после выполнения этого метода объект точно не null
     //
-    // https://github.com/mazzy-ax/SysUtil
+    // not в названиях методов прочно ассоциируется с оператором логического отрицания (!)
+    // Поэтому название этого метода NonNull, а не NotNull
     //
-    public static TextBuffer newFromStr(str s)
-    {
-        TextBuffer text = new TextBuffer();
-
-        if( s )
-        {
-            text.appendText(s);
-        }
-
-        return text;
-    }
-
+    // @see https://stackoverflow.com/questions/4963300/which-notnull-java-annotation-should-i-use
     //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static TextBuffer safeNotNull(TextBuffer text)
+    public static TextBuffer nonNull(TextBuffer text)
     {
         if( !text )
         {
@@ -273,9 +256,6 @@ class TextBufferUtil
         return text;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // удаляет общий для всех строк отступ в многострочном тексте
     // пробелы справа каждой строки оставляет как есть
     // табуляцию рассматривает как непробельный значащий символ

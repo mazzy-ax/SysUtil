@@ -1,0 +1,256 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+class StrUtilTest extends SysTestCase
+{
+
+    void testDrop_0()
+    {
+        this.assertEquals('abcdefgh', StrUtil::drop('abcdefgh', 0));
+    }
+
+    void testDrop_Minus()
+    {
+        this.assertEquals('abcde', StrUtil::drop('abcdefgh', -3));
+    }
+
+    void testDrop_Plus()
+    {
+        this.assertEquals('defgh', StrUtil::drop('abcdefgh', 3));
+    }
+
+    void testHexDump()
+    {
+        this.assertEquals('20 0A', StrUtil::hexDump(' \n'));
+    }
+
+    void testHexDump_Unicode()
+    {
+        this.assertEquals('042E 042F', StrUtil::hexDump('ЮЯ'));
+    }
+
+    void testPadLeft()
+    {
+        this.assertEquals('  ABC', StrUtil::padLeft('ABC',5));
+        this.assertEquals('==ABC', StrUtil::padLeft('ABC',5,'='));
+        this.assertEquals('==ABC', StrUtil::padLeft('ABC',5,'=Z'));
+        this.assertEquals('ABC',   StrUtil::padLeft('ABC',3,'='));
+        this.assertEquals('ABC',   StrUtil::padLeft('ABC',2,'='));
+        this.assertEquals('ABC',   StrUtil::padLeft('ABC',0,'='));
+        this.assertEquals('ABC',   StrUtil::padLeft('ABC',-1,'='));
+        this.assertEquals('ABC',   StrUtil::padLeft('ABC',-5,'='));
+    }
+
+    void testPadRight()
+    {
+        this.assertEquals('ABC  ', StrUtil::padRight('ABC',5));
+        this.assertEquals('ABC==', StrUtil::padRight('ABC',5,'='));
+        this.assertEquals('ABC==', StrUtil::padRight('ABC',5,'=Z'));
+        this.assertEquals('ABC',   StrUtil::padRight('ABC',3,'='));
+        this.assertEquals('ABC',   StrUtil::padRight('ABC',2,'='));
+        this.assertEquals('ABC',   StrUtil::padRight('ABC',0,'='));
+        this.assertEquals('ABC',   StrUtil::padRight('ABC',-1,'='));
+        this.assertEquals('ABC',   StrUtil::padRight('ABC',-5,'='));
+    }
+
+    void testSplit()
+    {
+        this.assertEquals(['ABC','DEF','GH'],       StrUtil::split('ABC:=DEF:=GH',':='));
+        this.assertEquals(['ABC','DEF','GH'],       StrUtil::split('ABC:=DEF:=GH',':=',0));
+        this.assertEquals(['ABC:=DEF:=GH'],         StrUtil::split('ABC:=DEF:=GH',':=',1));
+        this.assertEquals(['ABC','DEF:=GH'],        StrUtil::split('ABC:=DEF:=GH',':=',2));
+        this.assertEquals(['ABC','DEF','GH'],       StrUtil::split('ABC:=DEF:=GH',':=',3));
+        this.assertEquals(['ABC','DEF','GH'],       StrUtil::split('ABC:=DEF:=GH',':=',4));
+
+        this.assertEquals(['ABC:=DEF:=GH'],         StrUtil::split('ABC:=DEF:=GH',''));
+        this.assertEquals(['ABC:=DEF:=GH'],         StrUtil::split('ABC:=DEF:=GH','',4));
+
+        this.assertEquals(['','ABC','DEF','GH',''], StrUtil::split(':=ABC:=DEF:=GH:=',':='));
+
+        this.assertEquals([''], StrUtil::split('',':='));
+        this.assertEquals([''], StrUtil::split('',''));
+    }
+
+    void testSplitChar()
+    {
+        this.assertEquals(['ABC','DEF','GH'],       StrUtil::splitChar('ABC-DEF-GH','-='));
+        this.assertEquals(['ABC','DEF','GH'],       StrUtil::splitChar('ABC-DEF-GH','-=',0));
+        this.assertEquals(['ABC-DEF-GH'],           StrUtil::splitChar('ABC-DEF-GH','-=',1));
+        this.assertEquals(['ABC','DEF-GH'],         StrUtil::splitChar('ABC-DEF-GH','-=',2));
+        this.assertEquals(['ABC','DEF','GH'],       StrUtil::splitChar('ABC-DEF-GH','-=',3));
+        this.assertEquals(['ABC','DEF','GH'],       StrUtil::splitChar('ABC-DEF-GH','-=',4));
+
+        this.assertEquals(['ABC-DEF-GH'],           StrUtil::splitChar('ABC-DEF-GH',''));
+        this.assertEquals(['ABC-DEF-GH'],           StrUtil::splitChar('ABC-DEF-GH','',4));
+
+        this.assertEquals(['','ABC','DEF','GH',''], StrUtil::splitChar('-ABC-DEF-GH-','-='));
+
+    }
+
+    void testSplitCon()
+    {
+        this.assertEquals(['ABC','DEF','GH'],       StrUtil::splitCon('ABC=DEF:=GH',[':=','=']));
+        this.assertEquals(['ABC','DEF','GH'],       StrUtil::splitCon('ABC=DEF:=GH',[':=','='],0));
+        this.assertEquals(['ABC=DEF:=GH'],          StrUtil::splitCon('ABC=DEF:=GH',[':=','='],1));
+        this.assertEquals(['ABC','DEF:=GH'],        StrUtil::splitCon('ABC=DEF:=GH',[':=','='],2));
+        this.assertEquals(['ABC','DEF','GH'],       StrUtil::splitCon('ABC=DEF:=GH',[':=','='],3));
+        this.assertEquals(['ABC','DEF','GH'],       StrUtil::splitCon('ABC=DEF:=GH',[':=','='],4));
+
+        this.assertEquals(['ABC','DEF','GH'],       StrUtil::splitCon('ABC=DEF:=GH',['=',':=']));
+        this.assertEquals(['ABC','DEF','GH'],       StrUtil::splitCon('ABC=DEF:=GH',['=',':='],0));
+        this.assertEquals(['ABC=DEF:=GH'],          StrUtil::splitCon('ABC=DEF:=GH',['=',':='],1));
+        this.assertEquals(['ABC','DEF:=GH'],        StrUtil::splitCon('ABC=DEF:=GH',['=',':='],2));
+        this.assertEquals(['ABC','DEF','GH'],       StrUtil::splitCon('ABC=DEF:=GH',['=',':='],3));
+        this.assertEquals(['ABC','DEF','GH'],       StrUtil::splitCon('ABC=DEF:=GH',['=',':='],4));
+
+        this.assertEquals(['ABC=DEF:=GH'],          StrUtil::splitCon('ABC=DEF:=GH',connull()));
+        this.assertEquals(['ABC=DEF:=GH'],          StrUtil::splitCon('ABC=DEF:=GH',connull(),4));
+
+        this.assertEquals(['','ABC','DEF','GH',''], StrUtil::splitCon(':=ABC=DEF:=GH=',[':=','=']));
+        this.assertEquals(['','ABC','DEF','GH',''], StrUtil::splitCon(':=ABC=DEF:=GH=',['=',':=']));
+
+        this.assertEquals(['','ABC','DEF','GH',''], StrUtil::splitCon(':=ABC:DEF:=GH:',[':=',':']));
+        this.assertEquals(['','ABC','DEF','GH',''], StrUtil::splitCon(':=ABC:DEF:=GH:',[':',':=']));
+    }
+
+    void testStrAfter()
+    {
+        this.assertEquals('DEF-GH',    StrUtil::after('ABC-DEF-GH','-'));
+        this.assertEquals('GH',        StrUtil::after('ABC-DEF-GH','DEF-'));
+        this.assertEquals('',          StrUtil::after('ABC-DEF-GH','H'));
+        this.assertEquals('BC-DEF-GH', StrUtil::after('ABC-DEF-GH','A'));
+        this.assertEquals('ABC-DEF-GH',StrUtil::after('ABC-DEF-GH',','));
+    }
+
+    void testStrAfterChar()
+    {
+        this.assertEquals('DEF-GH',    StrUtil::afterChar('ABC-DEF-GH','-='));
+        this.assertEquals('DEF-GH',    StrUtil::afterChar('ABC-DEF-GH','E-='));
+        this.assertEquals('',          StrUtil::afterChar('ABC-DEF-GH','H'));
+        this.assertEquals('BC-DEF-GH', StrUtil::afterChar('ABC-DEF-GH','A-='));
+        this.assertEquals('ABC-DEF-GH',StrUtil::afterChar('ABC-DEF-GH',','));
+    }
+
+    void testStrAfterLast()
+    {
+        this.assertEquals('GH',        StrUtil::afterLast('ABC-DEF-GH','-'));
+        this.assertEquals('GH',        StrUtil::afterLast('ABC-DEF-GH','DEF-'));
+        this.assertEquals('',          StrUtil::afterLast('ABC-DEF-GH','H'));
+        this.assertEquals('BC-DEF-GH', StrUtil::afterLast('ABC-DEF-GH','A'));
+        this.assertEquals('ABC-DEF-GH',StrUtil::afterLast('ABC-DEF-GH',','));
+    }
+
+    void testStrAfterLastChar()
+    {
+        this.assertEquals('GH',        StrUtil::afterLastChar('ABC-DEF-GH','-='));
+        this.assertEquals('GH',        StrUtil::afterLastChar('ABC-DEF-GH','E-='));
+        this.assertEquals('',          StrUtil::afterLastChar('ABC-DEF-GH','H-='));
+        this.assertEquals('BC-DEF-GH', StrUtil::afterLastChar('ABC-DEF-GH','A'));
+        this.assertEquals('ABC-DEF-GH',StrUtil::afterLastChar('ABC-DEF-GH',','));
+    }
+
+    void testStrBefore()
+    {
+        this.assertEquals('ABC',       StrUtil::before('ABC-DEF-GH','-'));
+        this.assertEquals('ABC',       StrUtil::before('ABC-DEF-GH','-DEF'));
+        this.assertEquals('',          StrUtil::before('ABC-DEF-GH','A'));
+        this.assertEquals('ABC-DEF-G', StrUtil::before('ABC-DEF-GH','H'));
+        this.assertEquals('ABC-DEF-GH',StrUtil::before('ABC-DEF-GH',','));
+    }
+
+    void testStrBeforeChar()
+    {
+        this.assertEquals('ABC',       StrUtil::beforeChar('ABC-DEF-GH','-='));
+        this.assertEquals('ABC',       StrUtil::beforeChar('ABC-DEF-GH','E-='));
+        this.assertEquals('',          StrUtil::beforeChar('ABC-DEF-GH','A-='));
+        this.assertEquals('ABC-DEF-G', StrUtil::beforeChar('ABC-DEF-GH','H'));
+        this.assertEquals('ABC-DEF-GH',StrUtil::beforeChar('ABC-DEF-GH',','));
+    }
+
+    void testStrBeforeLast()
+    {
+        this.assertEquals('ABC-DEF'   ,StrUtil::beforeLast('ABC-DEF-GH','-'));
+        this.assertEquals('ABC'       ,StrUtil::beforeLast('ABC-DEF-GH','-DEF'));
+        this.assertEquals(''          ,StrUtil::beforeLast('ABC-DEF-GH','A'));
+        this.assertEquals('ABC-DEF-G' ,StrUtil::beforeLast('ABC-DEF-GH','H'));
+        this.assertEquals('ABC-DEF-GH',StrUtil::beforeLast('ABC-DEF-GH',','));
+    }
+
+    void testStrBeforeLastChar()
+    {
+        this.assertEquals('ABC-DEF'   ,StrUtil::beforeLastChar('ABC-DEF-GH','-='));
+        this.assertEquals('ABC-DEF'   ,StrUtil::beforeLastChar('ABC-DEF-GH','E-='));
+        this.assertEquals(''          ,StrUtil::beforeLastChar('ABC-DEF-GH','A'));
+        this.assertEquals('ABC-DEF-G' ,StrUtil::beforeLastChar('ABC-DEF-GH','H-='));
+        this.assertEquals('ABC-DEF-GH',StrUtil::beforeLastChar('ABC-DEF-GH',','));
+    }
+
+    void testStrLeft()
+    {
+        this.assertEquals('ABC',        StrUtil::strLeft('ABC-DEF-GH',3));
+        this.assertEquals('',           StrUtil::strLeft('ABC-DEF-GH',0));
+        this.assertEquals('',           StrUtil::strLeft('ABC-DEF-GH',-3));
+        this.assertEquals('ABC-DEF-GH', StrUtil::strLeft('ABC-DEF-GH',30));
+    }
+
+    //TODO ???
+    void testStrLFix()
+    {
+        this.assertEquals('ABC  ',strLFix('ABC',5));
+        this.assertEquals('ABC==',strLFix('ABC',5,'='));
+        this.assertEquals('ABC==',strLFix('ABC',5,'=Z'));
+        this.assertEquals('ABC',strLFix('ABC',3,'='));
+        this.assertEquals('AB',strLFix('ABC',2,'='));
+        this.assertEquals('',strLFix('ABC',0,'='));
+        this.assertEquals('A',strLFix('ABC',-1,'='));
+        this.assertEquals('A',strLFix('ABC',-5,'='));
+    }
+
+    // TODO ???
+    void testStrRFix()
+    {
+        this.assertEquals('  ABC',strRFix('ABC',5));
+        this.assertEquals('==ABC',strRFix('ABC',5,'='));
+        this.assertEquals('==ABC',strRFix('ABC',5,'=Z'));
+        this.assertEquals('ABC',strRFix('ABC',3,'='));
+        this.assertEquals('AB',strRFix('ABC',2,'='));
+        this.assertEquals('',strRFix('ABC',0,'='));
+        this.assertEquals('A',strRFix('ABC',-1,'='));
+        this.assertEquals('A',strRFix('ABC',-5,'='));
+    }
+
+    void testStrRight()
+    {
+        this.assertEquals('DEF-GH'    ,StrUtil::strRight('ABC-DEF-GH',6));
+        this.assertEquals(''          ,StrUtil::strRight('ABC-DEF-GH',0));
+        this.assertEquals(''          ,StrUtil::strRight('ABC-DEF-GH',-3));
+        this.assertEquals('ABC-DEF-GH',StrUtil::strRight('ABC-DEF-GH',30));
+    }
+
+    void testTrim()
+    {
+        this.assertEquals('ABC', StrUtil::trim('ABC  '));
+        this.assertEquals('ABC', StrUtil::trim('  ABC'));
+        this.assertEquals('ABC', StrUtil::trim('ABC  \r\n  '));
+        this.assertEquals('ABC', StrUtil::trim('  \r\n  ABC'));
+        this.assertEquals('ABC', StrUtil::trim('  \r\n  ABC  \r\n  '));
+        this.assertEquals('ABC', StrUtil::trim(@'ABC
+        '));
+        this.assertEquals('ABC', StrUtil::trim(@'
+        ABC'));
+        this.assertEquals('ABC', StrUtil::trim(@'
+        ABC
+        '));
+        this.assertEquals('A',   StrUtil::trim('  A  '));
+
+        this.assertEquals('ABC', StrUtil::trim('==ABC==','='));
+        this.assertEquals('A',   StrUtil::trim('==A==','='));
+
+
+        this.assertEquals('',    StrUtil::trim('  '));
+        this.assertEquals('',    StrUtil::trim('  \r\n  '));
+        this.assertEquals('',    StrUtil::trim(@'
+        '));
+
+    }
+}

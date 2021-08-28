@@ -1,0 +1,109 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+// Util-класс реализует только статические методы.
+// не содержит внутри никаких значений.
+// не имеет смысла создавать экземпляр этого класса.
+//
+abstract class DictTypeUtil
+{
+
+    public static boolean is(DictType dt, ExtendedTypeId potentialAncestorId)
+    {
+        boolean ret;
+
+        if( dt )
+        {
+            ret = ExtendedTypeIdUtil::is(dt.id(), potentialAncestorId);
+        }
+
+        return ret;
+    }
+
+    public static boolean isInteger(DictType dt)
+    {
+        boolean ret;
+
+        if( dt )
+        {
+            ret = ExtendedTypeIdUtil::isInteger(dt.id());
+        }
+
+        return false;
+    }
+
+    // строка помещается в указанный тип?
+    public static boolean isLengthEnough(DictType dt, str s)
+    {
+        boolean ret;
+
+        if( dt )
+        {
+            ret = ExtendedTypeIdUtil::isLengthEnough(dt.id(), s);
+        }
+
+        return ret;
+    }
+
+    // строка помещается в указанный тип?
+    public static boolean isLengthEnoughOrWarning(DictType dt, str s)
+    {
+        boolean ret = DictTypeUtil::isLengthEnough(dt, s);
+
+        if( dt && !ret )
+        {
+            // сообщите smazurkin@mercury.ru, если у вас появилось это сообщение
+            Warning(strfmt('Строка с длиной %1 не помещается в тип %2. Обратитесь к разработчикам.', strlen(s), DictTypeUtil::name(dt)));
+        }
+
+        return ret;
+    }
+
+    public static boolean isNumeric(DictType dt)
+    {
+        boolean ret;
+
+        if( dt )
+        {
+            ret = TypeUtil::isNumeric(dt.baseType());
+        }
+
+        return ret;
+    }
+
+    public static boolean isString(DictType dt)
+    {
+        boolean ret;
+
+        if( dt )
+        {
+            ret = TypeUtil::isString(dt.baseType());
+        }
+
+        return ret;
+    }
+
+    public static boolean isUndefined(DictType dt)
+    {
+        boolean ret;
+
+        if( dt )
+        {
+            ret = TypeUtil::isUndefined(dt.baseType());
+        }
+
+        return ret;
+    }
+
+    public static str name(DictType dt)
+    {
+        str ret;
+
+        if( dt )
+        {
+            ret = ExtendedTypeId2name(dt.id());
+        }
+
+        return ret;
+    }
+}

@@ -1,0 +1,65 @@
+
+    //mazzy 08.12.2020
+    //Eshp CL005594 2019/09/25
+    public int label2value(
+        str         _labelStr,
+        LanguageId  _languageId = CompanyInfo::languageId())
+    {
+        int ret = this.label2valueNoThrow(_labelStr, _languageId);
+        ;
+
+        if (ret < 0)
+        {
+            throw error(strfmt(@'Не удалось преобразовать текст "%1" в элемент Enum "%2" (%3).',
+                _labelStr, this.label(), this.name()));
+        }
+
+        return ret;
+    }
+
+    //mazzy 08.12.2020
+    //Eshp CL005594 2019/09/25
+    public int label2valueNoThrow(
+        str         _labelStr,
+        LanguageId  _languageId     = CompanyInfo::languageId())
+    {
+        Label   label   = new Label(_languageId);
+        int     idx;
+        int     value;
+        str     labelValue;
+        int     ret     = -1;
+        ;
+
+        for (idx = 0; idx < this.values(); idx++)
+        {
+            value = this.index2Value(idx);
+            if (int2str(value) == _labelStr)
+            {
+                ret = value;
+                break;
+            }
+
+            labelValue = label.extractString(this.index2LabelId(idx));
+            if (labelValue == _labelStr)
+            {
+                ret = value;
+                break;
+            }
+
+            if (this.index2Symbol(idx) == _labelStr)
+            {
+                ret = value;
+                break;
+            }
+        }
+
+        return ret;
+    }
+
+    public static SysDictEnum fromEnum(anytype enum)
+    {
+        enumId          enumId          = DictEnum::value2id(enum);
+        SysDictEnum     sysDictEnum     = new SysDictEnum(enumId);
+
+        return sysDictEnum;
+    }

@@ -1,0 +1,111 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+// Класс обслуживает объекты с типом DictTable
+//
+// Util-класс реализует только статические методы.
+// не содержит внутри никаких значений.
+// не имеет смысла создавать экземпляр этого класса.
+//
+// @see TableIdUtil
+//
+abstract class DictTableUtil
+{
+
+    public static boolean isCommon(DictTable dt)
+    {
+        boolean ret = false;
+
+        if( dt )
+        {
+            ret = (dt.id() == tablenum(Common));
+        }
+
+        return ret;
+    }
+
+    public static boolean isNotCommon(DictTable dt)
+    {
+        boolean ret = false;
+
+        if( dt )
+        {
+            ret = (dt.id() != tablenum(Common));
+        }
+
+        return ret;
+    }
+
+    public static boolean isNotSpecified(DictTable dt)
+    {
+        boolean ret = false;
+
+        if( dt )
+        {
+            ret = (dt.id() == 0 || dt.id() == tablenum(Common));
+        }
+
+        return ret;
+    }
+
+    public static boolean isSpecified(DictTable dt)
+    {
+        boolean ret = false;
+
+        if( dt )
+        {
+            ret = (dt.id() != 0 && dt.id() != tablenum(Common));
+        }
+
+        return ret;
+    }
+
+    public static Common makeRecord(DictTable dt)
+    {
+        Common record;
+        ;
+
+        if( dt )
+        {
+            record = dt.makeRecord();
+        }
+
+        return record;
+    }
+
+    // Возвращает подходящий не nullable объект.
+    // Полезно в выражениях, чтобы быть уверенным, что после выполнения этого метода объект точно не null
+    //
+    // not в названиях методов прочно ассоциируется с оператором логического отрицания (!)
+    // Поэтому название этого метода NonNull, а не NotNull
+    //
+    // @see https://stackoverflow.com/questions/4963300/which-notnull-java-annotation-should-i-use
+    //
+    public static DictTable nonNull(DictTable dt)
+    {
+        if( !dt )
+        {
+            dt = new DictTable(tablenum(Common));
+        }
+
+        return dt;
+    }
+
+    // Возвращает подходящий не nullable объект.
+    // Полезно в выражениях, чтобы быть уверенным, что после выполнения этого метода объект точно не null
+    //
+    // not в названиях методов прочно ассоциируется с оператором логического отрицания (!)
+    // Поэтому название этого метода NonNull, а не NotNull
+    //
+    // @see https://stackoverflow.com/questions/4963300/which-notnull-java-annotation-should-i-use
+    //
+    public static SysDictTable sysNonNull(SysDictTable dt)
+    {
+        if( !dt )
+        {
+            new SysDictTable(tablenum(Common));
+        }
+
+        return dt;
+    }
+}

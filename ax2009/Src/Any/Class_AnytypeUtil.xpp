@@ -1,36 +1,25 @@
 //
 // https://github.com/mazzy-ax/SysUtil
 //
-// класс реализует только статические методы.
-// не содержит внутри никаких значений, не имеет смысла создавать экземпляр этого класса
+// Класс AnytypeUtil обслуживает значения типа anytype
+//
+// Util-класс реализует только статические методы.
+// не содержит внутри никаких значений.
+// не имеет смысла создавать экземпляр этого класса.
 //
 class AnytypeUtil
 {
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    // это Util-класс, содержащий только статические методы
-    // нет смысла создавать объекты этого класса
-    private void new()
+    public static anytype as(anytype value, Types type, int potentialAncestorId = 0)
     {
+        if( AnytypeUtil::is(value, type, potentialAncestorId) )
+        {
+            return value;
+        }
+
+        return nullValueBaseType(type);
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static anytype as(anytype value, anytype asValue)
-    {
-        Types   asType = typeof(asValue);
-        Int     asId   = AnytypeUtil::id(asValue);
-        anytype ret    = AnytypeUtil::asType(value, asType, asId);
-
-        return ret;
-    }
-
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static Array asArray(anytype value)
     {
         if( AnytypeUtil::isArray(value) )
@@ -41,16 +30,13 @@ class AnytypeUtil
         return null;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static Object asClass(anytype value, ClassId potentialAncestorId = 0)
     {
         if( typeof(value) == Types::Class )
         {
             if( potentialAncestorId )
             {
-                return SysDictClass::as(value, potentialAncestorId);
+                return ObjectUtil::as(value, potentialAncestorId);
             }
 
             return value;
@@ -59,17 +45,11 @@ class AnytypeUtil
         return null;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static anytype asCollection(anytype value)
     {
         return EnumeratorUtil::asEnumerable(value);
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static container asContainer(anytype value)
     {
         if( typeof(value) == Types::Container )
@@ -80,9 +60,6 @@ class AnytypeUtil
         return connull();
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static Date asDate(anytype value)
     {
         if( typeof(value) == Types::Date )
@@ -93,9 +70,6 @@ class AnytypeUtil
         return DateNull();
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static UtcDateTime asDateTime(anytype value)
     {
         if( typeof(value) == Types::UtcDateTime )
@@ -106,27 +80,16 @@ class AnytypeUtil
         return utcDateTimeNull();
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static anytype asEnum(anytype value, enumId enumId = 0)
     {
-        return AnytypeUtil::asType(value, Types::Enum, enumId);
+        return AnytypeUtil::as(value, Types::Enum, enumId);
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static anytype asEnumDefault(anytype value, anytype defaultEnumValue)
     {
         int enumId = AnytypeUtil::enumId(defaultEnumValue);
 
-        if( !enumId )
-        {
-            throw error(strfmt('The parameter defaultEnumValue should be Enum. The type of defaultEnumValue is %1.', typeof(defaultEnumValue)));
-        }
-
-        if( AnytypeUtil::isType(value, Types::Enum, enumId) )
+        if( enumId && AnytypeUtil::is(value, Types::Enum, enumId) )
         {
             return value;
         }
@@ -136,25 +99,16 @@ class AnytypeUtil
 
 
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static anytype asEnumerable(anytype value)
     {
         return EnumeratorUtil::asEnumerable(value);
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static anytype asEnumerator(anytype value)
     {
         return EnumeratorUtil::asEnumerator(value);
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static GUID asGUID(anytype value)
     {
         if( typeof(value) == Types::Guid )
@@ -165,9 +119,6 @@ class AnytypeUtil
         return nullValueBaseType(Types::Guid);
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static int asInt(anytype value)
     {
         if( typeof(value) == Types::Integer )
@@ -178,9 +129,6 @@ class AnytypeUtil
         return 0;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static int64 asInt64(anytype value)
     {
         if( typeof(value) == Types::Int64 )
@@ -191,9 +139,6 @@ class AnytypeUtil
         return 0;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static List asList(anytype value)
     {
         if( AnytypeUtil::isList(value) )
@@ -204,9 +149,6 @@ class AnytypeUtil
         return null;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static Map asMap(anytype value)
     {
         if( AnytypeUtil::isMap(value) )
@@ -217,17 +159,11 @@ class AnytypeUtil
         return null;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static Object asObject(anytype value)
     {
         return AnytypeUtil::asClass(value);
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static Real asReal(anytype value)
     {
         if( typeof(value) == Types::Real )
@@ -238,9 +174,6 @@ class AnytypeUtil
         return 0.0;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static int64 asRecId(anytype value)
     {
         if( typeof(value) == Types::Int64 )
@@ -251,20 +184,14 @@ class AnytypeUtil
         return 0;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static Common asRecord(anytype value, TableId tableId = 0)
     {
-        Common ret = AnytypeUtil::asType(value, Types::Record, tableId);
+        Common ret = AnytypeUtil::as(value, Types::Record, tableId);
 
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static int64 asRecVersion(anytype value)
+    public static int asRecVersion(anytype value)
     {
         if( typeof(value) == Types::Integer )
         {
@@ -274,9 +201,6 @@ class AnytypeUtil
         return 0;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static anytype assertEmpty(anytype value)
     {
         if (value)
@@ -287,22 +211,6 @@ class AnytypeUtil
         return value;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static anytype assertInTypes(anytype value, container typeCon)
-    {
-        if (confind(typeCon, typeof(value)) )
-        {
-            return value;
-        }
-
-        throw error(Error::wrongUseOfFunction(funcname()));
-    }
-
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static anytype assertNotEmpty(anytype value)
     {
         if (value)
@@ -313,12 +221,9 @@ class AnytypeUtil
         throw error(Error::wrongUseOfFunction(funcName()));
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static anytype assertType(anytype value, Types type, int potentialAncestorId = 0)
     {
-        if (AnytypeUtil::isType(value, type, potentialAncestorId))
+        if (AnytypeUtil::is(value, type, potentialAncestorId))
         {
             return value;
         }
@@ -326,9 +231,6 @@ class AnytypeUtil
         throw error(Error::wrongUseOfFunction(funcName()));
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static Set asSet(anytype value)
     {
         if( AnytypeUtil::isSet(value) )
@@ -339,9 +241,16 @@ class AnytypeUtil
         return null;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
+    public static Stack asStack(anytype value)
+    {
+        if( AnytypeUtil::isStack(value) )
+        {
+            return value;
+        }
+
+        return null;
+    }
+
     public static str asString(anytype value)
     {
         if( AnytypeUtil::isString(value) )
@@ -352,9 +261,16 @@ class AnytypeUtil
         return '';
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
+    public static Struct asStruct(anytype value)
+    {
+        if( AnytypeUtil::isStruct(value) )
+        {
+            return value;
+        }
+
+        return null;
+    }
+
     public static timeOfDay asTime(anytype value)
     {
         if( typeof(value) == Types::Integer )
@@ -365,22 +281,15 @@ class AnytypeUtil
         return 0;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static anytype asType(anytype value, Types type, int potentialAncestorId = 0)
+    public static anytype asValue(anytype value, anytype asValue)
     {
-        if( AnytypeUtil::isType(value, type, potentialAncestorId) )
-        {
-            return value;
-        }
+        Types   asType = typeof(asValue);
+        Int     asId   = AnytypeUtil::id(asValue);
+        anytype ret    = AnytypeUtil::as(value, asType, asId);
 
-        return nullValueBaseType(type);
+        return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static int classId(anytype value)
     {
         int id = 0;
@@ -393,9 +302,6 @@ class AnytypeUtil
         return id;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static int enumId(anytype value)
     {
         int id = 0;
@@ -408,18 +314,14 @@ class AnytypeUtil
         return id;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // возвращает объект, у которого можно вызвать метод moveNext
-    public static Enumerator getEnumerator(anytype value)
+    public static Enumerator getEnumerator(anytype collectionOrValue)
     {
-        return EnumeratorUtil::getEnumerator(value);
+        Enumerator e = EnumeratorUtil::getEnumerator(collectionOrValue);
+
+        return e;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static int id(anytype value)
     {
         int   id   = 0;
@@ -443,21 +345,55 @@ class AnytypeUtil
         return id;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static boolean is(anytype value, anytype isValue)
+    public static boolean is(anytype value, Types type, int potentialAncestorId = 0)
     {
-        Types   isType = typeof(isValue);
-        Int     isId   = AnytypeUtil::id(isValue);
-        boolean ret    = AnytypeUtil::isType(value, isType, isId);
+        Types t = typeof(value);
 
-        return ret;
+        if( potentialAncestorId )
+        {
+            switch( t )
+            {
+                case Types::Class:
+                    return (type == t) && ObjectUtil::is(value, potentialAncestorId);
+
+                case Types::Record:
+                    return (type == t) && SysDictTable::is(value, potentialAncestorId);
+
+                case Types::Integer:
+                    switch( type )
+                    {
+                        case Types::Class:
+                            return ObjectUtil::is(value, potentialAncestorId);
+
+                        case Types::Record:
+                            return SysDictTable::is(RecordUtil::makeRecord(value), potentialAncestorId);
+
+                        case Types::UserType:
+                            return DictTypeUtil::is(value, potentialAncestorId);
+
+                        case Types::Enum:
+                            return (potentialAncestorId == new DictType(value).enumId());
+                    }
+                    break;
+
+                case Types::Enum:
+                    return (type == t) && potentialAncestorId == DictEnum::value2id(value); // TODO равен ли? может ли быть enum от enum?
+            }
+        }
+
+        if( type == t )
+        {
+            return true;
+        }
+        else if( TypeUtil::isString(t) )
+        {
+            // не строгое совпадение строковых типов поскольку все строки можно присвоить друг другу
+            return true;
+        }
+
+        return false;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static boolean isArray(anytype value)
     {
         boolean ret = AnytypeUtil::isClass(value, classnum(Array));
@@ -465,28 +401,19 @@ class AnytypeUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static boolean isClass(anytype value, int potentialAncestorId = 0)
     {
-        boolean ret = AnytypeUtil::isType(Types::Class, potentialAncestorId);
+        boolean ret = AnytypeUtil::is(Types::Class, potentialAncestorId);
 
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // возвращает true для значения, для которого можно получить enumerator
     public static boolean isCollection(anytype value)
     {
         return EnumeratorUtil::isEnumerable(value);
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static boolean isContainer(anytype value)
     {
         boolean ret = typeof(value) == Types::Container;
@@ -494,9 +421,6 @@ class AnytypeUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // нормально работает с контейнерами, классами, CLR и прочими сложными объектами.
     public static boolean isEmpty(anytype value)
     {
@@ -508,52 +432,76 @@ class AnytypeUtil
         return true;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static boolean isEnum(anytype value, enumId enumId = 0)
     {
-        return AnytypeUtil::isType(value, Types::Enum, enumId);
+        return AnytypeUtil::is(value, Types::Enum, enumId);
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // возвращает true для значения, для которого можно получить enumerator
     public static boolean isEnumerable(anytype value)
     {
         return EnumeratorUtil::isEnumerable(value);
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // возвращает true для значения, для которого можно получить enumerator
     public static boolean isEnumerator(anytype value)
     {
         return EnumeratorUtil::isEnumerator(value);
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static boolean isImplements(anytype value, int interfaceId = 0)
+    // не создаем новых переменных в стеке
+    public static boolean isEqual(anytype value1, anytype value2)
+    {
+        //Are both null ?
+        if (!value1 && !value2)
+        {
+            return true;
+        }
+
+        //Is one of them null ?
+        if (!value1 || !value2)
+        {
+            return false;
+        }
+
+        //Are their types different ?
+        if (typeof(value1) != typeof(value2))
+        {
+            return false;
+        }
+
+        //They are the same type. Is this type void ?
+        if (typeof(value1) == Types::void)
+        {
+            return true;
+        }
+
+        if (typeof(value1) == Types::Class)
+        {
+            return ObjectUtil::isEqual(value1, value2);
+        }
+
+        //Are their values different ?
+        if (value1 != value2)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    public static boolean isImplement(anytype value, int interfaceId = 0)
     {
         boolean ret;
-        classId classId;
 
         if( interfaceId && typeof(value) == Types::Class )
         {
-            classId = classidget(value);
-            ret = new SysDictClass(classId).isImplementing(interfaceId);
+            ret = ObjectUtil::isImplement(value, interfaceId);
         }
 
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static boolean isInt(anytype value)
     {
         boolean ret = typeof(value) == Types::Integer;
@@ -561,9 +509,6 @@ class AnytypeUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static boolean isInt64(anytype value)
     {
         boolean ret = typeof(value) == Types::Int64;
@@ -571,24 +516,6 @@ class AnytypeUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static boolean isInTypes(anytype value, container typeCon)
-    {
-        Types type = AnytypeUtil::type(value);
-
-        if (confind(typeCon, type))
-        {
-            return true;
-        }
-
-        return false;
-    }
-
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static boolean isList(anytype value)
     {
         boolean ret = AnytypeUtil::isClass(value, classnum(List));
@@ -596,9 +523,6 @@ class AnytypeUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static boolean isMap(anytype value)
     {
         boolean ret = AnytypeUtil::isClass(value, classnum(Map));
@@ -606,9 +530,6 @@ class AnytypeUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // нормально работает с контейнерами, классами, CLR и прочими сложными объектами.
     public static boolean isNotEmpty(anytype value)
     {
@@ -620,9 +541,28 @@ class AnytypeUtil
         return false;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
+    public static boolean isNull(anytype value)
+    {
+        Types type = typeof(value);
+
+        switch( type )
+        {
+            case Types::Class:
+            case typeof(null):
+                return true;
+        }
+
+        return false;
+    }
+
+    public static boolean isNumeric(anytype value)
+    {
+        Types type = typeof(value);
+        boolean ret = TypeUtil::isNumeric(type);
+
+        return ret;
+    }
+
     public static boolean isPrimitive(anytype value)
     {
         Types type = typeof(value);
@@ -655,9 +595,6 @@ class AnytypeUtil
         return false;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static boolean isRecId(anytype value)
     {
         boolean ret = typeof(value) == Types::Int64;
@@ -665,19 +602,13 @@ class AnytypeUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static boolean isRecord(anytype value, int potentialAncestorId = 0)
     {
-        boolean ret = AnytypeUtil::isType(value, Types::Record, potentialAncestorId);
+        boolean ret = AnytypeUtil::is(value, Types::Record, potentialAncestorId);
 
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static boolean isRecVersion(anytype value)
     {
         boolean ret = typeof(value) == Types::Integer;
@@ -685,97 +616,51 @@ class AnytypeUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static boolean isSet(anytype value)
     {
-        boolean ret = AnytypeUtil::isClass(classnum(Set));
+        boolean ret = AnytypeUtil::isClass(value, classnum(Set));
 
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
+    public static boolean isStack(anytype value)
+    {
+        boolean ret = AnytypeUtil::isClass(value, classnum(Stack));
+
+        return ret;
+    }
+
     public static boolean isString(anytype value)
     {
-        boolean ret = AnytypeUtil::isInTypes(value, AnytypeUtil::stringTypes());
+        Types type = typeof(value);
+        boolean ret = TypeUtil::isString(type);
 
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static boolean isType(anytype value, Types type, int potentialAncestorId = 0)
+    public static boolean isStruct(anytype value)
     {
-        Types t = typeof(value);
+        boolean ret = AnytypeUtil::isClass(value, classnum(Struct));
 
-        if( potentialAncestorId )
-        {
-            switch( t )
-            {
-                case Types::Class:
-                    return (type == t) && SysDictClass::is(value, potentialAncestorId);
-
-                case Types::Record:
-                    return (type == t) && SysDictTable::is(value, potentialAncestorId);
-
-                case Types::Integer:
-                    switch( type )
-                    {
-                        case Types::Class:
-                            return SysDictClass::isEqualOrSuperclass(value, potentialAncestorId);
-
-                        case Types::Record:
-                            return SysDictTable::is(SysRecord::makeRecord(value), potentialAncestorId);
-
-                        case Types::UserType:
-                            return SysDictType::isEqualOrExtending(value, potentialAncestorId);
-
-                        case Types::Enum:
-                            return (potentialAncestorId == new DictType(value).enumId());
-                    }
-                    break;
-
-                case Types::Enum:
-                    return (type == t) && potentialAncestorId == DictEnum::value2id(value); // TODO равен ли? может ли быть enum от enum?
-            }
-        }
-
-        if( type == t )
-        {
-            return true;
-        }
-        else if( confind(AnytypeUtil::stringTypes(),t) )
-        {
-            // не строгое совпадение строковых типов поскольку все строки можно присвоить друг другу
-            return true;
-        }
-
-        return false;
+        return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static anytype nullValue(Types type)
+    public static boolean isValue(anytype value, anytype isValue)
     {
+        Types   isType = typeof(isValue);
+        Int     isId   = AnytypeUtil::id(isValue);
+        boolean ret    = AnytypeUtil::is(value, isType, isId);
+
+        return ret;
+    }
+
+    public static anytype nullValue(anytype value)
+    {
+        Types type = typeof(value);
+
         return nullValueBaseType(type);
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static container stringTypes()
-    {
-        return [Types::String, Types::RString, Types::VarString];
-    }
-
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static int tableId(anytype value)
     {
         int id = 0;
@@ -788,9 +673,6 @@ class AnytypeUtil
         return id;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // преобразовать value в соответствующий буфер, насколько это возможно
     public static Common toBuf(anytype value)
     {
@@ -803,14 +685,11 @@ class AnytypeUtil
                 break;
 
             case Types::Integer:
-                buf = SysRecord::makeRecord(value);
+                buf = RecordUtil::makeRecord(value);
                 break;
 
             case Types::Int64:
-                if( value > 0 )
-                {
-                    buf = SysRecord::makeRecord(int642int(value, true));
-                }
+                buf = RecordUtil::makeRecord(int642int(value, true));
                 break;
 
             case Types::String:
@@ -818,7 +697,7 @@ class AnytypeUtil
             case Types::VarString:
                 if( value )
                 {
-                    buf = SysRecord::makeRecord(tablename2id(value));
+                    buf = RecordUtil::makeRecord(tablename2id(value));
                 }
                 break;
         }
@@ -831,9 +710,6 @@ class AnytypeUtil
         return nullValueBaseType(value);
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static str toString(anytype value, str sep = ',')
     {
         // поскольку этот метод может вызваться в отладчике еще до инициализации,
@@ -853,6 +729,10 @@ class AnytypeUtil
 
             case Types::Container:
                 ret = ConUtil::toStr(value, sep);
+                break;
+
+            case Types::Enum:
+                ret = enum2str(value);
                 break;
 
             case Types::AnyType:
@@ -887,9 +767,6 @@ class AnytypeUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static Types type(anytype value)
     {
         Types type = typeof(value);
@@ -897,9 +774,6 @@ class AnytypeUtil
         return type;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static anytype undefined()
     {
         anytype undefined;

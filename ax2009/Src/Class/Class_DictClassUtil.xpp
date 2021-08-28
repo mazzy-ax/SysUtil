@@ -1,0 +1,186 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+// Класс обслуживает объекты с типом DictClass
+//
+// Util-класс реализует только статические методы.
+// не содержит внутри никаких значений.
+// не имеет смысла создавать экземпляр этого класса.
+//
+// @see ClassIdUtil
+// @see ObjectUtil
+//
+abstract class DictClassUtil
+{
+
+    public static List extendedBy(DictClass dictClass)
+    {
+        List list;
+
+        if( dictClass )
+        {
+            list = dictClass.extendedBy();
+        }
+
+        return List;
+    }
+
+    // @warning медленный метод. перебирает все классы в AOT
+    public static List implementedBy(DictClass dictClass)
+    {
+        List list;
+
+        if( dictClass )
+        {
+            list = ClassIdUtil::implementedBy(dictClass.id());
+        }
+
+        return List;
+    }
+
+    // отличается от SysDictClass:
+    // 1. итерация, а не рекурсия.
+    // 2. один проход вместо двух отдельных для extends и implements
+    // 3. минимальное число создаваемых в памяти объектов
+    public static boolean is(DictClass dictClass, ClassId potentialClassAncestorOrInterfaceId)
+    {
+        boolean ret;
+
+        if( dictClass )
+        {
+            ret = ClassIdUtil::is(dictClass.id(), potentialClassAncestorOrInterfaceId);
+        }
+
+        return ret;
+    }
+
+    // возвращает true для класса, для которого можно получить enumerator
+    public static boolean isEnumerable(DictClass dictClass)
+    {
+        boolean ret;
+
+        if( dictClass )
+        {
+            ret = ClassIdUtil::isEnumerable(dictClass.id());
+        }
+
+        return ret;
+    }
+
+    // отличается от SysDictClass:
+    // 1. итерация, а не рекурсия.
+    // 2. один проход вместо двух отдельных для extends и implements
+    // 3. минимальное число создаваемых в памяти объектов
+    //
+    // только extends
+    public static boolean isExtend(DictClass dictClass, ClassId potentialClassAncestorId)
+    {
+        boolean ret;
+
+        if( dictClass )
+        {
+            ret = ClassIdUtil::isExtend(dictClass.id(), potentialClassAncestorId);
+        }
+
+        return ret;
+    }
+
+    // отличается от SysDictClass:
+    // 1. итерация, а не рекурсия.
+    // 2. один проход вместо двух отдельных для extends и implements
+    // 3. минимальное число создаваемых в памяти объектов
+    public static boolean isImplement(DictClass dictClass, ClassId interfaceId)
+    {
+        boolean ret;
+
+        if( dictClass )
+        {
+            ret = ClassIdUtil::isImplement(dictClass.id(), interfaceId);
+        }
+
+        return ret;
+    }
+
+    public static boolean isNotSpecified(DictClass dictClass)
+    {
+        boolean ret;
+
+        if( dictClass )
+        {
+            ret = ClassIdUtil::isNotSpecified(dictClass.id());
+        }
+
+        return ret;
+    }
+
+    public static boolean isOneOf(DictClass dictClass, anytype potentialAncestorIds)
+    {
+        boolean ret;
+
+        if( dictClass )
+        {
+            ret = ClassIdUtil::isOneOf(dictClass.id(), potentialAncestorIds);
+        }
+
+        return ret;
+    }
+
+    public static boolean isSpecified(DictClass dictClass)
+    {
+        boolean ret;
+
+        if( dictClass )
+        {
+            ret = ClassIdUtil::isSpecified(dictClass.id());
+        }
+
+        return ret;
+    }
+
+    // Возвращает подходящий не nullable объект.
+    // Полезно в выражениях, чтобы быть уверенным, что после выполнения этого метода объект точно не null
+    //
+    // not в названиях методов прочно ассоциируется с оператором логического отрицания (!)
+    // Поэтому название этого метода NonNull, а не NotNull
+    //
+    // @see https://stackoverflow.com/questions/4963300/which-notnull-java-annotation-should-i-use
+    //
+    public static DictClass nonNull(DictClass dictClass)
+    {
+        if( !dictClass )
+        {
+            dictClass = new DictClass(classnum(Object));
+        }
+
+        return dictClass;
+    }
+
+    // взято из SysDictClass.path
+    public static TreeNodePath path(DictClass dictClass)
+    {
+        TreeNodePath ret;
+
+        if( dictClass )
+        {
+            ret = xRefNames::calcPath(xRefKind::Class,dictClass.name(),'',dictClass.id());
+        }
+
+        return ret;
+    }
+
+    public static ListEnumerator subClassListEnumerator(DictClass dictClass)
+    {
+        List list = DictClassUtil::extendedBy(dictClass);
+
+        return ListUtil::getEnumerator(list);
+    }
+
+    // возвращает null, если класс не найден
+    public static TreeNode treeNode(DictClass dictClass)
+    {
+        TreeNodePath path = DictClassUtil::path(dictClass);
+        TreeNode treeNode = TreeNode::findNode(path);
+
+        return treeNode;
+    }
+}

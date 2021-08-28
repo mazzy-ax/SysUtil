@@ -1,21 +1,158 @@
 //
 // https://github.com/mazzy-ax/SysUtil
 //
-class SetUtil
+// Util-класс реализует только статические методы.
+// не содержит внутри никаких значений.
+// не имеет смысла создавать экземпляр этого класса.
+//
+abstract class SetUtil
 {
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    // это Util-класс, содержащий только статические методы
-    // нет смысла создавать объекты этого класса
-    private void new()
+    public static Set add(Set set, anytype value)
     {
+        if( !set )
+        {
+            set = new Set(typeof(value));
+        }
+        else if( set.typeId() != typeof(value) )
+        {
+            return set; // значение с другим типом не будет добавлено
+        }
+
+        set.add(value);
+
+        return set;
     }
 
+    public static Set addFieldValue(Set set, Common buf, FieldId fieldId)
+    {
+        anytype value = RecordUtil::getValue(buf, fieldId);
+        Set ret = SetUtil::add(set, value);
+
+        return ret;
+    }
+
+    // клонирует set, не клонирует элементы множества
     //
-    // https://github.com/mazzy-ax/SysUtil
+    // see deepClone()
+    public static Set clone(Set set)
+    {
+        Set ret;
+
+        if( set )
+        {
+            ret = new Set(set.typeId());
+            ret = Set::union(ret, set);
+        }
+
+        return ret;
+    }
+
+    // клонирует и set, и элементы множества
     //
+    // see clone()
+    public static Set deepClone(Set set)
+    {
+        Set ret;
+        container packedSet;
+
+        if( set )
+        {
+            packedSet = set.pack();
+            ret = Set::create(packedSet);
+        }
+
+        return ret;
+    }
+
+    public static Set difference(Set set1, Set set2)
+    {
+        if( !set2 )
+        {
+            return SetUtil::clone(set1);
+        }
+
+        if( !set1 )
+        {
+            return null;
+        }
+
+        if( set1.typeId() != set2.typeId() )
+        {
+            return SetUtil::clone(set1);
+        }
+
+        return Set::difference(set1, set2);
+    }
+
+    public static int elements(Set set)
+    {
+        int ret;
+
+        if( set )
+        {
+            ret = set.elements();
+        }
+
+        return ret;
+    }
+
+    public static boolean empty(Set set)
+    {
+        boolean ret = true;
+
+        if( set )
+        {
+            ret = set.empty();
+        }
+
+        return ret;
+    }
+
+    public static SetEnumerator getEnumerator(Set set)
+    {
+        SetEnumerator ret;
+
+        if( set )
+        {
+            ret = set.getEnumerator();
+        }
+
+        return ret;
+    }
+
+    public static Set in(Set set, anytype value)
+    {
+        boolean ret;
+
+        if( set )
+        {
+            ret = set.in(value);
+        }
+
+        return set;
+    }
+
+    public static Set intersection(Set set1, Set set2)
+    {
+        if( !set2 )
+        {
+            return null;
+        }
+
+        if( !set1 )
+        {
+            return null;
+        }
+
+        if( set1.typeId() != set2.typeId() )
+        {
+            return null;
+        }
+
+        return Set::union(set1, set2);
+    }
+
     // создать set для хранения значений, тип которых совпадает с типом переменной value
     public static Set newBy(anytype value)
     {
@@ -25,52 +162,180 @@ class SetUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static container toCon(Set set)
+    public static Set newFrom(anytype collection)
     {
-        container ret;
-        SetEnumerator se = set.getEnumerator();
+        Set set;
+        Enumerator e;
 
-        while( se.moveNext() )
+        if( AnytypeUtil::isSet(collection) )
         {
-            ret += se.current();
+            set = SetUtil::clone(collection);
+        }
+        else
+        {
+            e = EnumeratorUtil::getEnumerator(collection);
+            while( e && e.moveNext() )
+            {
+                set = SetUtil::add(set, e.current());
+            }
+        }
+
+        return set;
+    }
+
+    // быстрое преобразование. https://axforum.info/forums/showthread.php?t=27738
+    // безопасное преобразование в методе newFrom()
+    public static Set newFromArray(Array arr)
+    {
+        Set ret;
+        container packedArray;
+
+        if( arr )
+        {
+            packedArray = arr.pack();
+            ret = Set::create(packedArray);
         }
 
         return ret;
     }
 
+    public static Set newFromContainer(container con)
+    {
+        Set ret;
+        int len = conlen(con);
+        int i;
+
+        for( i=1; i<=len; i++ )
+        {
+            ret = SetUtil::add(ret, conpeek(con, i));
+        }
+
+        return ret;
+    }
+
+    // быстрое преобразование. https://axforum.info/forums/showthread.php?t=27738
+    // безопасное преобразование в методе newFrom()
+    public static Set newFromList(List list)
+    {
+        Set ret;
+        container packedList;
+
+        if( list )
+        {
+            packedList = list.pack();
+            ret = Set::create(packedList);
+        }
+
+        return ret;
+    }
+
+    // создает множество значений поля из буфера, который был заполнен командой select
+    public static Set newFromSelect(Common selectedRecord, FieldId fieldId, int maxElements = 0)
+    {
+        Set ret;
+        int elements;
+        anytype value;    // тип поля не меняется внтури цикла, поэтому одного anytype достаточно
+
+        while( selectedRecord && (maxElements == 0 || elements <= maxElements) )
+        {
+            value = RecordUtil::getValue(selectedRecord, fieldId);
+            ret = SetUtil::add(ret, value);
+
+            next selectedRecord;
+            elements++;
+        }
+
+        return ret;
+    }
+
+    public static Set newFromSet(Set set)
+    {
+        Set ret = SetUtil::clone(set);
+
+        return ret;
+    }
+
+    public static Set newFromStr(str s, str sep = ',', int maxSubstrings = 0)
+    {
+        Enumerator e = StrSplitEnumerator::construct(s, sep, maxSubstrings);
+        Set ret;
+
+        while( e && e.moveNext() )
+        {
+            ret = SetUtil::add(ret, e.current());
+        }
+
+        return ret;
+    }
+
+    // Возвращает подходящий не nullable объект.
+    // Полезно в выражениях, чтобы быть уверенным, что после выполнения этого метода объект точно не null
     //
-    // https://github.com/mazzy-ax/SysUtil
+    // not в названиях методов прочно ассоциируется с оператором логического отрицания (!)
+    // Поэтому название этого метода NonNull, а не NotNull
     //
+    // @see https://stackoverflow.com/questions/4963300/which-notnull-java-annotation-should-i-use
+    //
+    public static Set nonNull(Set set, Types type = Types::AnyType)
+    {
+        if( !set )
+        {
+            set = new Set(type);
+        }
+
+        return set;
+    }
+
+    public static container toCon(Set set)
+    {
+        container ret = ConUtil::newFromSet(set);
+
+        return ret;
+    }
+
     public static List toList(Set set)
     {
-        List list;
-        SetEnumerator se;
-
-        if (set)
-        {
-            list = new List(set.typeId());
-
-            se = set.getEnumerator();
-            while (se.moveNext())
-            {
-                list.addEnd(se.current());
-            }
-        }
+        List list = ListUtil::newFromSet(set);
 
         return list;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static str toStr(Set set, str sep = ',')
     {
-        SetEnumerator se = set ? set.getEnumerator() : null;
-        str ret = TextBufferUtil::appendEnumerator(null, se, sep).getText();
+        str ret = StrUtil::newFromSet(set, sep);
 
         return ret;
+    }
+
+    public static Types type(Set set)
+    {
+        Types ret = Types::AnyType;
+
+        if( set )
+        {
+            ret = set.typeId();
+        }
+
+        return ret;
+    }
+
+    public static Set union(Set set1, Set set2)
+    {
+        if( !set2 )
+        {
+            return SetUtil::clone(set1);
+        }
+
+        if( !set1 )
+        {
+            return SetUtil::clone(set2);
+        }
+
+        if( set1.typeId() != set2.typeId() )
+        {
+            return null;
+        }
+
+        return Set::union(set1, set2);
     }
 }

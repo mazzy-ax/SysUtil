@@ -1,0 +1,102 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+// Класс обслуживает объекты с типом Object (в том числе и с типом DictClass)
+//
+// Util-класс реализует только статические методы.
+// не содержит внутри никаких значений.
+// не имеет смысла создавать экземпляр этого класса.
+//
+// @see ClassIdUtil
+// @see DictClassUtil
+//
+abstract class ObjectUtil
+{
+
+    void TODO_duckTyping()
+    {
+    }
+
+    static public Object as(Object obj, classId potentialClassAncestorOrInterfaceId)
+    {
+        if (ObjectUtil::is(obj, potentialClassAncestorOrInterfaceId))
+        {
+            return obj;
+        }
+
+        return null;
+    }
+
+    // отличается от SysDictClass:
+    // 1. итерация, а не рекурсия.
+    // 2. один проход вместо двух отдельных для extends и implements
+    // 3. минимальное число создаваемых в памяти объектов
+    public static boolean is(Object obj, ClassId potentialClassAncestorOrInterfaceId)
+    {
+        ClassId classId = classidget(obj);
+        boolean ret = ClassIdUtil::is(classId, potentialClassAncestorOrInterfaceId);
+
+        return ret;
+    }
+
+    // возвращает true для объекта, для которого можно получить enumerator
+    public static boolean isEnumerable(Object obj)
+    {
+        ClassId classId = classidget(obj);
+        boolean ret = ClassIdUtil::isEnumerable(classId);
+
+        return ret;
+    }
+
+    public static boolean isEqual(Object obj1, Object obj2)
+    {
+        if( obj1 && obj2 )
+        {
+            return obj1.equal(obj2);
+        }
+
+        return false;
+    }
+
+    // отличается от SysDictClass:
+    // 1. итерация, а не рекурсия.
+    // 2. один проход вместо двух отдельных для extends и implements
+    // 3. минимальное число создаваемых в памяти объектов
+    //
+    // только extends
+    public static boolean isExtend(Object obj, ClassId potentialClassAncestorId)
+    {
+        ClassId classId = classidget(obj);
+        boolean ret = ClassIdUtil::isExtend(classId, potentialClassAncestorId);
+
+        return false;
+    }
+
+    // отличается от SysDictClass:
+    // 1. итерация, а не рекурсия.
+    // 2. один проход вместо двух отдельных для extends и implements
+    // 3. минимальное число создаваемых в памяти объектов
+    public static boolean isImplement(Object obj, ClassId interfaceId)
+    {
+        ClassId classId = classidget(obj);
+        boolean ret = ClassIdUtil::isImplement(classId, interfaceId);
+
+        return ret;
+    }
+
+    public static boolean isOneOf(Object obj, anytype potentialAncestorIds)
+    {
+        ClassId classId = classidget(obj);
+        boolean ret = ClassIdUtil::isOneOf(classId, potentialAncestorIds);
+
+        return ret;
+    }
+
+    public static ListEnumerator subClassListEnumerator(Object obj)
+    {
+        ClassId classId = classidget(obj);
+        ListEnumerator ret = ClassIdUtil::subClassListEnumerator(classId);
+
+        return ret;
+    }
+}

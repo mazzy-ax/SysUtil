@@ -1,21 +1,15 @@
 //
-// https://github.com/mazzy-ax/SysUtil
+// mazzy, https://github.com/mazzy-ax/SysUtil
 //
-class RecordUtil
+// Класс обслуживает табличные буферы
+//
+// Util-класс реализует только статические методы.
+// не содержит внутри никаких значений.
+// не имеет смысла создавать экземпляр этого класса.
+//
+abstract class RecordUtil
 {
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    // это Util-класс, содержащий только статические методы
-    // нет смысла создавать объекты этого класса
-    private void new()
-    {
-    }
-
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static RecordCacheLevel cacheLookup(Common rec)
     {
         RecordCacheLevel ret = RecordUtil::dictTable(rec).cacheLookup();
@@ -23,14 +17,13 @@ class RecordUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static Common clone(Common orig, RefTableId expectedTableId = 0)
     {
         Common clone;
 
-        if( expectedTableId && expectedTableId != orig.TableId && expectedTableId != RecordUtil::commonTableId() )
+        if( expectedTableId &&
+            expectedTableId != orig.TableId &&
+            expectedTableId != tablenum(Common) )
         {
             throw error(strFmt('%1: Не совпадают TableId. Ожидается %2, фактическое значение %3',
                             funcname(),
@@ -44,9 +37,6 @@ class RecordUtil
         return clone;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static Common commonRecord()
     {
         Common rec;
@@ -54,10 +44,7 @@ class RecordUtil
         return rec;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static TableId commonTableId()
+    public static TableId DEL_commonTableId()
     {
         // Common rec;
         //
@@ -66,9 +53,6 @@ class RecordUtil
         return 65535;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // всегда возвращает not nullable объект. Полезно в выражениях
     public static DictTable dictTable(Common rec)
     {
@@ -76,15 +60,12 @@ class RecordUtil
 
         if( !dt )
         {
-            dt = new DictTable(RecordUtil::commonTableId());
+            dt = new DictTable(tablenum(Common));
         }
 
         return dt;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // ищет по значениям из полей, которые входят в уникальный индекс
     public static Common findFromUniqueIndexFields(Common rec)
     {
@@ -94,19 +75,22 @@ class RecordUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static anytype getFieldValue(Common record, FieldId fieldid)
+    // TODO refRecord
+    public static str findRef(Common rec, FieldId fieldId)
     {
-        // не делаем дополнительных проверок: к случае чего, аксапта выбросит исключение про поля в записи
-        anytype value = record.(fieldid);
-
-        return value;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
+    // TODO refTitleField2 - title field 2 from reference table
+    public static str findRefTitleField2(Common rec, FieldId fieldId)
+    {
+    }
+
+    // TODO refTitleField2 - title field 1 from reference table
+    public static str findReTitleField1(Common rec, FieldId fieldId)
+    {
+    }
+
+    // mazzy, 18.12.2020
     //
     // возвращает строку, которая содержит значения указанных в контейнере, ключевых и обязательных полей
     // каждое поле задействовано в контейнере только один раз
@@ -134,8 +118,15 @@ class RecordUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
+    public static anytype getValue(Common record, FieldId fieldid)
+    {
+        // не делаем дополнительных проверок: к случае чего, аксапта выбросит исключение про поля в записи
+        anytype value = record.(fieldid);
+
+        return value;
+    }
+
+    // mazzy, 05.12.2019
     //
     // возвращает контейнер, который содержит значения указанных в контейнере, ключевых и обязательных полей
     // каждое поле задействовано в контейнере только один раз
@@ -183,8 +174,7 @@ class RecordUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
+    // mazzy, 05.12.2019
     //
     // возвращает контейнер, который содержит значения указанных в контейнере, ключевых и обязательных полей
     // каждое поле задействовано в контейнере только один раз
@@ -226,7 +216,7 @@ class RecordUtil
                     info = strfmt("%1=%2", df.label(), rec.(df.id()));
 
                     text = TextBufferUtil::appendIfNotEmpty(text, ', ');
-                    text = TextBufferUtil::append(text, info);
+                    text = TextBufferUtil::appendStr(text, info);
                 }
             }
         }
@@ -238,9 +228,6 @@ class RecordUtil
         return TextBufferUtil::getText(text);
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static boolean hasTableAccess(Common rec, AccessType neededAccessType)
     {
         AccessType accessType = RecordUtil::dictTable(rec).rights();
@@ -249,19 +236,13 @@ class RecordUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static boolean isCommon(Common record)
     {
-        boolean ret = (record.TableId && record.TableId == RecordUtil::commonTableId());
+        boolean ret = (record.TableId == tablenum(Common));
 
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // возвращает true, если таблица не содержит ни одной записи
     // возвращает false, если хотя бы одна запись есть.
     //
@@ -276,25 +257,42 @@ class RecordUtil
             buf.setTmpData(record);
         }
 
-        select firstOnly buf;
+        select firstOnly firstFast buf;
 
         return (buf.RecId == 0);
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static boolean isNull(Common record)
+    public static boolean isNotCommon(Common record)
     {
-        boolean ret = (record.TableId && record.TableId == RecordUtil::commonTableId());
+        boolean ret = (record.TableId != tablenum(Common));
 
         return ret;
     }
 
+    // возвращает false, если таблица не содержит ни одной записи
+    // возвращает true, если хотя бы одна запись есть.
     //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static Common makeRecord(TableId tableId = 0)
+    // метод особенно полезен для временных таблиц
+    public static boolean isNotEmpty(Common record)
+    {
+        return !RecordUtil::isEmpty(record);
+    }
+
+    public static boolean isNotSpecified(Common record)
+    {
+        boolean ret = (record.TableId == 0 || record.TableId == tablenum(Common));
+
+        return ret;
+    }
+
+    public static boolean isSpecified(Common record)
+    {
+        boolean ret = (record.TableId != 0 && record.TableId != tablenum(Common));
+
+        return ret;
+    }
+
+    public static Common makeRecord(TableId tableId)
     {
         Common record;
         DictTable dt;
@@ -311,22 +309,16 @@ class RecordUtil
         return record;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static Common makeRecordIfCommon(Common record, TableId tableId)
+    public static Common makeRecordTmp(TableId tableId)
     {
-        if( RecordUtil::isCommon(record) )
-        {
-            record = RecordUtil::makeRecord(tableId);
-        }
+        Common record = RecordUtil::makeRecord(tableId);
+        ;
+
+        record.setTmp();
 
         return record;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // проверяет есть ли вхожение паттерна в какое-нибудь поле
     // проверку выполняет рекурсивно, если есть поля-контейнеры
     public static boolean match(
@@ -376,10 +368,7 @@ class RecordUtil
         return false;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static anytype setFieldValue(Common record, fieldId fieldid, anytype value)
+    public static anytype setValue(Common record, fieldId fieldid, anytype value)
     {
         // не делаем дополнительных проверок: к случае чего, аксапта выбросит исключение про поля в записи
         record.(fieldid) = value;
@@ -387,9 +376,6 @@ class RecordUtil
         return value;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // всегда возвращает not nullable объект. Полезно в выражениях
     public static SysDictTable sysDictTable(Common rec)
     {
@@ -397,26 +383,57 @@ class RecordUtil
 
         if( !dt )
         {
-            new SysDictTable(RecordUtil::commonTableId());
+            new SysDictTable(tablenum(Common));
         }
 
         return dt;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static container toCon(Common rec)
+    // TODO TitleField2
+    public static str titleField1(Common rec)
     {
-        // первый элемент - для совместимости с Global:buf2con(), и Global::con2Buf()
-        container ret = [rec.TableId, rec];
-
-        return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
+    // TODO TitleField2
+    public static str titleField2(Common rec)
+    {
+    }
+
+    public static Common tmpFilter(Common buf, FieldId filterFieldId, AnyType filterValue)
+    {
+        Common rec = RecordUtil::makeRecordTmp(buf.TableId);
+
+        Query       query = SysQuery::query(buf.TableId, filterFieldId, filterValue);
+        QueryRun    queryRun = new QueryRun(query);
+        ;
+
+        queryRun.setCursor(buf);
+        while (queryRun.next())
+        {
+            rec = queryRun.get(buf.TableId);
+            rec.insert();
+        }
+
+        return rec;
+    }
+
+
+    // buf - результат запроса select
+    public static Common tmpSelect(Common buf)
+    {
+        Common rec = RecordUtil::makeRecordTmp(buf.TableId);
+        ;
+
+        while( buf )
+        {
+            rec = buf.data(); //  clone, включая системные поля
+            rec.insert();
+        }
+
+        return rec;
+    }
+
+
     public static boolean validateAndDelete(Common buf)
     {
         if( !buf.validateDelete() )
@@ -429,9 +446,6 @@ class RecordUtil
         return true;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static Common validateAndDeleteOrThrow(Common buf)
     {;
         RecordUtil::validateDeleteOrThrow(buf);
@@ -440,9 +454,6 @@ class RecordUtil
         return buf;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static boolean validateAndInsert(Common buf)
     {
         if( !buf.validateWrite() )
@@ -455,9 +466,6 @@ class RecordUtil
         return true;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static Common validateAndInsertOrThrow(Common buf)
     {;
         RecordUtil::validateWriteOrThrow(buf);
@@ -466,9 +474,6 @@ class RecordUtil
         return buf;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static boolean validateAndUpdate(Common buf)
     {
         if( !buf.validateWrite() )
@@ -481,9 +486,6 @@ class RecordUtil
         return true;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static Common validateAndUpdateOrThrow(Common buf)
     {;
         RecordUtil::validateWriteOrThrow(buf);
@@ -492,9 +494,6 @@ class RecordUtil
         return buf;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static boolean validateAndWrite(Common buf)
     {
         if( !buf.validateWrite() )
@@ -507,9 +506,6 @@ class RecordUtil
         return true;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static Common validateAndWriteOrThrow(Common buf)
     {;
         RecordUtil::validateWriteOrThrow(buf);
@@ -518,9 +514,6 @@ class RecordUtil
         return buf;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static boolean validateDelete(Common buf)
     {
         if( !buf.validateDelete() )
@@ -531,9 +524,6 @@ class RecordUtil
         return true;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static Common validateDeleteOrThrow(Common buf)
     {
         if( !buf.validateDelete() )
@@ -544,9 +534,6 @@ class RecordUtil
         return buf;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static boolean validateWrite(Common buf)
     {
         if( !buf.validateWrite() )
@@ -557,9 +544,6 @@ class RecordUtil
         return true;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static Common validateWriteOrThrow(Common buf)
     {
         if( !buf.validateWrite() )

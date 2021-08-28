@@ -1,0 +1,121 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+// Util-класс реализует только статические методы.
+// не содержит внутри никаких значений.
+// не имеет смысла создавать экземпляр этого класса.
+//
+abstract class ExtendedTypeIdUtil
+{
+
+    public static DictType dictType(ExtendedTypeId id)
+    {
+        DictType dt;
+
+        if( id )
+        {
+            dt = new DictType(id);
+        }
+
+        return dt;
+    }
+
+    // отличается от Global::isType():
+    // 1. итерация, а не рекурсия.
+    // 2. минимальное число создаваемых в памяти объектов
+    public static boolean is(ExtendedTypeId id, ExtendedTypeId potentialAncestorId)
+    {
+        DictType dictType;
+        ;
+
+        while( id && potentialAncestorId )
+        {
+            if( id == potentialAncestorId )
+            {
+                return true;
+            }
+
+            dictType = new DictType(id);
+
+            if( dictType )
+            {
+                id = dictType.extend();
+            }
+            else
+            {
+                id = 0;
+            }
+        }
+
+        return false;
+    }
+
+    public static boolean isInteger(ExtendedTypeId id)
+    {
+        DictType dt = new DictType(id);
+        boolean ret = DictTypeUtil::isInteger(dt);
+
+        return ret;
+    }
+
+    // строка помещается в указанный тип?
+    public static boolean isLengthEnough(ExtendedTypeId id, str s)
+    {
+        DictType    dt  = new DictType(id);
+        boolean     ret = DictTypeUtil::isLengthEnough(dt, s);
+
+        return ret;
+    }
+
+    // строка помещается в указанный тип?
+    public static boolean isLengthEnoughOrWarning(ExtendedTypeId id, str s)
+    {
+        DictType dt = new DictType(id);
+        boolean ret = DictTypeUtil::isLengthEnough(dt, s);
+
+        return ret;
+    }
+
+    public static boolean isNumeric(ExtendedTypeId id)
+    {
+        DictType dt = new DictType(id);
+        boolean ret = DictTypeUtil::isNumeric(dt);
+
+        return ret;
+    }
+
+    public static boolean isString(ExtendedTypeId id)
+    {
+        DictType dt = new DictType(id);
+        boolean ret = DictTypeUtil::isString(dt);
+
+        return ret;
+    }
+
+    public static boolean isUndefined(ExtendedTypeId id)
+    {
+        DictType dt = new DictType(id);
+        boolean ret = DictTypeUtil::isUndefined(dt);
+
+        return ret;
+    }
+
+    public static str name(ExtendedTypeId id)
+    {
+        str ret = ExtendedTypeId2name(id);
+
+        return ret;
+    }
+
+    public static SysDictType sysDictType(ExtendedTypeId id)
+    {
+        SysDictType dt;
+
+        if( id )
+        {
+            dt = new SysDictType(id);
+        }
+
+        return dt;
+    }
+}

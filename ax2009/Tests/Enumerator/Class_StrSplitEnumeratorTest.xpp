@@ -1,0 +1,142 @@
+//
+// mazzy, https://github.com/mazzy-ax/SysUtil
+//
+class StrSplitEnumeratorTest extends SysTestCase
+{
+
+    void testSplit()
+    {
+        StrSplitEnumerator e = StrSplitEnumerator::construct('ABC:=DEF:=GH',':=');
+
+        this.assertNotNull(e);
+        this.assertTrue(e.moveNext());
+        this.assertEquals('ABC', e.current());
+        this.assertTrue(e.moveNext());
+        this.assertEquals('DEF', e.current());
+        this.assertTrue(e.moveNext());
+        this.assertEquals('GH', e.current());
+        this.assertFalse(e.moveNext());
+    }
+
+    void testSplit_around()
+    {
+        StrSplitEnumerator e = StrSplitEnumerator::construct(':=ABC:=DEF:=GH:=',':=');
+
+        this.assertNotNull(e);
+        this.assertTrue(e.moveNext());
+        this.assertEquals('', e.current());
+        this.assertTrue(e.moveNext());
+        this.assertEquals('ABC', e.current());
+        this.assertTrue(e.moveNext());
+        this.assertEquals('DEF', e.current());
+        this.assertTrue(e.moveNext());
+        this.assertEquals('GH', e.current());
+        this.assertTrue(e.moveNext());
+        this.assertEquals('', e.current());
+        this.assertFalse(e.moveNext());
+    }
+
+    void testSplit_Empty()
+    {
+        StrSplitEnumerator e = StrSplitEnumerator::construct('',':=');
+
+        this.assertNotNull(e);
+        this.assertTrue(e.moveNext());
+        this.assertEquals('',e.current());
+        this.assertFalse(e.moveNext());
+    }
+
+    void testSplit_EmptyDelimiter()
+    {
+        StrSplitEnumerator e = StrSplitEnumerator::construct('ABC:=DEF:=GH','');
+
+        this.assertNotNull(e);
+        this.assertTrue(e.moveNext());
+        this.assertEquals('ABC:=DEF:=GH', e.current());
+        this.assertFalse(e.moveNext());
+    }
+
+    void testSplit_EmptyDelimiter_max4()
+    {
+        StrSplitEnumerator e = StrSplitEnumerator::construct('ABC:=DEF:=GH','',4);
+
+        this.assertNotNull(e);
+        this.assertTrue(e.moveNext());
+        this.assertEquals('ABC:=DEF:=GH', e.current());
+        this.assertFalse(e.moveNext());
+    }
+
+    void testSplit_EmptyEmptyDelimiter()
+    {
+        StrSplitEnumerator e = StrSplitEnumerator::construct('','');
+
+        this.assertNotNull(e);
+        this.assertTrue(e.moveNext());
+        this.assertEquals('',e.current());
+        this.assertFalse(e.moveNext());
+    }
+
+    void testSplit_max0()
+    {
+        StrSplitEnumerator e = StrSplitEnumerator::construct('ABC:=DEF:=GH',':=',0);
+
+        this.assertNotNull(e);
+        this.assertTrue(e.moveNext());
+        this.assertEquals('ABC', e.current());
+        this.assertTrue(e.moveNext());
+        this.assertEquals('DEF', e.current());
+        this.assertTrue(e.moveNext());
+        this.assertEquals('GH', e.current());
+        this.assertFalse(e.moveNext());
+    }
+
+    void testSplit_max1()
+    {
+        StrSplitEnumerator e = StrSplitEnumerator::construct('ABC:=DEF:=GH',':=',1);
+
+        this.assertNotNull(e);
+        this.assertTrue(e.moveNext());
+        this.assertEquals('ABC:=DEF:=GH', e.current());
+        this.assertFalse(e.moveNext());
+    }
+
+    void testSplit_max2()
+    {
+        StrSplitEnumerator e = StrSplitEnumerator::construct('ABC:=DEF:=GH',':=',2);
+
+        this.assertNotNull(e);
+        this.assertTrue(e.moveNext());
+        this.assertEquals('ABC', e.current());
+        this.assertTrue(e.moveNext());
+        this.assertEquals('DEF:=GH', e.current());
+        this.assertFalse(e.moveNext());
+    }
+
+    void testSplit_max3()
+    {
+        StrSplitEnumerator e = StrSplitEnumerator::construct('ABC:=DEF:=GH',':=',3);
+
+        this.assertNotNull(e);
+        this.assertTrue(e.moveNext());
+        this.assertEquals('ABC', e.current());
+        this.assertTrue(e.moveNext());
+        this.assertEquals('DEF', e.current());
+        this.assertTrue(e.moveNext());
+        this.assertEquals('GH', e.current());
+        this.assertFalse(e.moveNext());
+    }
+
+    void testSplit_max4()
+    {
+        StrSplitEnumerator e = StrSplitEnumerator::construct('ABC:=DEF:=GH',':=',4);
+
+        this.assertNotNull(e);
+        this.assertTrue(e.moveNext());
+        this.assertEquals('ABC', e.current());
+        this.assertTrue(e.moveNext());
+        this.assertEquals('DEF', e.current());
+        this.assertTrue(e.moveNext());
+        this.assertEquals('GH', e.current());
+        this.assertFalse(e.moveNext());
+    }
+}

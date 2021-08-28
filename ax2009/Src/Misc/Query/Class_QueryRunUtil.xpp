@@ -1,0 +1,42 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+// Util-класс реализует только статические методы.
+// не содержит внутри никаких значений.
+// не имеет смысла создавать экземпляр этого класса.
+//
+abstract class QueryRunUtil
+{
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    public static Common getByName(QueryRun qr, str dsName)
+    {
+        Query                   q       = qr && dsName ? qr.query() : null;
+        QueryBuildDataSource    qbds    = q ? q.dataSourceName(dsName) : null;
+        Common                  ret;
+
+        if( qbds )
+        {
+            ret = qr.getNo(qbds.id());
+        }
+
+        return ret;
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    // получить из запроса n записей, начиная со startFrom
+    public static QueryRun take(QueryRun qr, int n, int startFrom = 1)
+    {
+        if( qr && n )
+        {
+            qr.enablePositionPaging(true);
+            qr.addPageRange(startFrom, n);
+        }
+
+        return qr;
+    }
+}

@@ -1,0 +1,112 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+// enumerator по записям, которые выбраны оператором select
+// работает по постоянным и временным таблицам
+class RecordEnumerator implements Enumerator
+{
+    // для временных таблиц переменные указывают на разные буфера в куче
+    // для регулярных таблиц переменные указывают на один и тот же буфер в куче
+    Common origBuf;
+    Common currentBuf;
+
+    int pos; // 0: before, 1: inside, >1: after. Inside if (pos == 1)
+
+    public anytype current()
+    {
+        if( pos == 1 )
+        {
+            return currentBuf;
+        }
+
+        return RecordUtil::commonRecord();
+    }
+
+    public str definitionString()
+    {
+        return strfmt('record[%2:%3] enumerator', currentBuf.TableId, tableid2name(currentBuf.TableId));
+    }
+
+    // не вызывайте этот метод напрямую.
+    // метод публичный, чтобы объект данного класса можно было создавать из classFactory и инициализировать из всевозможных unpack
+    // повторный вызов этого метода не приведет к изменению типа переменной currentValue. И не должен приводить.
+    public void init(Common buf)
+    {
+        origBuf = buf;
+    }
+
+
+    public boolean moveNext()
+    {
+        if( pos == 0 )
+        {
+            if( currentBuf.isTmp() )
+            {
+                // создаем отдельный буфер на временные данные
+                currentBuf = RecordUtil::makeRecord(origBuf.TableId);
+                currentBuf.setTmp();
+                currentBuf.setTmpData(origBuf);
+                select currentBuf;
+            }
+            else
+            {
+                currentBuf = origBuf;
+                // обе переменные разделяют один и тот же буфер в куче для регулярных таблиц
+                // нет способа создать clone буфера и при этом сохранить запросы select на разделенных буферах
+            }
+        }
+        else if( pos == 1 && currentBuf.RecId )
+        {
+            next currentBuf;
+            // next изменит состояние буфера в куче.
+            // поэтому у регулярных таблиц здесь изменится и currentBuf, и origBuf
+            // а для временных таблиц здесь изменится только currentBuf
+        }
+
+        if( currentBuf.RecId )
+        {
+            pos = 1;
+            return true;
+        }
+
+        pos = 2;
+        return false;
+    }
+
+    public void new(Common value)
+    {
+        this.init(value);
+    }
+
+    public void reset()
+    {
+        if( currentBuf.isTmp() )
+        {
+            pos = 0;
+        }
+        else
+        {
+            throw error(Error::missingOverride(funcname()));
+        }
+    }
+
+    public str toString()
+    {
+        if( pos < 1 )
+        {
+            return strfmt('%1(before)', tableId2name(currentBuf.TableId));
+        }
+        else if( pos > 1 )
+        {
+            return strfmt('%1(end)', tableId2name(currentBuf.TableId));
+        }
+
+        return RecordUtil::getInfo(currentBuf);
+    }
+
+    public static RecordEnumerator construct(anytype value)
+    {
+        return new RecordEnumerator(value);
+    }
+
+}

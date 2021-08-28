@@ -3,21 +3,14 @@
 //
 // класс оперирует с текстом - многострочной строкой (multiline string)
 // если текст содержит только одну строку, то класс работает также как и строковые функции
-class TextUtil
+//
+// Util-класс реализует только статические методы.
+// не содержит внутри никаких значений.
+// не имеет смысла создавать экземпляр этого класса.
+//
+abstract class TextUtil
 {
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    // это Util-класс, содержащий только статические методы
-    // нет смысла создавать объекты этого класса
-    private void new()
-    {
-    }
-
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // возвращает текст с подстроками, которые находится после первого вхожения подстроки
     // возвращает исходный текст, если вхождения не найдено
     //
@@ -46,9 +39,6 @@ class TextUtil
         return text;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // возвращает текст с подстроками, которые находятся после первого вхожения любого из указанных символов characters
     // возвращает исходный текст, если вхождения не найдено
     //
@@ -77,9 +67,6 @@ class TextUtil
         return text;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // возвращает текст с подстроками, которые находятся после последнего вхожения подстроки
     // возвращает исходный текст, если вхождения не найдено
     //
@@ -108,9 +95,6 @@ class TextUtil
         return text;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // возвращает текст с подстроками, которые находятся после последнего вхожения любого из указанных символов characters
     // возвращает исходную строку, если ни одного вхождения не найдено
     //
@@ -139,9 +123,6 @@ class TextUtil
         return s;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // добавляет строку в конец каждой подстроки текста
     //
     // пример:
@@ -166,9 +147,6 @@ class TextUtil
         return text;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // добавляет строку в начало каждой подстроки текста
     //
     // пример:
@@ -193,9 +171,6 @@ class TextUtil
         return text;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // возвращает текст с подстроками, которые находятся после первого вхожения подстроки
     // возвращает исходный текст, если вхождения не найдено
     //
@@ -224,9 +199,6 @@ class TextUtil
         return text;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // возвращает текст с подстроками, которые находятся после первого вхожения любого из указанных символов characters
     // возвращает исходный текст, если вхождения не найдено
     //
@@ -255,9 +227,6 @@ class TextUtil
         return text;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // возвращает текст с подстроками, которые находятся после последнего вхожения подстроки
     // возвращает исходный текст, если вхождения не найдено
     //
@@ -286,9 +255,6 @@ class TextUtil
         return text;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // возвращает текст с подстроками, которые находятся после последнего вхожения любого из указанных символов characters
     // возвращает исходный текст, если вхождения не найдено
     //
@@ -317,9 +283,6 @@ class TextUtil
         return text;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // рассчитывает отступ, который применим для каждой строки в многострочном тексте
     // табуляцию рассматривает как один непробельный значащий символ
     public static int calcIndent(str text)
@@ -353,9 +316,6 @@ class TextUtil
         return indent;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // отображаем как в отладчике
     public static str callStack(int skip = 2, container callStack = xSession::xppCallStack())
     {
@@ -364,9 +324,6 @@ class TextUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // добавляет или удаляет отступ слева у каждой строки в многострочном тексте
     // пробелы справа каждой строки оставляет как есть
     // табуляцию рассматривает как непробельный значащий символ
@@ -405,9 +362,6 @@ class TextUtil
         return text;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // в каждой строке многострочного текста:
     // = удаляет первые n символов, если n > 0
     // = удаляет последние n символов, если n < 0
@@ -420,9 +374,6 @@ class TextUtil
         return TextUtil::dropEnd(text, -n);
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // в каждой строке многострочного текста:
     // = удаляет последние n символов, если n < 0
     // возвращает исходный текст, если n => 0
@@ -447,9 +398,6 @@ class TextUtil
         return text;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // в каждой строке многострочного текста:
     // удаляет первые n символов, если n > 0
     // возвращает исходный текст, если n <= 0
@@ -474,9 +422,14 @@ class TextUtil
         return text;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
+    public static str fromInfolog(int fromLine)
+    {
+        InfologData infologData = infolog.copy(fromLine);
+        str ret = TextBufferUtil::appendInfolog(null, infologData).getText();
+
+        return ret;
+    }
+
     public static str infolog(InfologData info = infolog.export(), str newLine = '\n')
     {
         str ret = TextBufferUtil::appendInfolog(null, info, newLine).getText();
@@ -485,9 +438,6 @@ class TextUtil
     }
 
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // возвращает n-ую строку из многострочного текста
     public static str line(str s, int n)
     {
@@ -496,9 +446,6 @@ class TextUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static System.String[] lines(str text)
     {
         System.String[] ret;
@@ -512,9 +459,6 @@ class TextUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // добавляет указанный символ слева до нужной длины
     // если строка уже длиннее, то ничего не делает. Поэтому результат может быть длиннее указанной длины.
     public static str padLeft(str text, int length, char char = ' ')
@@ -559,9 +503,6 @@ class TextUtil
         return ret.getText();
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // добавляет указанный символ справа до нужной длины
     // если строка уже длиннее, то ничего не делает. Поэтому результат может быть длиннее указанной длины.
     static str padRight(str text, int length, char char = ' ')
@@ -609,9 +550,6 @@ class TextUtil
         return ret.getText();
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // возвращает текст, в котором каждая строка содержит не более заданной длины справа
     static str strLeft(str s, int len)
     {
@@ -634,9 +572,6 @@ class TextUtil
         return s;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // возвращает текст, в котором каждая строка содержит не более заданной длины слева
     static str strRight(str s, int len)
     {
@@ -659,9 +594,6 @@ class TextUtil
         return s;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // TODO
     public static container toArray(str s)
     {
@@ -670,9 +602,6 @@ class TextUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static container toCon(str s)
     {
         container ret = StrUtil::splitChar(s, '\n');
@@ -680,9 +609,6 @@ class TextUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // TODO
     public static container toList(str s)
     {
@@ -691,9 +617,6 @@ class TextUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // TODO
     public static container toMap(str s, int startLineNum = 1)
     {
@@ -702,9 +625,6 @@ class TextUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // TODO
     public static container toSet(str s)
     {
@@ -713,9 +633,6 @@ class TextUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // убирает указанные символы в начале и в конце всех строк в многострочном тексте
     // по умолчанию, убирает пробелы, табуляцию и переводы строк
     static str trim(str s, str ws = ' \t')
@@ -733,9 +650,6 @@ class TextUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     static str trimBlankLines(str s, str ws = ' \t\r\n')
     {
         str ret;
@@ -743,9 +657,6 @@ class TextUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     //TODO
     public static str trimEnd(str s, str ws = ' \t')
     {
@@ -754,9 +665,6 @@ class TextUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // удаляет отступ, который применим для каждой строки в многострочном тексте
     // табуляцию рассматривает как непробельный значащий символ
     // работает как trimIndent в Kotlin, https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.text/trim-indent.html
@@ -782,9 +690,6 @@ class TextUtil
         return s;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     //TODO
     public static str trimStart(str s, str ws = ' \t')
     {

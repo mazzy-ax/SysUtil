@@ -1,0 +1,842 @@
+
+    // добавить каждое значение контейнера как отдельный range
+    // полезно для большого количества значений, когда все они не помещаются в одну строку
+    //
+    // чтобы заменить все критерии по полю, используйте qbds.clearRange(fieldId) перед вызовом этого метода
+    static QueryBuildDataSource addRangesFromCon(QueryBuildDataSource qbds, FieldId fieldId, container con)
+    {
+        ConEnumerator ce;
+
+        if( qbds && fieldId && con )
+        {
+            ce = ConEnumerator::construct(con);
+            while (ce && ce.moveNext())
+            {
+                qbds.addRange(fieldId).value(queryValue(ce.current()));
+            }
+        }
+
+        return qbds;
+    }
+
+    // добавить каждое значение энумератора как отдельный range
+    // полезно для большого количества значений, когда все они не помещаются в одну строку
+    //
+    // чтобы заменить все критерии по полю, используйте qbds.clearRange(fieldId) перед вызовом этого метода
+    static void addRangesFromEnumerator(QueryBuildDataSource qbds, FieldId fieldId, Enumerator e)
+    {
+        if( qbds && fieldId )
+        {
+            while (e && e.moveNext())
+            {
+                qbds.addRange(fieldId).value(queryValue(e.current()));
+            }
+        }
+    }
+
+    // Can't be an instance method because new queryRun() until takes a query!
+    static QueryBuildDataSource addRangesFromKeyData(
+        QueryBuildDataSource    qbds,
+        KeyData                 keyData     // Must be a unique list of values!
+        )
+    {
+        Map                     keyDataMap;
+        MapEnumerator           me;
+
+        // A local a method is used because the a variable can change type for each while loop
+        anytype a()
+        {
+            anytype a;
+            [a] = me.currentValue();
+            return a;
+        }
+        //Only do Map::create() when container has at least 4 parameters. version,domain type,
+        //range type and size
+        if (conlen(keyData) >= 4)
+        {
+            keyDataMap = Map::create(keyData);
+
+            me = keyDataMap.getEnumerator();
+            while (me.moveNext())
+            {
+                qbds.addRange(me.currentKey()).value(queryValue(a()));
+            }
+        }
+
+        return qbds;
+    }
+
+    // добавить каждое значение списка как отдельный range
+    // полезно для большого количества значений, когда все они не помещаются в одну строку
+    //
+    // чтобы заменить все критерии по полю, используйте qbds.clearRange(fieldId) перед вызовом этого метода
+    static QueryBuildDataSource addRangesFromList(QueryBuildDataSource qbds, FieldId fieldId, List list)
+    {
+        ListEnumerator le;
+
+        if( qbds && fieldId && list )
+        {
+            le = list.getEnumerator();
+            while (le && le.moveNext())
+            {
+                qbds.addRange(fieldId).value(queryValue(le.current()));
+            }
+        }
+
+        return qbds;
+    }
+
+    // копирует критерии из датасорса.
+    // не удаляет и не изменяет уже установленные критерии
+    //
+    // чтобы заменить существующие и добавить новые, используйте mergeRangesFromQbds
+    public static QueryBuildDataSource addRangesFromQbds(QueryBuildDataSource dest, QueryBuildDataSource source)
+    {
+        return SysQuery::mergeRangeValuesFromQbds_Impl(dest, source, true);
+    }
+
+    // добавить каждое значение множества как отдельный range
+    // полезно для большого количества значений, когда все они не помещаются в одну строку
+    //
+    // чтобы заменить все критерии по полю, используйте qbds.clearRange(fieldId) перед вызовом этого метода
+    static QueryBuildDataSource addRangesFromSet(QueryBuildDataSource qbds, FieldId fieldId, Set set)
+    {
+        SetEnumerator se;
+
+        if( qbds && fieldId && set )
+        {
+            se = set.getEnumerator();
+            while (se && se.moveNext())
+            {
+                qbds.addRange(fieldId).value(queryValue(se.current()));
+            }
+        }
+
+        return qbds;
+    }
+
+    public client server static Integer countLoops_MRC(QueryRun _queryRun)
+    {
+        container c = SysQuery::countPrim_MRC(_queryRun.pack(false));
+
+        return conpeek(c,2);
+    }
+
+    private server static container countPrim_MRC(container _queryPack)
+    {
+        Query                   countQuery;
+        QueryRun                countQueryRun;
+        QueryBuildDataSource    qbds;
+        QueryBuildFieldList     qbfl;
+        Common                  common;
+        Integer                 counter;
+        Integer                 loops;
+
+        Integer                 tmxGroupNumber;
+        Integer                 tmxDataSourceNumber;
+        ;
+        countQueryRun   = new QueryRun(_queryPack);
+        countQuery      = countQueryRun.query();
+        tmxGroupNumber  = countQuery.groupByFieldCount();
+
+        for (tmxDataSourceNumber = 1; tmxDataSourceNumber <= countQuery.dataSourceCount(); tmxDataSourceNumber++)
+        {
+            qbds = countQuery.dataSourceNo(tmxDataSourceNumber);
+            qbds.update(false);
+
+            qbfl = qbds.fields();
+            qbfl.dynamic(false);
+            qbfl.clearFieldList();
+            qbds.addSelectionField(fieldNum(Common,RecId),SelectionField::Count);
+        }
+
+        countQueryRun = new QueryRun(countQuery);
+        while (countQueryRun.next())
+        {
+            common  = countQueryRun.getNo(1);
+            counter += common.RecId;
+            loops++;
+        }
+
+        return [counter,(tmxGroupNumber ? loops : counter)];
+    }
+
+    public client server static Integer countTotal_MRC(QueryRun _queryRun)
+    {
+        container c = SysQuery::countPrim_MRC(_queryRun.pack(false));
+
+        return conpeek(c,1);
+    }
+
+    // pkoz, 21.08.2018
+    // см.
+    // https://blogs.msdn.microsoft.com/emeadaxsupport/2010/05/10/passing-utcdatetime-values-in-extended-query-syntax/
+    // http://www.book.axforum.info/forums/showthread.php?t=32991
+
+    public static str dateTime2strExtQuery_MRC(utcDateTime _utcDateTime)
+    {
+        str     ret;
+        ;
+
+
+        If(_utcDateTime==DateTimeUtil::minValue())
+        {
+            ret = @'1900-01-01T00:00:00';
+        }
+        else
+        {
+            ret = DateTimeUtil::toStr(_utcDateTime);
+        }
+
+        return ret;
+    }
+
+    /*
+    https://blogs.msdn.microsoft.com/emeadaxsupport/2010/05/10/passing-utcdatetime-values-in-extended-query-syntax/
+    // на случай если страничка недоступна
+
+
+    Passing UtcDateTime values in extended query syntax
+
+    Recently I was looking into the issue of passing UtcDateTime values into a query in X++ using extended query syntax.
+
+
+    First I will just clarify what I mean when saying "extended query syntax":
+
+
+    This is extended query syntax:
+
+    ('(validUntilDate = %1)', DateTimeUtil::toStr(utcRefDateTime));
+
+    This is the regular syntax for ranges:
+
+    ('%1', queryValue(utcRefDateTime));
+
+    As you can see in my examples above, for the regular syntax using queryValue() is fine, but when using the extended query syntax, there are 3 basic rules for utcDateTime values:
+    - it's necessary to use DateTimeUtil::toStr() to pass utcDateTime values.
+    - The query string needs to have brackets around it.
+    - No speechmarks/quotations should be used around the utcDateTime value.
+
+
+    So working example:
+
+    queryStr = strfmt(@"((StartDate < %2) && (EndDate < %2) && (validUntilDate = %1))", DateTimeUtil::toStr(2010-01-10T14:00:00), DateTimeUtil::toStr(2010-01-10T17:00:00));
+
+
+    And a failing example with brackets missing:
+
+    queryStr = strfmt(@"((StartDate < %2) && EndDate < %2 && (validUntilDate = %1))", DateTimeUtil::toStr(2010-01-10T14:00:00), DateTimeUtil::toStr(2010-01-10T17:00:00));
+
+    Failing with speechmarks/quotations:
+
+    queryStr = strfmt(@"((StartDate < %2) && (EndDate < '%2') && (validUntilDate = %1))", DateTimeUtil::toStr(2010-01-10T14:00:00), DateTimeUtil::toStr(2010-01-10T17:00:00));
+
+
+    There is an exception to these rules, that is when using 1900-01-01T00:00:00. Most functions in X++ are returning this as NULL when converting to a string but for the extended range syntax to work correctly we need it to be returned as a string, so
+    the following functions cannot be used:
+
+
+
+    QueryValue()
+    dateTime2Str()
+    DateTimeUtil::toStr()
+    Global::utcDateTimeNull()
+    DateTimeUtil::minValue()
+
+
+    So in my environment I have introduced a new global function to make it easier for me to convert utcDateTime values to strings for extended query ranges, called dateTime2strQuery()
+
+
+
+    static str dateTime2strQuery(utcDateTime _utcDateTime)
+    {
+    str cvtDateTime;
+    ;
+
+
+    If(_utcDateTime==DateTimeUtil::minValue())
+        cvtDateTime = '1900-01-01T00:00:00';
+    else
+      cvtDateTime = DateTimeUtil::toStr(_utcDateTime);
+
+
+    return cvtDateTime;
+    }
+
+
+    So now my working example looks like this:
+
+    queryStr = strfmt(@"((StartDate < %2) && (EndDate < %2) && (validUntilDate = %1))", dateTime2strQuery(2010-01-10T14:00:00), dateTime2strQuery(2010-01-10T17:00:00));
+
+    */
+
+    //mazzy 05.02.2020
+    public static QueryGroupByField findGroupByField(
+        Query                   _query,
+        QueryBuildDataSource    _qbds,
+        fieldId                 _fieldId)
+    {
+        int                 groupFields;
+        int                 i;
+        QueryGroupByField   queryGroupByField;
+    ;
+
+        if (_query && _qbds)
+        {
+            groupFields = _query.groupByFieldCount();
+            for (i=1; i <= groupFields; ++i)
+            {
+                queryGroupByField = _query.groupByField(i);
+
+                if (queryGroupByField
+                    && queryGroupByField.fieldID() == _fieldId
+                    && queryGroupByField.dataSource().table() == _qbds.table())
+                {
+                    break;
+                }
+            }
+        }
+
+        return queryGroupByField;
+    }
+
+    //mazzy 05.02.2020
+    public static QueryGroupByField findOrCreateGroupByField(Query _query, QueryBuildDataSource _queryBuildDataSource, fieldId _fieldId)
+    {
+        QueryGroupByField    queryGroupByField;
+
+        if (_query && _queryBuildDataSource)
+        {
+            queryGroupByField = SysQuery::findGroupByField(_query, _queryBuildDataSource, _fieldId);
+
+            if (!queryGroupByField)
+            {
+                queryGroupByField = _queryBuildDataSource.addGroupByField(_fieldId);
+            }
+        }
+
+        return queryGroupByField;
+    }
+
+    public static QueryBuildRange findOrCreateRange(QueryBuildDataSource _queryBuildDataSource, fieldId _fieldId)
+    {
+        QueryBuildRange queryBuildRange;
+
+        if (_queryBuildDataSource)
+        {
+            queryBuildRange = _queryBuildDataSource.findRange(_fieldId);
+
+            if (!queryBuildRange && _fieldId)
+            {
+                queryBuildRange = _queryBuildDataSource.addRange(_fieldId);
+            }
+        }
+        return queryBuildRange;
+    }
+
+    // mazzy 03.12.2019
+    // сразу устанавливает value (включая контейнер), выполняет экранирование
+    // пустое значение не изменяет критерий! чтобы очистить, используйте .findOrCreateRange(...).Value(SysQuery::valueUnlimited())
+    public static QueryBuildRange findOrCreateRangeValue(
+        QueryBuildDataSource    _queryBuildDataSource,
+        fieldId                 _fieldId,
+        Anytype                 _value,
+        boolean                 _usingExtendedQuery_MRC     = false)
+    {
+        QueryBuildRange     queryBuildRange     = SysQuery::findOrCreateRange(_queryBuildDataSource, _fieldId);
+        str                 strValue;
+        ;
+
+        if (queryBuildRange)
+        {
+            strValue = SysQuery::value_MRC(_value, _usingExtendedQuery_MRC);
+
+            if( strValue )
+            {
+                // 08.08.2021 попробуем посмотреть как много фильтров превышает диапазон.
+                // сообщите smazurkin@mercury.ru, если у вас появилось это сообщение
+                ExtendedTypeIdUtil::isLengthEnoughOrWarning(typeid(Range), strValue);
+
+                queryBuildRange.value(strValue);
+            }
+        }
+
+        return queryBuildRange;
+    }
+
+    // mazzy 03.12.2019
+    // сразу устанавливает value (включая контейнер), выполняет экранирование
+    // пустое значение не изменяет критерий! чтобы очистить, используйте .findOrCreateRange(...).Value(SysQuery::valueUnlimited())
+    public static QueryBuildRange findOrCreateRangeValueNot(
+        QueryBuildDataSource    _queryBuildDataSource,
+        fieldId                 _fieldId,
+        Anytype                 _value,
+        boolean                 _usingExtendedQuery_MRC     = false)
+    {
+        QueryBuildRange     queryBuildRange     = SysQuery::findOrCreateRange(_queryBuildDataSource, _fieldId);
+        str                 strValue;
+        ;
+
+        if (queryBuildRange)
+        {
+            strValue = SysQuery::valueNot(_value, _usingExtendedQuery_MRC);
+
+            if( strValue )
+            {
+                // 08.08.2021 попробуем посмотреть как много фильтров превышает диапазон.
+                // сообщите smazurkin@mercury.ru, если у вас появилось это сообщение
+                ExtendedTypeIdUtil::isLengthEnoughOrWarning(typeid(Range), strValue);
+
+                queryBuildRange.value(strValue);
+            }
+        }
+
+        return queryBuildRange;
+    }
+
+    // реализация: заменяет и добавляет значения критериев из датасорса.
+    // не копирует link и dynalink
+
+    // используйте addRangesFromQbds или mergeRangesFromQbds
+    public static QueryBuildDataSource mergeRangeValuesFromQbds(
+        QueryBuildDataSource    dest,
+        QueryBuildDataSource    source)
+    {
+        return SysQuery::mergeRangeValuesFromQbds_Impl(dest, source, false);
+    }
+
+    // реализация: заменяет и добавляет значения критериев из датасорса.
+    // не копирует link и dynalink
+
+    // используйте addRangesFromQbds или mergeRangesFromQbds
+    protected static QueryBuildDataSource mergeRangeValuesFromQbds_Impl(
+        QueryBuildDataSource    dest,
+        QueryBuildDataSource    source,
+        boolean                 addSameFieldRange   = false)
+    {
+        QueryBuildRange     sourceRange;
+        QueryBuildRange     destRange;
+        int                 i;
+        ;
+
+        if (source && dest && source.table() == dest.table())
+        {
+            for (i = 1; i <= source.rangeCount(); i++)
+            {
+                sourceRange = source.range(i);
+                if (sourceRange && sourceRange.value())
+                {
+                    if (!addSameFieldRange)
+                    {
+                        dest.clearRange(sourceRange.field());
+                    }
+                    destRange = dest.addRange(sourceRange.field());
+                    if (destRange)
+                    {
+                        destRange.value(sourceRange.value());
+                        destRange.enabled(sourceRange.enabled());
+                        destRange.status(sourceRange.status());
+                    }
+                }
+            }
+        }
+
+        return dest;
+    }
+
+    // mazzy 26.12.2019
+    public static Query query(
+        TableId     _tableId,
+        FieldId     _fieldId    = 0,
+        Anytype     _value      = null)
+    {
+        Query                   q       = new Query();
+        QueryBuildDataSource    qbds    = q.addDataSource(_tableId);
+        ;
+
+        if (_fieldId && qbds && !prmisdefault(_value))
+        {
+            SysQuery::findOrCreateRangeValue(qbds, _fieldId, _value);
+        }
+
+        return q;
+    }
+
+    // mazzy 26.12.2019
+    public static QueryRun queryRun(
+        TableId     _tableId,
+        FieldId     _fieldId    = 0,
+        Anytype     _value      = null)
+    {
+        Query       q   = SysQuery::query(_tableId, _fieldId, _value);
+        QueryRun    qr  = new QueryRun(q);
+        ;
+
+        return qr;
+    }
+
+    // получить из запроса n записей, начиная со startFrom
+    public static QueryRun take(Query q, int n, int startFrom = 1)
+    {
+        QueryRun qr = new QueryRun(q);
+        ;
+
+        qr = QueryRunUtil::take(qr, n, startFrom);
+
+        return qr;
+    }
+
+    public static str value(anytype a)
+    {
+        str quotableStr = ' *",.()\\';
+        str s;
+        int t;
+
+        str doEscape(str s1)
+        {
+            int i = 1;
+            int pos;
+            int len = strlen(s1);
+            str result;
+            pos = strfind(s1, quotableStr, i, len - i + 1);
+            while (pos)
+            {
+                result += substr(s1, i, pos - i) + '\\' + substr(s1, pos, 1);
+                i = pos + 1;
+                if (i<=len)
+                    pos = strfind(s1, quotableStr, i, len - i + 1);
+                else
+                    pos = 0;
+            }
+
+            if (i == 1)
+                return s1;
+
+            if (i<=len)
+                result += substr(s1, i, len - i + 1);
+
+            return result;
+        }
+
+        t = typeof(a);
+        switch (t)
+        {
+            case Types::Enum:
+                return enum2Value(a);
+            case Types::Real:
+                return num2str(a,0,16,1,0);
+            case Types::Date:
+            case Types::UtcDateTime:
+                return strfmt('\"%1\"',a);  // must be double quotes
+            case
+                Types::String,
+                Types::RString,
+                Types::VarString:
+            {
+                s = a;
+                if (!s)
+                    return SysQuery::valueEmptyString();
+                return strfmt('%1',doEscape(s));  // must be double quotes
+            }
+            //mazzy 03.12.2019 -->
+            case Types::Container:
+                return Any::construct(a).toQueryValue();
+            case Types::Class:
+                if (ObjectUtil::isEnumerable(a))
+                {
+                    return Any::construct(a).toQueryValue();
+                }
+           //mazzy 03.12.2019 <--
+        }
+        // <GEEU>
+
+        // to avoid stack trace on unsupported value 'null'
+        if (! new DictEnum(enumnum(Types)).value2Symbol(t))
+            return SysQuery::valueUnlimited();
+
+            // </GEEU>
+        return strfmt('%1',a);
+    }
+
+    public static str value_MRC(
+        anytype     a,
+        boolean     _usingExtendedQuery_MRC = false //+GRD_fixQueryValue_pkoz, Исправление преобразования типов для расширенного Query, pkoz, 27.02.2009
+        // см. http://www.axaptapedia.com/Expressions_in_query_ranges
+        )
+    {
+        // pkoz, 27.02.2009 -->
+        /*
+        str quotableStr = ' *",.()';
+        */
+        str quotableStr = ' *",.()\\';
+        // забыли про экранирование слеша. Баг проявлялся в TradeLoopTrans классе при печати документов со слешем в номере - не видел строчек.
+        // pkoz, 27.02.2009 <--
+
+        str s;
+        int t;
+
+        str doEscape(str s1)
+        {
+            int i = 1;
+            int pos;
+            int len = strlen(s1);
+            str result;
+            pos = strfind(s1, quotableStr, i, len - i + 1);
+            while (pos)
+            {
+                result += substr(s1, i, pos - i) + '\\' + substr(s1, pos, 1);
+                i = pos + 1;
+                if (i<=len)
+                    pos = strfind(s1, quotableStr, i, len - i + 1);
+                else
+                    pos = 0;
+            }
+
+            if (i == 1)
+                return s1;
+
+            if (i<=len)
+                result += substr(s1, i, len - i + 1);
+
+            return result;
+        }
+
+        t = typeof(a);
+        switch (t)
+        {
+            case Types::Enum:
+                // -->
+                if (_usingExtendedQuery_MRC)
+                {
+                    return int2str(any2int(a));
+                }
+                // <--
+                return enum2Value(a);
+            case Types::Real:
+                return num2str(a,0,16,1,0);
+            case Types::Date:
+                // GRD_fixQueryValue_pkoz, Исправление даты для расширенного Query, pkoz, 27.02.2009 -->
+                if (_usingExtendedQuery_MRC)
+                {
+                    return date2StrXpp(a);
+                }
+                // GRD_fixQueryValue_pkoz, Исправление даты для расширенного Query, pkoz, 27.02.2009 <--
+                return strfmt('\"%1\"',a);  // must be double quotes
+
+            case Types::UtcDateTime:
+                // GRD_fixQueryValue_pkoz, Исправление даты для расширенного Query, pkoz, 21.08.2018 -->
+                if (_usingExtendedQuery_MRC)
+                {
+                    return SysQuery::dateTime2strExtQuery_MRC(a);
+                }
+                // GRD_fixQueryValue_pkoz, Исправление даты для расширенного Query, pkoz, 21.08.2018 <--
+
+                return strFmt('\"%1\"',a);  // must be double quotes
+
+            case
+                Types::String,
+                Types::RString,
+                Types::VarString:
+            {
+                s = a;
+                if (!s)
+                    return SysQuery::valueEmptyString();
+
+                // -->
+                if (_usingExtendedQuery_MRC)
+                {
+                    return strfmt(@'"%1"', doEscape(s));
+                }
+                // <--
+
+                return strfmt('%1',doEscape(s));  // must be double quotes
+            }
+
+            //mazzy 03.12.2019 -->
+            case Types::Container:
+                return Any::construct(a).toQueryValue(_usingExtendedQuery_MRC);
+            case Types::Class:
+                if (SysDictClass::isEqualOrSuperclass(classidget(a), classnum(Set)) ||
+                    SysDictClass::isEqualOrSuperclass(classidget(a), classnum(List)) ||
+                    SysDictClass::isEqualOrSuperclass(classidget(a), classnum(Array)))
+                {
+                    return Any::construct(a).toQueryValue();
+                }
+           //mazzy 03.12.2019 <--
+        }
+        return strfmt('%1',a);
+    }
+
+    /*
+    http://www.axaptapedia.com/Expressions_in_query_ranges
+    // на случай если страничка недоступна
+
+    Expressions in query ranges
+
+    Introduction
+    This is a method of specifying ranges on queries which allows you to perform complex comparisons, and create complex join situations which would be impossible using the standard syntax.
+
+    Syntax
+    To use the special syntax, you should first add a range to your QueryBuildDataSource object in the normal way. Note that for this special syntax, it does not matter which field you use to add the range.
+
+    To specify the range value itself, certain rules must be followed:
+
+    The entire expression must be enclosed within single-quotes, not double-quotes
+    The entire expression must be enclosed in parenthesis (brackets)
+    Each sub-expression must be enclosed in its own set of parenthesis
+    For fields in the current table, simply the field name can be used
+    For fields in other tables, a prefix of the relevant datasource name must be added. This is not always the same as the table name.
+    String values should be surrounded by double-quotes, and wrapped in a call to queryValue()
+    Enum values should be specified by their integer value
+    Date values should be formatted using Date2StrXpp()
+    Blank string like ‘ ’ will not work as expected, use sysquery::valueEmptyString().
+    Examples
+    In the example below, we construct a query and add a single datasource.
+
+    The range is then added, using the DataAreaId field on each table. Any field can be used, but using an unusual one such as DataAreaId helps remind a casual reader of the code that it's not a normal range.
+
+    query = new Query();
+    dsInventTable = query.addDataSource(tableNum(InventTable));
+
+    // Add our range
+    queryBuildRange = dsInventTable.addRange(fieldNum(InventTable, DataAreaId));
+    Given the above, the following are valid range specifications:
+
+    Simple criteria
+    Find the record where ItemId is B-R14. Take note of the single quotes and parenthesis surrounding the entire expression.
+
+    queryBuildRange.value(strFmt('(ItemId == "%1")', queryValue("B-R14")));
+    Find records where the ItemType is Service. Note the use of any2int().
+
+    queryBuildRange.value(strFmt('(ItemType == %1)', any2int(ItemType::Service)));
+    Find records where the ItemType is Service or the ItemId is B-R14. Note the nesting of the parenthesis in this example.
+
+    queryBuildRange.value(strFmt('((ItemType == %1) || (ItemId == "%2"))',
+        any2int(ItemType::Service),
+        queryValue("B-R14")));
+    Find records where the modified date is after 1st January 2000. Note the use of Date2StrXpp() to format the date correctly.
+
+    queryBuildRange.value(strFmt('(ModifiedDate > %1)', Date2StrXpp(01\01\2000)));
+    Find records where the Field is blank (null) or an empty string. For more see Sys::Query Docs[1]
+
+    qbrStatement = this.query().dataSourceName("BankAccountTrans2").addRange(fieldnum(BankAccountTrans,AccountStatement));
+    //qbrStatement.value("!?*");//this is the old way that may not work in future versions of AX
+    qbrStatement.value(sysquery::valueEmptyString());//this is the new way
+    Complex criteria with combined AND and OR clauses
+    Find all records where the ItemType is Service, or both the ItemType is Item and the ProjCategoryId is Spares. This is not possible to achieve using the standard range syntax.
+
+    Note also that in this example, we are using the fieldStr() method to specify our actual field names and again, that we have nested our parenthesis for each sub-expression.
+
+    queryBuildRange.value(strFmt('((%1 == %2) || ((%1 == %3) && (%4 == "%5")))',
+        fieldStr(InventTable, ItemType),
+        any2int(ItemType::Service),
+        any2int(ItemType::Item),
+        fieldStr(InventTable, ProjCategoryId),
+        queryValue("Spares")));
+    WHERE clauses referencing fields from multiple tables
+    For this example below, we construct a query consisting of two joined datasources (using an Exists join). Note that we specify the datasource names when adding the datasources to the query.
+
+    The ranges are then added, using the DataAreaId field on each table as described in the earlier example.
+
+    query = new Query();
+    dsInventTable = query.addDataSource(tableNum(InventTable), tableStr(InventTable));
+    dsInventItemBarCode = dsInventTable.addDataSource(tableNum(InventItemBarCode), tableStr(InventItemBarCode));
+    dsInventItemBarCode.relations(true);
+    dsInventItemBarCode.joinMode(JoinMode::ExistsJoin);
+
+    // Add our two ranges
+    queryBuildRange1 = dsInventTable.addRange(fieldNum(InventTable, DataAreaId));
+    queryBuildRange2 = dsInventItemBarCode.addRange(fieldNum(InventItemBarCode, DataAreaId));
+    Find all records where a bar code record exists for an item and was modified later than the item was modified.
+
+    In this example, we are using the range on the BarCode table. Therefore the unqualified ModifiedDate reference will relate to InventItemBarCode.ModifiedDate. The other field is a fully-qualified one, using the DatasourceName.FieldName syntax.
+
+    queryBuildRange2.value(strFmt('(ModifiedDate > InventTable.ModifiedDate)'));
+    Note that if we had added our InventTable datasource using the following code
+
+    dsInventTable = query.addDataSource(tableNum(InventTable), "InventTableCustomName"); // Note that we are manually specifying a different datasource name
+    then the query range would need to appear as follows
+
+    queryBuildRange2.value(strFmt('(ModifiedDate > InventTableCustomName.ModifiedDate)'));
+    Conditional joins
+    We will modify our previous example slightly, to remove the automatic addition of relations for the join.
+
+    query = new Query();
+    dsInventTable = query.addDataSource(tableNum(InventTable), "InventTable");
+    dsInventItemBarCode = dsInventTable.addDataSource(tableNum(InventItemBarCode), "InventItemBarCode");
+    dsInventItemBarCode.joinMode(JoinMode::ExistsJoin);
+
+    // Add our two ranges
+    queryBuildRange1 = dsInventTable.addRange(fieldNum(InventTable, DataAreaId));
+    queryBuildRange2 = dsInventItemBarCode.addRange(fieldNum(InventItemBarCode, DataAreaId));
+    We can now use the query expression to specify whatever we like as the join criteria.
+
+    Find all records where either the ItemType is Service, or the ItemType is Item and a barcode exists. The join criteria is only applied in the second half of the expression, so all Service items will appear irrespective of whether they have a bar
+    code. Priot to Ax 2012, this was not possible to achieve using the standard query ranges. From that version onwards, however, the QueryFilter class can be used to achieve the same result.
+
+    queryBuildRange2.value(strFmt('((%1.%2 == %3) || ((%1.%2 == %4) && (%1.%5 == %6)))',
+        query.dataSourceTable(tableNum(InventTable)).name(), // InventTable %1
+        fieldStr(InventTable, ItemType), // ItemType %2
+        any2int(ItemType::Service), // %3
+        any2int(ItemType::Item), // %4
+        fieldStr(InventTable, ItemId), // ItemId %5
+        fieldStr(InventItemBarCode, ItemId))); // %6
+    Using the techniques above, it is possible to create queries with almost as much flexibility as using SQL statements directly.
+
+    Filter on array fields
+    queryBuildRange.value(strFmt('((%1.%2 == "%4") || (%1.%3 == "%5"))',
+        queryBuildDataSource.name(),
+        fieldid2name(tablenum(<table>), fieldid2ext(fieldnum(<table>, Dimension), Dimensions::code2ArrayIdx(SysDimension::Center))),
+        fieldid2name(tablenum(<table>), fieldid2ext(fieldnum(<table>, Dimension), Dimensions::code2ArrayIdx(SysDimension::Purpose))),
+        "some dim2 value",
+        "some dim3 value"));
+    Note: you must always specify the datasource name if you use Query Expression syntax to filter on array fields. See also Limitations section at the bottom of the page.
+
+    Using wildcards and comma-separated range values
+    Again, the previous example here was using standard syntax, not the special syntax using expressions. It's not possible to modify the above examples to work with wildcards.
+
+    The above statement applies to AX versions < 5.0
+
+    AX 5.0 introduced solution to wildcards - while you still cannot directly use wildcards in ranges, now it supports the 'LIKE' keyword.
+
+    (AccountNum LIKE "*AA*" || Name LIKE "*AA*")
+    Limitations
+    The use of the extended query syntax is not supported by the new having filtering available in Ax 2012.
+
+    There are two major limitations to the Query Expressions syntax. The first is the loss of support for wildcards and comma-separated range values, and the second is the inability to reference array fields such as dimensions in some older kernel
+    versions.
+
+    Whilst in standard queries you can specify "AA*" or "A,B,C" as criteria, and they will be parsed by Axapta and sent through correctly to the database, these will simply be passed directly through when using the Query Expressions engine. As a result,
+    they will not return the expected results. On a related noted, the use of 'like' is not supported, so there is no way to use wildcards in any form.
+
+    Query Expressions syntax for array fields such as the Dimension field is known to be suppported since the version 5.0.1500.2116 (RU4) for AX 2009. Previous kernel versions are not tested to support Query Expressions syntax for array fields; it is
+    also known not to work at all in Axapta 3.
+
+    There is a discussion regarding the use of array fields on the Discussion page for this article. Please contribute to that discussion if possible!
+    */
+
+
+    //mazzy 19.12.2019
+    public static str valueNot(anytype a, boolean _usingExtendedQuery_MRC = false)
+    {
+        str        ret;
+        TextBuffer text;
+        Enumerator e = CollectionUtil::getEnumerator(a);
+        ;
+
+        if( e )
+        {
+            while( e.moveNext() )
+            {
+                text = TextBufferUtil::appendCollectionItem(text, SysQuery::valueNot(e.current()), ',');
+            }
+
+            ret = text.getText();
+        }
+        else
+        {
+            ret = strfmt('!%1',SysQuery::value_MRC(a, _usingExtendedQuery_MRC));
+        }
+
+        return ret;
+    }

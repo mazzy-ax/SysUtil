@@ -1,0 +1,97 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+// Класс текущее и предыдущее значение,
+// позволяет в цикле определить, что текущее значение отличается от предыдущего.
+// Отлично работает и на первой итерации, когда предыдущего значения еще нет.
+//
+// Пример использования:
+//
+// container con = [1,1,2,2,3,3,3,2];
+// Enumerator e = ConUtil::getEnumerator(con);
+// PrevCurr prevCurr = PrevCurr::construct();
+//
+// while( e && e.moveNext() )
+// {
+//     if( prevCurr.isChanged(e.current()) )
+//     {
+//         info(strfmt("%1", e.current()));
+//     }
+// }
+//
+// Пример выведет в инфолог: 1,2,3,2
+//
+class PrevCurr
+{
+    Any current;
+    Any previous;
+
+    // сюда можно передать параметр любого типа, включая объект типа Any
+    public anytype current(anytype newCurrent = null)
+    {
+        anytype ret;
+
+        if( !prmIsDefault(newCurrent) )
+        {
+            previous = current;
+            current = Any::construct(newCurrent);
+        }
+
+        if( current )
+        {
+            ret = current.value();
+        }
+
+        return ret;
+    }
+
+    // устанавливает newCurrent, если newCurrent был передан как параметр
+    // возвращает true, если текущее значение (current) отличается от предыдущего
+    // возвращает true, если и предыдущее, и текущее не были установлены ни разу
+    // возвращает false, если текущее значение совпадает с предыдущим
+    //
+    // параметром можно передать параметр любого типа, включая объект типа Any
+    public boolean isChanged(anytype newCurrent = null)
+    {
+        boolean ret;
+
+        if( !prmisdefault(newCurrent) )
+        {
+            this.current(newCurrent);
+        }
+
+        ret = !Any::isEqual(current, previous);
+
+        return ret;
+    }
+
+    // сюда можно передать параметр любого типа, включая объект типа Any
+    public anytype prev(anytype newPrev = null)
+    {
+        anytype ret;
+
+        if( !prmIsDefault(newPrev) )
+        {
+            previous = Any::construct(newPrev);
+        }
+
+        if( previous )
+        {
+            ret = previous.value();
+        }
+
+        return ret;
+    }
+
+    public void reset()
+    {
+        previous = null;
+        current = null;
+    }
+
+    public static PrevCurr construct()
+    {
+        return new PrevCurr();
+    }
+
+}

@@ -1,0 +1,136 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+// Класс обслуживает значения с типом FieldId
+//
+// Util-класс реализует только статические методы.
+// не содержит внутри никаких значений.
+// не имеет смысла создавать экземпляр этого класса.
+//
+// @see DictFieldUtil
+//
+abstract class FieldIdUtil
+{
+
+    public static Types baseType(TableId tableId, FieldId fieldId)
+    {
+        DictField df = FieldIdUtil::dictField(tableId, fieldId);
+        Types type = TypeUtil::undefined();
+
+        if( df )
+        {
+            type = df.baseType();
+        }
+
+        return type;
+    }
+
+    public static DictField dictField(TableId tableId, FieldId fieldId)
+    {
+        DictField df;
+
+        if( tableId && fieldId )
+        {
+            df = new DictField(tableId, fieldId);
+        }
+
+        return df;
+    }
+
+    // Возвращает подходящий не nullable объект.
+    // Полезно в выражениях, чтобы быть уверенным, что после выполнения этого метода объект точно не null
+    //
+    // not в названиях методов прочно ассоциируется с оператором логического отрицания (!)
+    // Поэтому название этого метода NonNull, а не NotNull
+    //
+    // @see https://stackoverflow.com/questions/4963300/which-notnull-java-annotation-should-i-use
+    //
+    public static DictField dictField_NonNull(TableId tableId, FieldId id)
+    {
+        DictField df = FieldIdUtil::dictField(tableId, id);
+        ;
+
+        df = DictFieldUtil::nonNull(df);
+
+        return df;
+    }
+
+    // Возвращает подходящий не nullable объект.
+    // Полезно в выражениях, чтобы быть уверенным, что после выполнения этого метода объект точно не null
+    //
+    // not в названиях методов прочно ассоциируется с оператором логического отрицания (!)
+    // Поэтому название этого метода NonNull, а не NotNull
+    //
+    // @see https://stackoverflow.com/questions/4963300/which-notnull-java-annotation-should-i-use
+    //
+    public static DictField nonNull(DictField df)
+    {
+        if( !df )
+        {
+            df = new DictField(tablenum(Common), fieldnum(Common, RecId));
+        }
+
+        return df;
+    }
+
+    public static FieldId recId()
+    {
+        return fieldnum(Common, RecId);
+    }
+
+    public static SysDictField sysDictField(TableId tableId, FieldId fieldId, int arrayIndex = 0)
+    {
+        SysDictField df;
+
+        if( tableId && fieldId )
+        {
+            df = new SysDictField(tableId, fieldId, arrayIndex);
+        }
+
+        return df;
+    }
+
+    // Возвращает подходящий не nullable объект.
+    // Полезно в выражениях, чтобы быть уверенным, что после выполнения этого метода объект точно не null
+    //
+    // not в названиях методов прочно ассоциируется с оператором логического отрицания (!)
+    // Поэтому название этого метода NonNull, а не NotNull
+    //
+    // @see https://stackoverflow.com/questions/4963300/which-notnull-java-annotation-should-i-use
+    //
+    public static SysDictField sysDictField_NonNull(TableId tableId, FieldId id, int arrayIndex = 0)
+    {
+        SysDictField df = FieldIdUtil::sysDictField(tableId, id, arrayIndex);
+        ;
+
+        if( !df )
+        {
+            df = new SysDictField(tablenum(Common), fieldnum(Common, RecId));
+        }
+
+        return df;
+    }
+
+    // Возвращает подходящий не nullable объект.
+    // Полезно в выражениях, чтобы быть уверенным, что после выполнения этого метода объект точно не null
+    //
+    // not в названиях методов прочно ассоциируется с оператором логического отрицания (!)
+    // Поэтому название этого метода NonNull, а не NotNull
+    //
+    // @see https://stackoverflow.com/questions/4963300/which-notnull-java-annotation-should-i-use
+    //
+    public static SysDictField sysNonNull(SysDictField df)
+    {
+        if( !df )
+        {
+            df = new SysDictField(tablenum(Common), fieldnum(Common, RecId));
+        }
+
+        return df;
+    }
+
+    public static FieldId tableId()
+    {
+        return fieldnum(Common, TableId);
+    }
+}

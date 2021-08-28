@@ -8,9 +8,6 @@ class SysRecordInsertList extends RecordInsertlist
     int elements;
     int lastInserted;
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // добавляет запись к набору RecordInsertList
     // перед добавлением выполняет validateVrite, если это не запрещено параметрами класса
     public int add(Common record)
@@ -26,18 +23,12 @@ class SysRecordInsertList extends RecordInsertlist
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // всего элементов было добавлено в этот список
     public int elements()
     {
         return elements;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // возвращает число записей, которые были вставлены в базу данной командой
     public int insertDatabase()
     {
@@ -51,18 +42,12 @@ class SysRecordInsertList extends RecordInsertlist
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public boolean skipValidateWrite(boolean _skipValidateWrite = skipValidateWrite)
     {
         skipValidateWrite = _skipValidateWrite;
         return skipValidateWrite;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // создает объект на сервере
     // используйте new(), если вы хотите вручную управлять местом создания объекта
     public server static SysRecordInsertList construct(
@@ -88,9 +73,6 @@ class SysRecordInsertList extends RecordInsertlist
         return ril;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // создает объект на сервере
     // используйте new(), если вы хотите вручную управлять местом создания объекта
     public server static SysRecordInsertList fromRecord(

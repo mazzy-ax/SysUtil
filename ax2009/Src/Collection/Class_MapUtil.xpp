@@ -1,0 +1,159 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+// Util-класс реализует только статические методы.
+// не содержит внутри никаких значений.
+// не имеет смысла создавать экземпляр этого класса.
+//
+abstract class MapUtil
+{
+
+    public static Map add(Map map, anytype key, anytype value)
+    {
+        if( !map )
+        {
+            map = new Map(typeof(key), typeof(value));
+        }
+
+        map.insert(key, value); // ядро бросит исключение, если тип значения не совпадает с типом списка
+
+        return map;
+    }
+
+    public static Map clone(Map map)
+    {
+        Map ret;
+        MapEnumerator me;
+
+        if (map)
+        {
+            ret = new Map(map.keyType(), map.valueType());
+
+            me = map.getEnumerator();
+            while (me.moveNext())
+            {
+                map.insert(me.currentKey(), me.currentValue());
+            }
+        }
+
+        return ret;
+    }
+
+    public static int elements(Map map)
+    {
+        int ret;
+
+        if( map )
+        {
+            ret = map.elements();
+        }
+
+        return ret;
+    }
+
+    public static boolean empty(Map map)
+    {
+        boolean ret = true;
+
+        if( map )
+        {
+            ret = map.empty();
+        }
+
+        return ret;
+    }
+
+    public static boolean exists(Map map, anytype key)
+    {
+        boolean ret = false;
+
+        if( map )
+        {
+            ret = map.exists(key);
+        }
+
+        return ret;
+    }
+
+    public static MapEnumerator getEnumerator(Map map)
+    {
+        MapEnumerator ret;
+
+        if( map )
+        {
+            ret = map.getEnumerator();
+        }
+
+        return ret;
+    }
+
+    public static Map insert(Map map, anytype key, anytype value)
+    {
+        if( !map )
+        {
+            map = new Map(typeof(key), typeof(value));
+        }
+
+        map.insert(key, value); // ядро бросит исключение, если тип значения не совпадает с типом списка
+
+        return map;
+    }
+
+    public static anytype lookup(Map map, anytype key)
+    {
+        anytype ret;
+
+        if( map && map.exists(key) )
+        {
+            ret = map.lookup(key);
+        }
+
+        return ret;
+    }
+
+    // бросает исключение, если map isNull или key отсутствует в map
+    public static anytype lookupOrThrow(Map map, anytype key)
+    {
+        anytype ret = map.lookup(key);
+
+        return ret;
+    }
+
+    // создать map для хранения значений, тип которых совпадает с типом переменной value
+    public static Map newBy(anytype key, anytype value)
+    {
+        Types typeKey = typeof(key);
+        Types typeValue = typeof(value);
+        Map ret = new Map(typeKey, typeValue);
+
+        return ret;
+    }
+
+    // Возвращает подходящий не nullable объект.
+    // Полезно в выражениях, чтобы быть уверенным, что после выполнения этого метода объект точно не null
+    //
+    // not в названиях методов прочно ассоциируется с оператором логического отрицания (!)
+    // Поэтому название этого метода NonNull, а не NotNull
+    //
+    // @see https://stackoverflow.com/questions/4963300/which-notnull-java-annotation-should-i-use
+    //
+    public static Map nonNull(Map map, Types keyType = Types::AnyType, Types valueType = Types::AnyType)
+    {
+        if( !map )
+        {
+            map = new Map(keyType, valueType);
+        }
+
+        return map;
+    }
+
+    public static Map remove(Map map, anytype key)
+    {
+        if( map )
+        {
+            map.remove(key);
+        }
+
+        return map;
+    }
+}

@@ -1,36 +1,39 @@
 //
 // https://github.com/mazzy-ax/SysUtil
 //
-public class ConEnumerator implements Enumerator
+public class ArrayEnumerator implements Enumerator
 {
-    container   con;
-    int         len;
-    int         idx;
+    Array   arr;
+    int     idx;
 
     public anytype current()
     {
-        // никаких проверок:
-        // если индекс выходит за границы контейнера, то conPeek возвратит целый 0
-        return conPeek(con, idx);
+        if( arr )
+        {
+            // мы не делаем никаких проверок индекса
+            // ядро выбросит исключение, если индекс выходит за пределы массива
+            return arr.value(idx);
+        }
+
+        return AnytypeUtil::undefined();
     }
 
     public str definitionString()
     {
-        return 'container enumerator';
+        return 'Array enumerator';
     }
 
     // метод публичный, чтобы объект данного класса можно было создавать из classFactory и инициализировать из всевозможных unpack
     // не вызывайте этот метод напрямую
-    public void init(container _con)
-    {
-        con = _con;
-        len = conlen(con);
+    public void init(Array _arr)
+    {;
+        arr = _arr;
     }
 
 
     public boolean moveNext()
     {
-        if( idx < len )
+        if(arr && idx < arr.lastIndex())
         {
             idx++;
             return true;
@@ -39,9 +42,9 @@ public class ConEnumerator implements Enumerator
         return false;
     }
 
-    public void new(container _con)
+    public void new(Array _arr)
     {
-        this.init(_con);
+        this.init(_arr);
     }
 
 
@@ -58,15 +61,15 @@ public class ConEnumerator implements Enumerator
         return AnytypeUtil::toString(this.current());
     }
 
-    public static server ConEnumerator construct(container con)
+    public static ArrayEnumerator construct(Array arr)
     {
-        return new ConEnumerator(con);
+        return new ArrayEnumerator(arr);
     }
 
 
     public static ClassDescription description()
     {
-        return "An enumerator to traverse a container.";
+        return "An enumerator to traverse an array.";
     }
 
 }

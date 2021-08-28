@@ -1,44 +1,75 @@
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
+    //mazzy 24.03.2021
+    public static LabelType classIdMismatch(str _funcName, ClassId actual, ClassId expected)
+    {
+        SysDictClass actualDc = new SysDictClass(actual);
+        SysDictClass expectedDc = new SysDictClass(expected);
+
+        str actualStr = actualDc ? actualDc.toString() : strfmt('%1',actual);
+        str expectedStr = expectedDc ? expectedDc.toString() : strfmt('%1', expected);
+
+        LabelType ret = strfmt('Class mismatch at %1: Actual: %2, Expected %3', _funcName, actualStr, expectedStr);
+
+        return ret;
+    }
+
+    //Eshp CL005598 2019/09/05
+    public static LabelType unsupportedBuffer(Common _common, str _funcName = '')
+    {
+        LabelType ret;
+        ;
+
+        if (_common.TableId)
+        {
+            ret = strfmt("Таблица %1 не поддерживается%2.",
+                        SysDictTable::newTableId(_common.TableId).name(),
+                        (_funcName ? (" в методе " + _funcName) : ''));
+        }
+        else
+        {
+            ret = Error::missingRecord(_funcName);
+        }
+
+        return ret;
+    }
+
     // в качестве описания можно использовать название переменной
     public static LabelType unsupportedEmptyString(str _funcName, anytype _description = '')
     {
-        LabelType ret = strfmt("unsupported empty string in %1 %2", _funcName, _description);
+        LabelType ret = strfmt("Unsupported empty string in %1 %2", _funcName, _description);
 
         return ret;
         }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static LabelType unsupportedEnum(str _funcName, anytype _enumValue = '')
+    //mazzy 28.11.2019
+    public static LabelType unsupportedEnum(str _funcName, anytype enumValue = '')
     {
-        LabelType ret = strfmt("Unsupported enum <%1> in %2", _enumValue, _funcName);
+        LabelType ret;
+    ;
+
+        if (typeof(enumValue) == Types::Enum)
+        {
+            ret = strfmt("Enum <%1:%2> не поддерживается %3. Обратитесь к разработчикам.", EnumId2Name(DictEnum::value2id(enumValue)), enumValue, _funcName);
+        }
+        else
+        {
+            ret = strfmt("Enum <%1> не поддерживается %2. Обратитесь к разработчикам.", enumValue, _funcName);
+        }
+        return ret;
+    }
+
+    //mazzy 07.12.2020
+    public static LabelType unsupportedNull(str _funcName, anytype _varNameOrText = '')
+    {
+        LabelType ret = strfmt("Unsupported Null in %1 %2", _funcName, _varNameOrText);
 
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    // в качестве описания можно использовать название переменной
-    public static LabelType unsupportedNull(str _funcName, anytype _description = '')
-    {
-        LabelType ret = strfmt("unsupported Null in %1 %2", _funcName, _description);
-
-        return ret;
-    }
-
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
+    //mazzy 24.03.2021
     public static LabelType unsupportedType(str _funcName, anytype type = '')
     {
-        LabelType ret = strfmt("unsupported Type %1 - %2", type, _funcName);
-
-        ret += TextUtil::callStack();
+        LabelType ret = strfmt("Unsupported Type %1 - %2", type, _funcName);
 
         return ret;
     }

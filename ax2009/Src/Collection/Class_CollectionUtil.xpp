@@ -1,0 +1,62 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+//
+// TODO work in progress
+//
+// Util-класс реализует только статические методы.
+// не содержит внутри никаких значений.
+// не имеет смысла создавать экземпляр этого класса.
+//
+abstract class CollectionUtil
+{
+
+    public static anytype as(anytype value)
+    {
+        return EnumeratorUtil::asEnumerable(value);
+    }
+
+    public static boolean empty(anytype collection)
+    {
+        Enumerator e = CollectionUtil::getEnumerator(collection);
+
+        if( e && e.moveNext() )
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    // возвращает объект, у которого можно вызвать метод moveNext или Null
+    // возвращает null, если параметр не является ни коллекцией, ни энумератором
+    //
+    // используйте EnumeratorUtil::getEnumerator() чтобы получить энумератор для любого объекта
+    public static Enumerator getEnumerator(anytype collection)
+    {
+        Enumerator e = EnumeratorUtil::newFromCollection(collection);
+
+        return e;
+    }
+
+    public static boolean in(anytype value, anytype collection)
+    {
+        Enumerator e = EnumeratorUtil::getEnumerator(collection);
+
+        while( e && e.moveNext() )
+        {
+            if( value == e.current() )
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // возвращает true для значения, для которого можно получить enumerator
+    public static boolean is(anytype value)
+    {
+        return EnumeratorUtil::isEnumerable(value);
+    }
+}

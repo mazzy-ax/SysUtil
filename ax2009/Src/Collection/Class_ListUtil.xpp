@@ -1,21 +1,140 @@
 //
 // https://github.com/mazzy-ax/SysUtil
 //
-class ListUtil
+// Util-класс реализует только статические методы.
+// не содержит внутри никаких значений.
+// не имеет смысла создавать экземпляр этого класса.
+//
+abstract class ListUtil
 {
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    // это Util-класс, содержащий только статические методы
-    // нет смысла создавать объекты этого класса
-    private void new()
+    public static List add(List list, anytype value)
     {
+        if( !list )
+        {
+            list = new List(typeof(value));
+        }
+        else if( list.typeId() != typeof(value) )
+        {
+            return list; // значение с другим типом не будет добавлено
+        }
+
+        list.addEnd(value);
+
+        return list;
     }
 
+    public static List append(List list, anytype collection)
+    {
+        Enumerator e = EnumeratorUtil::getEnumerator(collection);
+
+        while( e && e.moveNext() )
+        {
+            list = ListUtil::add(list, e.moveNext());
+        }
+
+        return list;
+    }
+
+    // клонирует list, не клонирует элементы списка
     //
-    // https://github.com/mazzy-ax/SysUtil
+    // see deepClone()
+    public static List clone(List list)
+    {
+        List ret;
+
+        if( list )
+        {
+            ret = new List(list.typeId());
+            ret.appendList(list);
+        }
+
+        return ret;
+    }
+
+    // клонирует и list, и элементы списка
     //
+    // see clone()
+    public static List deepClone(List list)
+    {
+        List ret;
+        container packedList;
+
+        if( list )
+        {
+            packedList = list.pack();
+            ret = List::create(packedList);
+        }
+
+        return ret;
+    }
+
+    // возвращает новый список, в котором присутствуют только уникальные объекты (дубли удалены)
+    public static List distinct(List list)
+    {
+        Set set = SetUtil::newFromList(list);
+        List ret = ListUtil::newFromSet(set);
+
+        return ret;
+    }
+
+    public static int elements(List list)
+    {
+        int ret;
+
+        if( list )
+        {
+            ret = list.elements();
+        }
+
+        return ret;
+    }
+
+    public static boolean empty(List list)
+    {
+        boolean ret = true;
+
+        if( list )
+        {
+            ret = list.empty();
+        }
+
+        return ret;
+    }
+
+    public static ListEnumerator getEnumerator(List list)
+    {
+        ListEnumerator ret;
+
+        if( list )
+        {
+            ret = list.getEnumerator();
+        }
+
+        return ret;
+    }
+
+    // возвращает новый список, который содержит все элементы первого списка, затем все элементы второго списка
+    public static List merge(List list1, List list2)
+    {
+        if( !list2 )
+        {
+            return ListUtil::clone(list1);
+        }
+
+        if( !list1 )
+        {
+            return ListUtil::clone(list2);
+        }
+
+        if( list1.typeId() != list2.typeId() )
+        {
+            return ListUtil::clone(list1);
+        }
+
+        return List::merge(list1, list2);
+    }
+
     // создать list для хранения значений, тип которых совпадает с типом переменной value
     public static List newBy(anytype value)
     {
@@ -25,51 +144,148 @@ class ListUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static container toCon(List list)
+    public static List newFrom(anytype collection)
     {
-        container ret;
-        ListEnumerator le = list.getEnumerator();
+        List list;
+        Enumerator e;
 
-        while( le.moveNext() )
+        if( AnytypeUtil::isList(collection) )
         {
-            ret += le.current();
+            list = ListUtil::clone(collection);
+        }
+        else
+        {
+            e = EnumeratorUtil::getEnumerator(collection);
+            while( e && e.moveNext() )
+            {
+                list = ListUtil::add(list, e.current());
+            }
+        }
+
+        return list;
+    }
+
+    // быстрое преобразование. https://axforum.info/forums/showthread.php?t=27738
+    // безопасное преобразование в методе newFrom()
+    public static List newFromArray(Array arr)
+    {
+        List ret;
+        container packedArray;
+
+        if( arr )
+        {
+            packedArray = arr.pack();
+            ret = List::create(packedArray);
         }
 
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static Set toSet(List list)
+    public static List newFromContainer(container con)
     {
-        Set set;
-        ListEnumerator le;
+        List ret;
+        int len = conlen(con);
+        int i;
 
-        if (list)
+        for( i=1; i<=len; i++ )
         {
-            set = new Set(list.typeId());
-
-            le = list.getEnumerator();
-            while (le.moveNext())
-            {
-                set.add(le.current());
-            }
+            ret = ListUtil::add(ret, conpeek(con, i));
         }
 
-        return set;
+        return ret;
     }
 
+    public static List newFromList(List list)
+    {
+        List ret = ListUtil::clone(list);
+
+        return ret;
+    }
+
+    // создает список записей из буфера, который был заполнен командой select
+    public static RecordList newFromSelect(Common selectedRecords, int maxElements = 0)
+    {
+        RecordList ret = RecordList::fromSelect(selectedRecords, maxElements);
+
+        return ret;
+    }
+
+    // быстрое преобразование. https://axforum.info/forums/showthread.php?t=27738
+    // безопасное преобразование в методе newFrom()
+    public static List newFromSet(Set set)
+    {
+        List ret;
+        container packedSet;
+
+        if( set )
+        {
+            packedSet = set.pack();
+            ret = List::create(packedSet);
+        }
+
+        return ret;
+    }
+
+    public static List newFromStr(str s, str sep = ',', int maxSubstrings = 0)
+    {
+        Enumerator e = StrSplitEnumerator::construct(s, sep, maxSubstrings);
+        List ret;
+
+        while( e && e.moveNext() )
+        {
+            ret = ListUtil::add(ret, e.current());
+        }
+
+        return ret;
+    }
+
+    // Возвращает подходящий не nullable объект.
+    // Полезно в выражениях, чтобы быть уверенным, что после выполнения этого метода объект точно не null
     //
-    // https://github.com/mazzy-ax/SysUtil
+    // not в названиях методов прочно ассоциируется с оператором логического отрицания (!)
+    // Поэтому название этого метода NonNull, а не NotNull
     //
+    // @see https://stackoverflow.com/questions/4963300/which-notnull-java-annotation-should-i-use
+    //
+    public static List nonNull(List list, Types type = Types::AnyType)
+    {
+        if( !list )
+        {
+            list = new List(type);
+        }
+
+        return list;
+    }
+
+    public static container toCon(List list)
+    {
+        container ret = ConUtil::newFromList(list);
+
+        return ret;
+    }
+
+    public static Set toSet(List list)
+    {
+        Set ret = SetUtil::newFromList(list);
+
+        return ret;
+    }
+
     public static str toStr(List list, str sep = ',')
     {
-        ListEnumerator le = list ? list.getEnumerator() : null;
-        str ret = TextBufferUtil::appendEnumerator(null, le, sep).getText();
+        str ret = StrUtil::newFromList(list, sep);
+
+        return ret;
+    }
+
+    public static Types type(List list)
+    {
+        Types ret = Types::AnyType;
+
+        if( list )
+        {
+            ret = list.typeId();
+        }
 
         return ret;
     }

@@ -1,15 +1,12 @@
 //
 // https://github.com/mazzy-ax/SysUtil
 //
-// enumerator по ОДНОМУ значению произвольного типа
+// enumerator для ОДНОГО значения произвольного типа
 class OneValueEnumerator implements Enumerator
 {
     anytype currentValue;
     int pos; // 0: before, 1: inside, >1: after. Inside if (pos == 1)
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public anytype current()
     {
         if( pos == 1 )
@@ -20,17 +17,11 @@ class OneValueEnumerator implements Enumerator
         return AnytypeUtil::undefined();
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public str definitionString()
     {
         return strfmt('anytype[%1] enumerator', typeof(currentValue));
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // метод публичный, чтобы объект данного класса можно было создавать из classFactory и инициализировать из всевозможных unpack
     // повторный вызов этого метода не приведет к изменению типа переменной currentValue. И не должен приводить.
     // не вызывайте этот метод напрямую.
@@ -40,9 +31,6 @@ class OneValueEnumerator implements Enumerator
     }
 
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public boolean moveNext()
     {
         pos++;
@@ -50,40 +38,31 @@ class OneValueEnumerator implements Enumerator
         return (pos == 1);
     }
 
-    public void new(anytype value = 0)
+    public void new(anytype value)
     {
         this.init(value);
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public void reset()
     {
         pos = 0;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public str toString()
     {
-        if( pos > 1 )
-        {
-            return '(end)';
-        }
-        else if( pos < 1 )
+        if( pos < 1 )
         {
             return '(before)';
+        }
+        else if( pos > 1 )
+        {
+            return '(end)';
         }
 
         return strfmt('[%1]', currentValue);
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static Enumerator construct(anytype value)
+    public static OneValueEnumerator construct(anytype value)
     {
         return new OneValueEnumerator(value);
     }

@@ -1,21 +1,13 @@
 //
 // https://github.com/mazzy-ax/SysUtil
 //
-class StrUtil
+// Util-класс реализует только статические методы.
+// не содержит внутри никаких значений.
+// не имеет смысла создавать экземпляр этого класса.
+//
+abstract class StrUtil
 {
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    // это Util-класс, содержащий только статические методы
-    // нет смысла создавать объекты этого класса
-    private void new()
-    {
-    }
-
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // возвращает подстроку, которая находится после первого вхожения подстроки
     // возвращает исходную строку, если ни одного вхождения не найдено
     //
@@ -35,9 +27,6 @@ class StrUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // возвращает подстроку, которая находится после первого вхожения любого из указанных символов characters
     // возвращает исходную строку, если ни одного вхождения не найдено
     //
@@ -57,9 +46,6 @@ class StrUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // возвращает подстроку, которая находится после последнего вхожения подстроки
     // возвращает исходную строку, если ни одного вхождения не найдено
     //
@@ -79,9 +65,6 @@ class StrUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // возвращает подстроку, которая находится после последнего вхожения одного из символов characters
     // возвращает исходную строку, если ни одного вхождения не найдено
     //
@@ -101,9 +84,6 @@ class StrUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // возвращает подстроку, которая находится до первого вхожения подстроки
     // возвращает пустую строку, если ни одного вхождения не найдено
     //
@@ -123,9 +103,6 @@ class StrUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // возвращает подстроку, которая находится до первого вхожения одного из символов characters
     // возвращает пустую строку, если ни одного вхождения не найдено
     //
@@ -145,9 +122,6 @@ class StrUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // возвращает подстроку, которая находится до последнего вхожения подстроки
     // возвращает пустую строку, если ни одного вхождения не найдено
     //
@@ -167,9 +141,6 @@ class StrUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // возвращает подстроку, которая находится до последнего вхожения одного из символов characters
     // возвращает пустую строку, если ни одного вхождения не найдено
     //
@@ -191,9 +162,20 @@ class StrUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
+    public static str char(int n)
+    {
+        str ret = num2char(n);
+
+        return ret;
+    }
+
+    public static int char2num(str text, int position)
+    {
+        int ret = char2num(text, position);
+
+        return ret;
+    }
+
     // удалить первые n символов, если n > 0
     // удалить последние n символов, если n < 0
     // оставить исходную строку, если n == 0
@@ -208,9 +190,6 @@ class StrUtil
         return substr(s, n+1, strlen(s)-n);
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // возвращает подстроку заданной длины справа
     //
     // по идее, различие между strRight и end должно проявляться на текстах с разным направлением письма
@@ -225,9 +204,32 @@ class StrUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
+    static str first(str s, int len)
+    {
+        str ret;
+
+        if( len <= 0 )
+            return '';
+
+        ret = substr(s, 1, len);
+
+        return ret;
+    }
+
+    // добавляет к строке разъяснение в скобках, если разъяснение есть
+    public static str formatClarification(
+        str     s,
+        str     clarification,
+        str     clarificationFormat     = "%1 (%2)")
+    {
+        if( clarification )
+        {
+            s = strfmt(clarification, s, clarificationFormat);
+        }
+
+        return s;
+    }
+
     public static str hexDump(str s)
     {
         int         i;
@@ -253,9 +255,6 @@ class StrUtil
         return ret.getText();
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     //TODO
     public static boolean isBlank(str s)
     {
@@ -264,9 +263,6 @@ class StrUtil
         return true;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     //TODO
     public static boolean isEmptyOrBlank(str s)
     {
@@ -275,9 +271,107 @@ class StrUtil
         return true;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
+    static str last(str s, int len)
+    {
+        str ret;
+
+        if( len <= 0 )
+            return '';
+
+        ret = substr(s, strlen(s), -len);
+
+        return ret;
+    }
+
+    public static str newFrom(anytype valueOrCollection, str sep = ',')
+    {
+        str ret = TextBufferUtil::append(null, valueOrCollection, sep).getText();
+
+        return ret;
+    }
+
+    public static str newFromArray(Array arr, str sep = ',')
+    {
+        ArrayEnumerator ae;
+        str ret;
+
+        if( arr )
+        {
+            if( arr.typeId() == Types::Enum )
+            {
+                warning(strfmt('Array хранит enum как целые. Используйте Array(Types::Container) и arr.value(i, [Enum::value]), '+
+                        'чтобы сохранить полную информацию об enum в массиве. Метод %1 корректно отобразит enum, '+
+                        'которые хранятся в контейнерах.', funcname()));
+            }
+
+            ae = ArrayEnumerator::construct(arr);
+            ret = TextBufferUtil::appendEnumerator(null, ae, sep).getText();
+        }
+
+        return ret;
+    }
+
+    public static str newFromContainer(container con, str sep = ',')
+    {
+        str ret = TextBufferUtil::appendContainer(null, con, sep).getText();
+
+        return ret;
+    }
+
+    public static str newFromList(List list, str sep = ',')
+    {
+        ListEnumerator le;
+        str ret;
+
+        if( list )
+        {
+            if( list.typeId() == Types::Enum )
+            {
+                warning(strfmt('List хранит enum как целые. Используйте List(Types::Container) и list.add([Enum::value]), '+
+                        'чтобы сохранить полную информацию об enum в списке. Метод %1 корректно отобразит enum, '+
+                        'которые хранятся в контейнерах.', funcname()));
+            }
+
+            le = list.getEnumerator();
+            ret = TextBufferUtil::appendEnumerator(null, le, sep).getText();
+        }
+
+        return ret;
+    }
+
+    public static str newFromObject(Object obj)
+    {
+        str ret;
+
+        if( obj )
+        {
+            ret = obj.toString();
+        }
+
+        return ret;
+    }
+
+    public static str newFromSet(Set set, str sep = ',')
+    {
+        SetEnumerator se;
+        str ret;
+
+        if( set )
+        {
+            if( set.typeId() == Types::Enum )
+            {
+                warning(strfmt('Set хранит enum как целые. Используйте Set(Types::Container) и set.add([Enum::value]), '+
+                        'чтобы сохранить полную информацию об enum в множестве. Метод %1 корректно отобразит enum, '+
+                        'которые хранятся в контейнерах.', funcname()));
+            }
+
+            se = set.getEnumerator();
+            ret = TextBufferUtil::appendEnumerator(null, se, sep).getText();
+        }
+
+        return ret;
+    }
+
     // добавляет указанный символ справа до нужной длины
     // если строка уже длиннее, то ничего не делает. Поэтому результат может быть длиннее указанной длины.
     //
@@ -295,9 +389,6 @@ class StrUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // добавляет указанный символ слева до нужной длины
     // если строка уже длиннее, то ничего не делает. Поэтому результат может быть длиннее указанной длины.
     static str padLeft(str s, int len, char char = ' ')
@@ -312,9 +403,6 @@ class StrUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // добавляет указанный символ справа до нужной длины
     // если строка уже длиннее, то ничего не делает. Поэтому результат может быть длиннее указанной длины.
     static str padRight(str s, int len, char char = ' ')
@@ -329,9 +417,6 @@ class StrUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // добавляет указанный символ слева до нужной длины
     // если строка уже длиннее, то ничего не делает. Поэтому результат может быть длиннее указанной длины.
     //
@@ -349,9 +434,6 @@ class StrUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // делит строку на подстроки, разделенные строкой delimiterStr
     // возвращает контейнер подстрок. Если maxSubstrings не ноль, то максимальная контейнера не будет превышать maxSubstrings.
     // возвращает контейнер, содержащий исходную строку, если ни одного символа-разделителя не найдено.
@@ -394,9 +476,6 @@ class StrUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // делит строку на подстроки, разделенные хотя бы одним символом из delimiters (по-умолчанию это пробел, табуляция и перевод строки - whitespaces)
     // возвращает контейнер подстрок.
     // возвращает контейнер, содержащий исходную строку, если ни одного символа-разделителя не найдено.
@@ -439,9 +518,6 @@ class StrUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // делит строку на подстроки, разделенные хотя бы одной строкой из контейнера delimiterCon (по умолчанию пробел, табуляция и переводы строк - whitespaces)
     // результат не зависит от порядка разделителей в контейнере.
     // возвращает контейнер подстрок. Если maxSubstrings не ноль, то максимальная контейнера не будет превышать maxSubstrings.
@@ -507,9 +583,6 @@ class StrUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // возвращает подстроку заданной длины слева
     //
     // по идее, различие между strLeft и start должно проявляться на текстах с разным направлением письма
@@ -526,9 +599,6 @@ class StrUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // возвращает подстроку заданной длины слева
     //
     // в X++ есть ключевое слово left. Поэтому обявить метод с именем left нельзя
@@ -543,9 +613,6 @@ class StrUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // возвращает подстроку заданной длины справа
     static str strRight(str s, int len)
     {
@@ -558,9 +625,6 @@ class StrUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // возвращает подстроку заданной длины с указанного символа
     // len может быть отрицательным числом.
     static str take(str s, int len, int startFrom = 1)
@@ -570,9 +634,6 @@ class StrUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // убирает указанные символы в начале и в конце строки
     // по умолчанию, убирает пробелы, табуляцию и переводы строк
     static str trim(str s, str ws = ' \t\r\n')
@@ -590,9 +651,6 @@ class StrUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     //TODO
     public static str trimEnd(str s, str ws = ' \t\r\n')
     {
@@ -601,9 +659,6 @@ class StrUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // удаляет отступ, который применим для каждой строки в многострочном тексте
     // табуляцию рассматривает как непробельный значащий символ
     // работает как trimIndent в Kotlin, https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.text/trim-indent.html
@@ -613,9 +668,6 @@ class StrUtil
         return TextUtil::trimIndent(s);
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     //TODO
     public static str trimStart(str s, str ws = ' \t\r\n')
     {

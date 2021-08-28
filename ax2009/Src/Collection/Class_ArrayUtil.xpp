@@ -1,0 +1,191 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+// Util-класс реализует только статические методы.
+// не содержит внутри никаких значений.
+// не имеет смысла создавать экземпляр этого класса.
+//
+abstract class ArrayUtil
+{
+
+    public static Array add(Array arr, anytype value)
+    {
+        int lastIndex;
+
+        if( !arr )
+        {
+            arr = new Array(typeof(value));
+        }
+        else if( arr.typeId() != typeof(value) )
+        {
+            return arr; // значение с другим типом не будет добавлено
+        }
+
+        lastIndex = arr.lastIndex();
+        arr.value(lastIndex+1, value);
+
+        return arr;
+    }
+
+    // клонируе массив, не клонирует элементы массива
+    //
+    // see clone()
+    public static Array clone(Array arr)
+    {
+        Array ret = ArrayUtil::newFrom(arr);
+
+        return ret;
+    }
+
+    // клонируе и массив, и элементы массива
+    //
+    // see clone()
+    public static Array deepClone(Array arr)
+    {
+        Array ret;
+        container packedArray;
+
+        if( arr )
+        {
+            packedArray = arr.pack();
+            ret = Array::create(packedArray);
+        }
+
+        return ret;
+    }
+
+    public static ArrayEnumerator getEnumerator(Array arr)
+    {
+        ArrayEnumerator ret = ArrayEnumerator::construct(arr);
+
+        return ret;
+    }
+
+    public static Array newFrom(anytype collection)
+    {
+        Array arr;
+        Enumerator e = EnumeratorUtil::getEnumerator(collection);
+
+        while( e && e.moveNext() )
+        {
+            arr = ArrayUtil::add(arr, e.current());
+        }
+
+        return arr;
+    }
+
+    public static Array newFromCon(container con)
+    {
+        Array ret;
+        int len = conlen(con);
+        int i;
+
+        for( i=1; i<=len; ++i )
+        {
+            ret = ArrayUtil::add(ret, conpeek(con, i));
+        }
+
+        return ret;
+    }
+
+    // быстрое преобразование. https://axforum.info/forums/showthread.php?t=27738
+    // безопасное преобразование в методе newFrom()
+    public static Array newFromList(List list)
+    {
+        Array ret;
+        container packedList;
+
+        if( list )
+        {
+            packedList = list.pack();
+            ret = Array::create(packedList);
+        }
+
+        return ret;
+    }
+
+    // создает массив значений поля из буфера, который был заполнен командой select
+    public static Array newFromSelect(Common selectedRecord, FieldId fieldId, int maxElements = 0)
+    {
+        Array ret;
+        int elements;
+        anytype value;    // тип поля не меняется внтури цикла, поэтому одного anytype достаточно
+
+        while( selectedRecord && (maxElements == 0 || elements <= maxElements) )
+        {
+            value = RecordUtil::getValue(selectedRecord, fieldId);
+            ret = ArrayUtil::add(ret, value);
+
+            next selectedRecord;
+            elements++;
+        }
+
+        return ret;
+    }
+
+    // быстрое преобразование. https://axforum.info/forums/showthread.php?t=27738
+    // безопасное преобразование в методе newFrom()
+    public static Array newFromSet(Set set)
+    {
+        Array ret;
+        container packedSet;
+
+        if( set )
+        {
+            packedSet = set.pack();
+            ret = Array::create(packedSet);
+        }
+
+        return ret;
+    }
+
+    public static Array newFromStr(str s, str sep = ',', int maxSubstrings = 0)
+    {
+        Enumerator e = StrSplitEnumerator::construct(s, sep, maxSubstrings);
+        Array ret;
+
+        while( e && e.moveNext() )
+        {
+            ret = ArrayUtil::add(ret, e.current());
+        }
+
+        return ret;
+    }
+
+    // Возвращает подходящий не nullable объект.
+    // Полезно в выражениях, чтобы быть уверенным, что после выполнения этого метода объект точно не null
+    //
+    // not в названиях методов прочно ассоциируется с оператором логического отрицания (!)
+    // Поэтому название этого метода NonNull, а не NotNull
+    //
+    // @see https://stackoverflow.com/questions/4963300/which-notnull-java-annotation-should-i-use
+    //
+    public static Array nonNull(Array arr, Types type = Types::AnyType)
+    {
+        if( !arr )
+        {
+            arr = new Array(type);
+        }
+
+        return arr;
+    }
+
+    public static str toStr(Array arr, str sep = ',')
+    {
+        str ret = StrUtil::newFromArray(arr, sep);
+
+        return ret;
+    }
+
+    public static Types type(Array arr)
+    {
+        Types ret = Types::AnyType;
+
+        if( arr )
+        {
+            ret = arr.typeId();
+        }
+
+        return ret;
+    }
+}

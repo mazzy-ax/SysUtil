@@ -1,21 +1,14 @@
 //
 // https://github.com/mazzy-ax/SysUtil
 //
-class ClrTypeUtil
+// Util-класс реализует только статические методы.
+// не содержит внутри никаких значений.
+// не имеет смысла создавать экземпляр этого класса.
+//
+abstract class ClrTypeUtil
 {
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    // это Util-класс, содержащий только статические методы
-    // нет смысла создавать объекты этого класса
-    private void new()
-    {
-    }
-
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
+    // mazzy, 06.10.2020
     public static System.Object asInstance(System.Object obj, System.Object baseObj)
     {
         if( ClrTypeUtil::isInstance(obj, baseObj) )
@@ -26,9 +19,7 @@ class ClrTypeUtil
         return null;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
+    // mazzy, 06.10.2020
     public static System.Object asInstanceOrBase(System.Object obj, System.Object baseObj)
     {
         if( ClrTypeUtil::isInstance(obj, baseObj) )
@@ -40,9 +31,7 @@ class ClrTypeUtil
     }
 
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
+    // mazzy, 06.10.2020
     public static boolean isInstance(System.Object obj, System.Object baseObj)
     {
         anytype perm = new InteropPermission(Interopkind::ClrInterop).assert();
@@ -53,9 +42,7 @@ class ClrTypeUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
+    // mazzy, 06.10.2020
     public static str name(System.Object obj)
     {
         anytype perm = new InteropPermission(InteropKind::ClrInterop).assert();

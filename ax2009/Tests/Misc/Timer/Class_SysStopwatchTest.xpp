@@ -1,0 +1,405 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+class SysStopwatchTest extends SysTestCase
+{
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    void testConstruct()
+    {
+        SysStopwatch stopwatch = SysStopwatch::construct();
+
+        this.assertNotNull(stopwatch);
+        this.assertTrue(SysDictClass::is(stopwatch, classnum(SysStopwatch)));
+        this.assertFalse(stopwatch.isRunning());
+    }
+
+    void testConstruct_False()
+    {
+        SysStopWatch    sysStopWatch = SysStopWatch::contruct(false);
+    ;
+        this.assertNotNull(sysStopWatch);
+        this.assertTrue(SysDictClass::is(sysStopWatch, classnum(SysStopWatch)));
+        this.assertFalse(sysStopWatch.isRunning());
+
+    }
+
+    void testConstruct_True()
+    {
+        SysStopWatch    sysStopWatch = SysStopWatch::contruct(true);
+    ;
+        this.assertNotNull(sysStopWatch);
+        this.assertTrue(SysDictClass::is(sysStopWatch, classnum(SysStopWatch)));
+        this.assertTrue(sysStopWatch.isRunning());
+
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    void testElapsed()
+    {
+        SysStopwatch stopwatch = SysStopwatch::startNew();
+        str elapsed;
+
+        sleep(50);
+        elapsed = stopwatch.elapsed();
+
+        this.assertTrue(match(@'^:d:d\::d:d\::d:d$', elapsed), elapsed);
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    void testElapsed_NotStarted()
+    {
+        SysStopwatch stopwatch = SysStopwatch::construct();
+
+        this.assertNotNull(stopwatch);
+        this.assertEquals('00:00:00', stopwatch.elapsed());
+    }
+
+    void testElapsedFormatted()
+    {
+        SysStopWatch    sysStopWatch = SysStopWatch::contruct();
+    ;
+        this.assertNotNull(sysStopWatch);
+        this.assertEquals('00:00:00', sysStopWatch.elapsedFormated());
+    }
+
+    void testElapsedFormatted_Start()
+    {
+        SysStopWatch    sysStopWatch = SysStopWatch::contruct();
+    ;
+        sysStopWatch.start();
+
+        this.assertNotNull(sysStopWatch);
+        this.assertNotEqual('00:00:00', sysStopWatch.elapsedFormated());
+    }
+
+    void testElapsedFormatted_StartNew()
+    {
+        SysStopWatch    sysStopWatch = SysStopWatch::startNew();
+    ;
+        this.assertNotNull(sysStopWatch);
+        this.assertNotEqual('00:00:00', sysStopWatch.elapsedFormated());
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    void testElapsedMilliseconds()
+    {
+        SysStopwatch sysStopWatch = SysStopWatch::startNew();
+        int64 zero = 0;
+    ;
+        sleep(50);
+
+        this.assertNotNull(sysStopWatch);
+        this.assertNotEqual(zero, sysStopWatch.elapsedMilliseconds());
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    void testElapsedMilliseconds_NotStarted()
+    {
+        SysStopwatch sysStopWatch = SysStopWatch::construct();
+        int64 zero = 0;
+    ;
+        this.assertNotNull(sysStopWatch);
+        this.assertEquals(zero, sysStopWatch.elapsedMilliseconds());
+    }
+
+    void testElapsedMilliseconds_Start()
+    {
+        SysStopWatch    sysStopWatch = SysStopWatch::contruct();
+        int64           zero = 0;
+    ;
+        sysStopWatch.start();
+        sleep(100);
+
+        this.assertNotNull(sysStopWatch);
+        this.assertNotEqual(zero, sysStopWatch.elapsedMilliseconds());
+    }
+
+    void testElapsedMilliseconds_StartNew()
+    {
+        SysStopWatch    sysStopWatch = SysStopWatch::startNew();
+        int64           zero = 0;
+    ;
+        sleep(100);
+
+        this.assertNotNull(sysStopWatch);
+        this.assertNotEqual(zero, sysStopWatch.elapsedMilliseconds());
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    void testElapsedWideFormat()
+    {
+        SysStopwatch stopwatch = SysStopwatch::startNew();
+        str elapsed;
+
+        sleep(50);
+        elapsed = stopwatch.elapsedWide();
+
+        this.assertTrue(match(@'^:d:d\::d:d\::d:d\.:d+$', elapsed), elapsed);
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    void testElapsedWideFormat_NotStarted()
+    {
+        SysStopwatch stopwatch = SysStopwatch::construct();
+
+        this.assertNotNull(stopwatch);
+        this.assertEquals('00:00:00', stopwatch.elapsedWide());
+    }
+
+    void testIsReset()
+    {
+        SysStopWatch    sysStopWatch = SysStopWatch::contruct();
+    ;
+        sysStopWatch.reset();
+    }
+
+    void testIsReset_startNew()
+    {
+        SysStopWatch    sysStopWatch = SysStopWatch::startNew();
+    ;
+        sysStopWatch.reset();
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    void testIsRunning()
+    {
+        SysStopwatch stopwatch = SysStopwatch::startNew();
+
+        sleep(50);
+
+        this.assertTrue(stopwatch.isRunning());
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    void testIsRunning_Immediately()
+    {
+        SysStopwatch stopwatch = SysStopwatch::startNew();
+
+        this.assertTrue(stopwatch.isRunning());
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    void testIsRunning_NotStarted()
+    {
+        SysStopwatch stopwatch = SysStopwatch::construct();
+
+        this.assertFalse(stopwatch.isRunning());
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    void testIsRunning_Reset()
+    {
+        SysStopwatch stopwatch = SysStopwatch::startNew();
+
+        stopwatch.reset();
+
+        this.assertFalse(stopwatch.isRunning());
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    void testIsRunning_Start()
+    {
+        SysStopwatch stopwatch = SysStopwatch::startNew();
+
+        this.assertTrue(stopwatch.isRunning());
+    }
+
+    void testIsRunning_StartNew()
+    {
+        SysStopWatch    sysStopWatch = SysStopWatch::startNew();
+    ;
+        this.assertNotNull(sysStopWatch);
+        this.assertTrue(sysStopWatch.isRunning());
+    }
+
+    void testIsRunning_StartReset()
+    {
+        SysStopWatch    sysStopWatch = SysStopWatch::contruct();
+    ;
+        sysStopWatch.start();
+        sysStopWatch.reset();
+
+        this.assertNotNull(sysStopWatch);
+        this.assertFalse(sysStopWatch.isRunning());
+    }
+
+    void testIsRunning_StartStop()
+    {
+        SysStopWatch    sysStopWatch = SysStopWatch::contruct();
+    ;
+        sysStopWatch.start();
+        sysStopWatch.stop();
+
+        this.assertNotNull(sysStopWatch);
+        this.assertFalse(sysStopWatch.isRunning());
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    void testIsRunning_Stop()
+    {
+        SysStopwatch stopwatch = SysStopwatch::construct();
+
+        this.assertFalse(stopwatch.isRunning());
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    void testReset()
+    {
+        SysStopwatch stopwatch = SysStopwatch::startNew();
+        int64 zero = 0;
+
+        sleep(50);
+        stopwatch.reset();
+
+        this.assertEquals(zero, stopwatch.elapsedMilliseconds());
+        this.assertFalse(stopwatch.isRunning());
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    void testReset_NotStarted()
+    {
+        SysStopwatch stopwatch = SysStopwatch::construct();
+        int64 zero = 0;
+
+        this.assertEquals(zero, stopwatch.elapsedMilliseconds());
+        this.assertFalse(stopwatch.isRunning());
+    }
+
+    void testStart()
+    {
+        SysStopWatch    sysStopWatch = SysStopWatch::contruct();
+    ;
+        sysStopWatch.start();
+    }
+
+    void testStart_startNew()
+    {
+        SysStopWatch    sysStopWatch = SysStopWatch::startNew();
+    ;
+        sysStopWatch.start();
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    void testStartNew()
+    {
+        SysStopwatch stopwatch = SysStopwatch::startNew();
+
+        this.assertNotNull(stopwatch);
+        this.assertTrue(SysDictClass::is(stopwatch, classnum(SysStopwatch)));
+        this.assertTrue(stopwatch.isRunning());
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    void testStop()
+    {
+        SysStopwatch stopwatch = SysStopwatch::startNew();
+        int64 zero = 0;
+
+        sleep(50);
+        stopwatch.stop();
+
+        this.assertNotEqual(zero, stopwatch.elapsedMilliseconds());
+        this.assertFalse(stopwatch.isRunning());
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    void testStop_NotStarted()
+    {
+        SysStopwatch stopwatch = SysStopwatch::construct();
+        int64 zero = 0;
+
+        sleep(50);
+        stopwatch.stop();
+
+        this.assertEquals(zero, stopwatch.elapsedMilliseconds());
+        this.assertFalse(stopwatch.isRunning());
+    }
+
+    void testStop_startNew()
+    {
+        SysStopWatch    sysStopWatch = SysStopWatch::startNew();
+    ;
+        sysStopWatch.stop();
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    void testToString()
+    {
+        SysStopwatch stopwatch = SysStopwatch::startNew();
+        str elapsed;
+
+        sleep(50);
+        elapsed = stopwatch.elapsed();
+
+        this.assertTrue(match(@':d:d\::d:d\::d:d$', elapsed), elapsed);
+    }
+
+    //
+    // https://github.com/mazzy-ax/SysUtil
+    //
+    void testToString_NotStarted()
+    {
+        SysStopwatch stopwatch = SysStopwatch::construct();
+
+        this.assertEquals('00:00:00', stopwatch.toString());
+    }
+
+    void testToString_StartNew()
+    {
+        SysStopWatch    sysStopWatch    = SysStopWatch::startNew();
+        str             pattern         = @'^\d\d:\d\d:\d\d(\.\d+)?$';
+        str             s;
+        System.Text.RegularExpressions.Match regExpMatch;
+    ;
+        sleep(100);
+
+        s = sysStopWatch.toString();
+
+        new InteropPermission(InteropKind::ClrInterop).assert();
+
+        regExpMatch = System.Text.RegularExpressions.Regex::Match(s, pattern);
+
+        this.assertTrue(regExpMatch && regExpMatch.get_Success(), strfmt('"%1" does not match "%2"', s, pattern));
+
+        CodeAccessPermission::revertAssert();
+    }
+}

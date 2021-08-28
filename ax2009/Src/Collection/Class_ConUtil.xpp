@@ -1,141 +1,150 @@
 //
 // https://github.com/mazzy-ax/SysUtil
 //
-class ConUtil
+// Util-класс реализует только статические методы.
+// не содержит внутри никаких значений.
+// не имеет смысла создавать экземпляр этого класса.
+//
+abstract class ConUtil
 {
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    // это Util-класс, содержащий только статические методы
-    // нет смысла создавать объекты этого класса
-    private void new()
+    public static container add(container con, anytype collectionOrValue)
     {
+        Enumerator e = EnumeratorUtil::getEnumerator(collectionOrValue);
+
+        while( e && e.moveNext() )
+        {
+            con += e.current(); // ядро бросит исключение, если тип значения не может быть помещен в контейнер
+        }
+
+        return con;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    // возвращает новый контейнер, в котором удалены все пустые элементы
-    public static container compact(container con)
+    public static boolean contains(container con, anytype value)
     {
-        ConEnumerator ce = ConEnumerator::construct(con);
-        container ret;
+        boolean ret = (confind(con, value) != 0);
 
-        while( ce && ce.moveNext() )
+        return ret;
+    }
+
+    public static boolean containsAll(container con, anytype collection)
+    {
+        Enumerator e = EnumeratorUtil::getEnumerator(collection);
+        boolean ret = true; // любой контейнер содержит пустую коллекцию
+
+        while( ret && e && e.moveNext() )
         {
-            if( ce.current() )
+            ret = ret && (confind(con, e.current()) != 0);
+        }
+
+        return ret;
+    }
+
+    public static FormRun conView(container con, str caption = '', boolean lookup = false)
+    {
+        return conView(con, caption, lookup);
+    }
+
+    public static int countAs(container con, Types type)
+    {
+        int ret;
+        int len = conlen(con);
+        int i;
+
+        for( i=1 ; i<=len ; i++ )
+        {
+            if( typeof(conpeek(con,i)) == type )
             {
-                ret += ce.current();
+                ret++;
             }
         }
 
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
+    public static int countValue(container con, anytype value)
+    {
+        int ret;
+        int len = conlen(con);
+        int i;
+
+        for( i=1 ; i<=len ; i++ )
+        {
+            if( conpeek(con,i) == value )
+            {
+                ret++;
+            }
+        }
+
+        return ret;
+    }
+
+    public static container delete(container con, int start, int number)
+    {
+        container ret = condel(con, start, number);
+
+        return ret;
+    }
+
     // возвращает новый контейнер, в котором присутствуют только уникальные объекты (дубли удалены)
-    public static container distinct(container con)
+    public static container distinct(anytype collection)
     {
-        ConEnumerator ce = ConEnumerator::construct(con);
+        Enumerator e = EnumeratorUtil::getEnumerator(collection);
         container ret;
 
-        while( ce && ce.moveNext() )
+        while( e && e.moveNext() )
         {
-            if( !confind(ret, ce.current()) )
+            if( !confind(ret, e.current()) )
             {
-                ret += ce.current();
+                ret += e.current();
             }
         }
 
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static container fromArray(Array array)
+    public static container drop(container con, int n = 1)
     {
         container ret;
         int i;
+        int len = conlen(con);
 
-        for( i=1; array && i<=array.lastIndex(); ++i )
+        for( i=n; i<=len; i++ )
         {
-            ret += array.value(i);
+            ret += conpeek(con, 1);
         }
 
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static container fromBlob(container blob)
+    public static int find(container con, anytype element)
     {
-        return ContainerClass::blob2Container(blob);
-    }
-
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static container fromList(List list)
-    {
-        container ret;
-        ListEnumerator le = list ? list.getEnumerator() : null;
-
-        while( le && le.moveNext() )
-        {
-            ret += le.current();
-        }
+        int ret = confind(con, element);
 
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static container fromMap(Map map)
+    public static anytype first(container con)
     {
-        container ret;
-        MapEnumerator me = map ? map.getEnumerator() : null;
-
-        while( me && me.moveNext() )
-        {
-            ret += [me.currentKey(), me.currentValue()];
-        }
+        anytype ret = conpeek(con, 1);
 
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static container fromSet(Set set)
+    public static ConEnumerator getEnumerator(container con)
     {
-        container ret;
-        SetEnumerator se = set ? set.getEnumerator() : null;
-
-        while( se && se.moveNext() )
-        {
-            ret += se.current();
-        }
+        ConEnumerator ret = ConEnumerator::construct(con);
 
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static container fromXml(XmlNode node)
+    public static anytype head(container con)
     {
-        return containerFromXMLNode(node);
+        anytype ret = ConUtil::first(con);
+
+        return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static boolean in(anytype value, container con)
     {
         boolean ret = (confind(con, value) != 0);
@@ -143,9 +152,48 @@ class ConUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
+    public static container insert(container con, int start, anytype element)
+    {
+        container ret = conins(con, start, element);
+
+        return ret;
+    }
+
+    public static boolean isEmpty(container con)
+    {
+        if( con )
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    public static boolean isNotEmpty(container con)
+    {
+        if( con )
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    public static anytype last(container con)
+    {
+        int lastPos = conlen(con);
+        anytype ret = conpeek(con, lastPos);
+
+        return ret;
+    }
+
+    public static int len(container con)
+    {
+        int ret = conlen(con);
+
+        return ret;
+    }
+
     // проверяет есть ли вхожение паттерна в какую-нибудь строку внутри контейнера
     // проверку выполняет рекурсивно
     public static boolean match(
@@ -175,7 +223,7 @@ class ConUtil
                     break;
 
                 case Types::Record:
-                    if( SysRecord::match(pattern, value.asRecord()) )
+                    if( RecordUtil::match(pattern, value.asRecord()) )
                         return true;
                     break;
 
@@ -187,19 +235,228 @@ class ConUtil
         return false;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static anytype peekAs(container con, int idx, anytype asValue)
+    public static anytype maxAs(container con, Types type)
     {
-        anytype ret = AnytypeUtil::as(conpeek(con, idx), asValue);
+        anytype ret;
+        int len = conlen(con);
+        int i;
+
+        for( i=1 ; i<=len ; i++ )
+        {
+            if( typeof(conpeek(con,i)) == type )
+            {
+                if( typeof(ret) == AnytypeUtil::undefined() )
+                {
+                    ret = conpeek(con, i);
+                }
+                else
+                {
+                    ret = max(ret, conpeek(con, i));
+                }
+            }
+        }
 
         return ret;
     }
 
+    // возвращает максимум элементов, тип которых совпадает с типом второго параметра
     //
-    // https://github.com/mazzy-ax/SysUtil
+    // метод удобно использовать, передавая как второй параметр переменную,
+    // в которую будете разместите результат
     //
+    // пример использования:
+    //     container con = [1, 'test', 2, 3.01];
+    //     int maxValue = ConUtil::maxAs(con, maxValue); // метод вернет 2
+    //
+    public static anytype maxAsValue(container con, anytype valueWithType)
+    {
+        Types type = typeof(valueWithType);
+        anytype ret = ConUtil::maxAs(con, type);
+
+        return ret;
+    }
+
+    public static anytype maxCon(container con)
+    {
+        anytype ret = conpeek(con, 1);
+        Types type = typeof(ret);
+        int len = conlen(con);
+        int i;
+
+        for( i=2; i<=len; i++ )
+        {
+            if( typeof(conpeek(con, i)) == type )
+            {
+                ret = max(ret, conpeek(con, i));
+            }
+        }
+
+        return ret;
+    }
+
+    public static anytype minAs(container con, Types type)
+    {
+        anytype ret;
+        int len = conlen(con);
+        int i;
+
+        for( i=1 ; i<=len ; i++ )
+        {
+            if( typeof(conpeek(con,i)) == type )
+            {
+                if( typeof(ret) == Types::AnyType )
+                {
+                    ret = conpeek(con, i);
+                }
+                else
+                {
+                    ret = min(ret, conpeek(con, i));
+                }
+            }
+        }
+
+        return ret;
+    }
+
+    // возвращает минимум элементов, тип которых совпадает с типом второго параметра
+    //
+    // метод удобно использовать, передавая как второй параметр переменную,
+    // в которую будете разместите результат
+    //
+    // пример использования:
+    //     container con = [1, 'test', 2, 3.01];
+    //     int minValue = ConUtil::minAs(con, minValue); // метод вернет 1
+    //
+    public static anytype minAsValue(container con, anytype valueWithType)
+    {
+        Types type = typeof(valueWithType);
+        anytype ret = ConUtil::minAs(con, type);
+
+        return ret;
+    }
+
+    public static anytype minCon(container con)
+    {
+        anytype ret = conpeek(con, 1);
+        Types type = typeof(ret);
+        int len = conlen(con);
+        int i;
+
+        for( i=2; i<=len; i++ )
+        {
+            if( typeof(conpeek(con, i)) == type )
+            {
+                ret = min(ret, conpeek(con, i));
+            }
+        }
+
+        return ret;
+    }
+
+    public static container newFrom(anytype collection)
+    {
+        Enumerator e = EnumeratorUtil::getEnumerator(collection);
+        container con;
+
+        while( e && e.moveNext() )
+        {
+            con += e.current();
+        }
+
+        return con;
+    }
+
+    public static container newFromArray(Array array)
+    {
+        container ret;
+        int i;
+
+        for( i=1; array && i<=array.lastIndex(); ++i )
+        {
+            ret += array.value(i);
+        }
+
+        return ret;
+    }
+
+    public static container newFromBlob(container blob)
+    {
+        return ContainerClass::blob2Container(blob);
+    }
+
+    public static container newFromBuf(Common buffer)
+    {
+        // первый элемент - для совместимости с Global:buf2con(), и Global::con2Buf()
+        container ret = [buffer.TableId, buffer];
+        ;
+
+        return ret;
+    }
+
+    public static container newFromList(List list)
+    {
+        ListEnumerator le = ListUtil::getEnumerator(list);
+        container ret;
+
+        while( le && le.moveNext() )
+        {
+            ret += le.current();
+        }
+
+        return ret;
+    }
+
+    public static container newFromMap(Map map)
+    {
+        container ret;
+        MapEnumerator me = MapUtil::getEnumerator(map);
+
+        while( me && me.moveNext() )
+        {
+            ret += [[me.currentKey(), me.currentValue()]];
+        }
+
+        return ret;
+    }
+
+    public static container newFromSet(Set set)
+    {
+        SetEnumerator se = SetUtil::getEnumerator(set);
+        container ret;
+
+        while( se && se.moveNext() )
+        {
+            ret += se.current();
+        }
+
+        return ret;
+    }
+
+    public static container newFromStr(str s, str sep = ',', int maxSubstrings = 0)
+    {
+        Enumerator e = StrSplitEnumerator::construct(s, sep, maxSubstrings);
+        container ret;
+
+        while( e && e.moveNext() )
+        {
+            ret += e.current();
+        }
+
+        return ret;
+    }
+
+    public static container newFromXml(XmlNode node)
+    {
+        return Global::containerFromXMLNode(node);
+    }
+
+    public static anytype peekAs(container con, int idx, Types type, int potentialAncestorId = 0)
+    {
+        anytype ret = AnytypeUtil::as(conpeek(con, idx), type, potentialAncestorId);
+
+        return ret;
+    }
+
     public static container peekAsContainer(container con, int idx)
     {
         container ret = AnytypeUtil::asContainer(conpeek(con, idx));
@@ -207,9 +464,6 @@ class ConUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static Date peekAsDate(container con, int idx)
     {
         Date ret = AnytypeUtil::asDate(conpeek(con, idx));
@@ -217,9 +471,6 @@ class ConUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static UtcDateTime peekAsDateTime(container con, int idx)
     {
         utcdatetime ret = AnytypeUtil::asDateTime(conpeek(con, idx));
@@ -227,9 +478,6 @@ class ConUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static anytype peekAsEnum(container con, int idx, enumId enumId = 0)
     {
         anytype ret = AnytypeUtil::asEnum(conpeek(con, idx), enumId);
@@ -237,9 +485,6 @@ class ConUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static GUID peekAsGUID(container con, int idx)
     {
         GUID ret = AnytypeUtil::asGUID(conpeek(con, idx));
@@ -247,9 +492,6 @@ class ConUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static int peekAsInt(container con, int idx)
     {
         int ret = AnytypeUtil::asInt(conpeek(con, idx));
@@ -257,9 +499,6 @@ class ConUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static Int64 peekAsInt64(container con, int idx)
     {
         Int64 ret = AnytypeUtil::asInt64(conpeek(con, idx));
@@ -267,9 +506,6 @@ class ConUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static Real peekAsReal(container con, int idx)
     {
         Real ret = AnytypeUtil::asInt(conpeek(con, idx));
@@ -277,9 +513,6 @@ class ConUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static int64 peekAsRecId(container con, int idx)
     {
         Int64 ret = AnytypeUtil::asRecId(conpeek(con, idx));
@@ -287,9 +520,6 @@ class ConUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static Common peekAsRecord(container con, int idx, TableId tableId = 0)
     {
         Common ret = AnytypeUtil::asRecord(conpeek(con, idx), tableId);
@@ -297,19 +527,37 @@ class ConUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static anytype peekAsType(container con, int idx, Types type, int potentialAncestorId = 0)
+    public static anytype peekAsValue(container con, int idx, anytype asValue)
     {
-        anytype ret = AnytypeUtil::asType(conpeek(con, idx), type, potentialAncestorId);
+        anytype ret = AnytypeUtil::asValue(conpeek(con, idx), asValue);
 
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
+    public static container poke(container con, int start, anytype value)
+    {
+        container ret = conpoke(con, start, value);
+
+        return ret;
+    }
+
+    // возвращает контейнер, в котором содержатся элементы, равные value
+    public static container ratainAll(container con, anytype value)
+    {
+        container ret;
+        ConEnumerator ce = ConEnumerator::construct(con);
+
+        while( ce && ce.moveNext() )
+        {
+            if( value == ce.current() )
+            {
+                ret += value;
+            }
+        }
+
+        return ret;
+    }
+
     public static container remove(container con, anytype value)
     {
         int i = confind(con, value);
@@ -322,9 +570,6 @@ class ConUtil
         return con;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static container removeAll(container con, anytype value)
     {
         int i;
@@ -342,45 +587,155 @@ class ConUtil
         return con;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public static Array toArray(container con, Array array = null)
+    public static container removeAllEnumerator(container con, Enumerator e)
     {
-        Any any;
-        int i;
-        int len = conlen(con);
+        container ret = con;
 
-        for( i=1; i<=len; ++i )
+        while( e && e.moveNext() )
         {
-            any = Any::conpeek(con, i);
+            ret = ConUtil::removeAll(ret, e.current());
+        }
 
-            if( !array )
-            {
-                array = new Array(any.type());
-            }
+        return con;
+    }
 
-            if( any.type() == array.typeId() )
+    // возвращает новый контейнер, в котором удалены все пустые элементы
+    public static container removeEmpty(anytype collectionOrValue)
+    {
+        Enumerator e = EnumeratorUtil::getEnumerator(collectionOrValue);
+        container ret;
+
+        while( e && e.moveNext() )
+        {
+            if( e.current() )
             {
-                array.value(i, any.value());
+                ret += e.current(); // ядро бросит исключение, если тип значения не может быть помещен в контейнер
             }
         }
 
-        return array;
+        return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
+    public static container retainAllByEnumerator(container con, Enumerator e)
+    {
+        container ret = con;
+
+        while( e && e.moveNext() )
+        {
+            ret = ConUtil::removeAll(ret, e.current());
+        }
+
+        return con;
+    }
+
+    public static anytype sumAs(container con, Types type)
+    {
+        anytype ret;
+        ConEnumerator ce = ConEnumerator::construct(con);
+
+        while( ce && ce.moveNext() )
+        {
+            if( typeof(ce.current()) == type )
+            {
+                ret += ce.current();
+            }
+        }
+
+        return ret;
+    }
+
+    public static str sumAsStr(container con)
+    {
+        str ret;
+        ConEnumerator ce = ConEnumerator::construct(con);
+
+        while( ce && ce.moveNext() )
+        {
+            if( AnytypeUtil::isString(ce.current()) )
+            {
+                ret += ce.current();
+            }
+        }
+
+        return ret;
+    }
+
+    public static anytype sumAsValue(container con, anytype valueWithType)
+    {
+        Types type = typeof(valueWithType);
+        anytype ret = ConUtil::sumAs(con, type);
+
+        return ret;
+    }
+
+    public static anytype sumCon(container con)
+    {
+        anytype ret = conpeek(con, 1);
+        int len = conlen(con);
+        int i;
+
+        for( i=2 ; i<=len ; i++ )
+        {
+            ret += conpeek(con, i);
+        }
+
+        return ret;
+    }
+
+    public static container tail(container con)
+    {
+        container ret = ConUtil::take(con, conlen(con), 2);
+
+        return ret;
+    }
+
+    public static container take(container con, int n = 1, int startFrom = 1)
+    {
+        container ret;
+
+        int len     = conlen(con);
+        int i       = max(0, startFrom);
+        int lastPos = min(i+n-1, len);
+
+        while( i<=lastPos )
+        {
+            ret += conpeek(con, i);
+            i++;
+        }
+
+        return ret;
+    }
+
+    public static Array toArray(container con)
+    {
+        Array ret = ArrayUtil::newFromCon(con);
+
+        return ret;
+    }
+
     public static container toBlob(container con)
     {
         ContainerClass containerClass = new ContainerClass(con);
+
         return containerClass.toBlob();
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
+    public static Common toBuf(container con)
+    {
+        TableId tableId;
+        Common ret;
+        ;
+
+        // первый элемент - для совместимости с Global:buf2con(), и Global::con2Buf()
+        // возможны проблемы, если после создания container таблица изменена в AOT.
+        // метод работает очень быстро.
+        [tableId, ret] = con;
+
+        Debug::assert(tableId == ret.TableId);
+
+        return ret;
+    }
+
     public static List toList(container con, List list = null)
     {
         Any any;
@@ -405,9 +760,6 @@ class ConUtil
         return list;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static Set toSet(container con, Set set = null)
     {
         Any any;
@@ -432,9 +784,6 @@ class ConUtil
         return set;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static str toStr(container con, str sep = ',')
     {
         str ret = TextBufferUtil::appendContainer(null, con, sep).getText();
@@ -442,11 +791,52 @@ class ConUtil
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static str toXmlString(container con, int indent = 0)
     {
-        return XMLString(con, types::Container, indent);
+        return Global::XMLString(con, types::Container, indent);
+    }
+
+    // возвращает
+    //   Types::void - если контейнер пуст
+    //   Types::AnyType - если в контейнере содержатся элементы разного типа
+    //   Types::* - если все элементы одного типа
+    public static Types typeofAll(container con)
+    {
+        Types type = Types::void;
+        ConEnumerator ce = ConEnumerator::construct(con);
+
+        if( ce && ce.moveNext() )
+        {
+            type = typeof(ce.current());
+        }
+
+        while( ce && ce.moveNext() )
+        {
+            if( type != typeof(ce.current()) )
+            {
+                return Types::AnyType;
+            }
+        }
+
+        return type;
+    }
+
+    public static container zip(container con1, container con2, int maxElements = 0)
+    {
+        container   ret;
+        int         minLen = min(conlen(con1), conlen(con2));
+        int         idx;
+
+        if( maxElements && maxElements < minLen )
+        {
+            minLen = maxElements;
+        }
+
+        for (idx = 1; idx <= minlen; idx++)
+        {
+            ret += conpeek(con1, idx) + conpeek(con2, idx);
+        }
+
+        return ret;
     }
 }

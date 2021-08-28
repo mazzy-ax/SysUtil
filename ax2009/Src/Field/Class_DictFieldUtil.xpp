@@ -1,0 +1,44 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+// Класс обслуживает объекты с типом DictField
+//
+// Util-класс реализует только статические методы.
+// не содержит внутри никаких значений.
+// не имеет смысла создавать экземпляр этого класса.
+//
+// @see FieldIdUtil
+//
+abstract class DictFieldUtil
+{
+
+    public static Types baseType(DictField df)
+    {
+        Types type = TypeUtil::undefined();
+
+        if( df )
+        {
+            type = df.baseType();
+        }
+
+        return type;
+    }
+
+    // Возвращает подходящий не nullable объект.
+    // Полезно в выражениях, чтобы быть уверенным, что после выполнения этого метода объект точно не null
+    //
+    // not в названиях методов прочно ассоциируется с оператором логического отрицания (!)
+    // Поэтому название этого метода NonNull, а не NotNull
+    //
+    // @see https://stackoverflow.com/questions/4963300/which-notnull-java-annotation-should-i-use
+    //
+    public static DictField nonNull(DictField df)
+    {
+        if( !df )
+        {
+            df = new DictField(tablenum(Common), fieldnum(Common, RecId));
+        }
+
+        return df;
+    }
+}

@@ -1,0 +1,171 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+// делит строку на подстроки, разделенные строкой delimiter
+// Если maxSubstrings не ноль, то максимальная контейнера не будет превышать maxSubstrings.
+// делает одну итерацию на всю исходную строку, если ни одного символа-разделителя не найдено.
+//
+// пример:
+//      StrSplitEnumerator::construct('ABC:=DEF:=GH',':=')   => ['ABC','DEF','GH']
+//      StrSplitEnumerator::construct('ABC:=DEF:=GH',':=',2) => ['ABC','DEF:=GH']
+//      StrSplitEnumerator::construct('ABC:=DEF:=GH',':=',1) => ['ABC:=DEF:=GH']
+//
+class StrSplitEnumerator implements Enumerator
+{
+    str     string;
+    int     stringLenPlus1;
+    str     delimiterStr;
+    int     delimiterLen;
+    int     maxSubstrings;
+
+    int     currentIdx; // индекс текущего чанка (не более, чем maxSubstrings)
+    int     currentPos; // начальная позиция текущего чанка
+    int     currentLen; // длина текущего чанка
+
+    int     nextPos;
+
+    public anytype current()
+    {
+        // никаких проверок:
+        // substr вернет что-нибудь, если параметры странные. скорее всего пустую строку.
+        str ret = substr(string, currentPos, currentLen);
+
+        return ret;
+    }
+
+    public str definitionString()
+    {
+        return 'Str split enumerator';
+    }
+
+    // метод публичный, чтобы объект данного класса можно было создавать из classFactory и инициализировать из всевозможных unpack
+    // не вызывайте этот метод напрямую
+    public void init(str s, str _delimiter, int _maxSubstrings = 0)
+    {
+        string = s;
+        stringLenPlus1 = strlen(s) + 1;
+        delimiterStr = _delimiter;
+        delimiterLen = strlen(_delimiter);
+        maxSubstrings = _maxSubstrings;
+
+        this.reset();
+    }
+
+
+    // вычисляет параметры для метода current(): currentPos, currentLen и currentIdx
+    // currentIdx - сколько раз вызывался метод moveNext()
+    //
+    public boolean moveNext()
+    {
+        int pos;
+        ;
+
+        currentIdx++;
+        currentPos = nextPos;
+
+        // ещё не знаем есть ли ещё разделител. поэтому пока считаем,
+        // что следующая итерация будет последней, а current() пока должен вернуть пустую строку
+        nextPos = stringLenPlus1 + 1;
+        currentLen = 0;
+
+        // начнем проверки
+        if( currentPos > stringLenPlus1 )
+        {
+            return false;
+        }
+
+        if( delimiterLen <= 0  )
+        {
+            if( currentIdx <= 1 )
+            {
+                currentLen = stringLenPlus1; // current() должен вернуть все оставшееся в строке
+                return true;
+            }
+
+            return false;
+        }
+
+        if( maxSubstrings )
+        {
+            if( currentIdx == maxSubstrings )
+            {
+                currentLen = stringLenPlus1; // current() должен вернуть все оставшееся в строке
+                return true;
+            }
+            else if( currentIdx > maxSubstrings )
+            {
+                return false;
+            }
+        }
+
+        // где наш разделитель?
+        pos = strscan(string, delimiterStr, currentPos, stringLenPlus1);
+        if( pos == 0 )
+        {
+            currentLen = stringLenPlus1; // current() должен вернуть все оставшееся в строке
+            return true;
+        }
+
+        // вот наш разделитель!
+        // установим правильную длину и правильную позицию для следующей итерации
+        currentLen = pos - currentPos;
+        nextPos = pos + delimiterLen;
+
+        return true;
+    }
+
+    public void new(str s, str delimiter, int _maxSubstrings = 0)
+    {
+        this.init(s, delimiter, _maxSubstrings);
+    }
+
+
+    // устанавливает индексы в начальное состояние
+    // никак не запоминает уже найденные позиции подстрок
+    public void reset()
+    {
+        currentIdx = 0;
+        currentPos = 0;
+        currentLen = 0;
+
+        nextPos = 1;
+    }
+
+    public str toString()
+    {
+        // поскольку этот метод может вызваться в отладчике еще до инициализации,
+        // то в этом методе нельзя использовать методы класса и нельзя бросать исключение
+        // и ни в коем случае не бросаем исключение на неинициализированные значения
+        str ret;
+
+        if( currentIdx )
+        {
+            if( currentPos <= stringLenPlus1 )
+            {
+                ret = strfmt('{%1}', this.current());
+            }
+            else
+            {
+                ret = '{after}';
+            }
+        }
+        else
+        {
+            ret = '{before}';
+        }
+
+        return ret;
+    }
+
+    public static server StrSplitEnumerator construct(str s, str delimiter, int maxSubstrings = 0)
+    {
+        return new StrSplitEnumerator(s, delimiter, maxSubstrings);
+    }
+
+
+    public static ClassDescription description()
+    {
+        return "An enumerator to traverse a splitted string chunks.";
+    }
+
+}

@@ -1,0 +1,14 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+// Util-класс реализует только статические методы.
+// не содержит внутри никаких значений.
+// не имеет смысла создавать экземпляр этого класса.
+//
+abstract class StructUtil
+{
+
+    void TODO_duckTyping()
+    {
+    }
+}

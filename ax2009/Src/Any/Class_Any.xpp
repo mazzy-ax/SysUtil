@@ -2,7 +2,7 @@
 // https://github.com/mazzy-ax/SysUtil
 //
 // класс содержит неизменяемое значение любого типа
-// чтобы переприсвоить значение создайте новый объект этого типа
+// чтобы переприсвоить значение, создайте новый объект этого типа
 //
 // Чем отличается этот класс от Anytype и от SysAnyType?
 // 1.
@@ -47,19 +47,18 @@ class Any
 {
     Anytype value;
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
+    // перенести в SysTextBuffer
     // рекурсивно заполняет textBuffer
-    protected textBuffer addToTextBuffer(
-        str         _sep            = ',',
-        boolean     _queryValue     = false,
-        TextBuffer  _textBuffer     = null)
+    protected textBuffer addToTextBuffer(  str          _sep                        = ',',
+                                           boolean      _queryValue                 = false,
+                                           boolean      _usingExtendedQuery_MRC     = false,
+                                           TextBuffer   _textBuffer                 = null)
     {
         Types   type    = typeof(value);
         int     i;
         int     len;
         str     s;
+    ;
 
         if (_textBuffer == null)
         {
@@ -76,24 +75,24 @@ class Any
                     {
                         _textBuffer.appendText(_sep);
                     }
-                    _textBuffer = Any::conpeek(value, i).addToTextBuffer(_sep, _queryValue, _textBuffer);
+                    _textBuffer = Any::conpeek(value, i).addToTextBuffer(_sep, _queryValue, _usingExtendedQuery_MRC, _textBuffer);
                 }
                 break;
 
             case Types::Class:
                 if (SysDictClass::isEqualOrSuperclass(classidget(value), classnum(Set)))
                 {
-                    _textBuffer = Any::construct(ConUtil::fromSet(value)).addToTextBuffer(_sep, _queryValue, _textBuffer);
+                    _textBuffer = Any::construct(ConUtil::newFromSet(value)).addToTextBuffer(_sep, _queryValue, _usingExtendedQuery_MRC, _textBuffer);
                     break;
                 }
                 else if (SysDictClass::isEqualOrSuperclass(classidget(value), classnum(List)))
                 {
-                    _textBuffer = Any::construct(ConUtil::fromList(value)).addToTextBuffer(_sep, _queryValue, _textBuffer);
+                    _textBuffer = Any::construct(ConUtil::newFromList(value)).addToTextBuffer(_sep, _queryValue, _usingExtendedQuery_MRC, _textBuffer);
                     break;
                 }
                 else if (SysDictClass::isEqualOrSuperclass(classidget(value), classnum(Array)))
                 {
-                    _textBuffer = Any::construct(ConUtil::fromArray(value)).addToTextBuffer(_sep, _queryValue, _textBuffer);
+                    _textBuffer = Any::construct(ConUtil::newFromArray(value)).addToTextBuffer(_sep, _queryValue, _usingExtendedQuery_MRC, _textBuffer);
                     break;
                 }
                 // no break! проваливаемся ниже
@@ -104,7 +103,7 @@ class Any
                 throw error(Error::unsupportedEnum(funcname(), type));
 
             default:
-                s = _queryValue ? SysQuery::value(value) : strfmt('%1', value);
+                s = _queryValue ? SysQuery::value_MRC(value) : AnytypeUtil::toString(value);
                 _textBuffer.appendText(s);
                 break;
         }
@@ -112,9 +111,113 @@ class Any
         return _textBuffer;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
+    public anytype as(Types type, int potentialAncestorId = 0)
+    {
+        return AnytypeUtil::as(this.value(), type, potentialAncestorId);
+    }
+
+    public Array asArray()
+    {
+        return AnytypeUtil::asArray(this.value());
+    }
+
+    public Object asClass(ClassId potentialAncestorId = 0)
+    {
+        return AnytypeUtil::asClass(this.value(), potentialAncestorId);
+    }
+
+    public container asContainer()
+    {
+        return AnytypeUtil::asContainer(this.value());
+    }
+
+    public Date asDate()
+    {
+        return AnytypeUtil::asDate(this.value());
+    }
+
+    public UtcDateTime asDateTime()
+    {
+        return AnytypeUtil::asDateTime(this.value());
+    }
+
+    public anytype asEnum(enumId enumId = 0)
+    {
+        return AnytypeUtil::asEnum(this.value(), enumId);
+    }
+
+    public GUID asGUID()
+    {
+        return AnytypeUtil::asGUID(this.value());
+    }
+
+    public int asInt()
+    {
+        return AnytypeUtil::asInt(this.value());
+    }
+
+    public int64 asInt64()
+    {
+        return AnytypeUtil::asInt64(this.value());
+    }
+
+    public List asList()
+    {
+        return AnytypeUtil::asList(this.value());
+    }
+
+    public Map asMap()
+    {
+        return AnytypeUtil::asMap(this.value());
+    }
+
+    public Object asObject()
+    {
+        return AnytypeUtil::asObject(this.value());
+    }
+
+    public Real asReal()
+    {
+        return AnytypeUtil::asReal(this.value());
+    }
+
+    public int64 asRecId()
+    {
+        return AnytypeUtil::asRecId(this.value());
+    }
+
+    public Common asRecord(TableId tableId = 0)
+    {
+        return AnytypeUtil::asRecord(this.value(), tableId);
+    }
+
+    public int64 asRecVersion()
+    {
+        return AnytypeUtil::asRecVersion(this.value());
+    }
+
+    public Set asSet()
+    {
+        return AnytypeUtil::asSet(this.value());
+    }
+
+    public str asString()
+    {
+        return AnytypeUtil::asString(this.value());
+    }
+
+    public timeOfDay asTime()
+    {
+        return AnytypeUtil::asTime(this.value());
+    }
+
+    public anytype asValue(anytype asValue)
+    {
+        anytype ret = AnytypeUtil::as(this.value(), asValue);
+
+        return ret;
+    }
+
     public Any ensureEmpty()
     {
         if (this.value())
@@ -125,9 +228,6 @@ class Any
         return this;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public Any ensureInTypes(container typeCon)
     {
         if (confind(typeCon, this.type()))
@@ -138,9 +238,6 @@ class Any
         throw error(Error::wrongUseOfFunction(funcname()));
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public Any ensureNotEmpty()
     {
         if (this.value())
@@ -151,12 +248,9 @@ class Any
         throw error(Error::wrongUseOfFunction(funcname()));
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public Any ensureType(Types type, int potentialAncestorId = 0)
     {
-        if (AnytypeUtil::isType(this.value(), type, potentialAncestorId))
+        if (AnytypeUtil::is(this.value(), type, potentialAncestorId))
         {
             return this;
         }
@@ -164,9 +258,6 @@ class Any
         throw error(Error::wrongUseOfFunction(funcname()));
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public boolean equalsTo(Any type2)
     {
         //Is one of them null ?
@@ -196,26 +287,159 @@ class Any
         return true;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
+    public int id()
+    {
+        int id = AnytypeUtil::Id(this.value());
+
+        return id;
+    }
+
+    public boolean is(Types type, int potentialAncestorId = 0)
+    {
+        return AnytypeUtil::is(this.value(), type, potentialAncestorId);
+    }
+
+    public boolean isArray()
+    {
+        return AnytypeUtil::isArray(this.value());
+    }
+
+    public boolean isClass(int potentialAncestorId = 0)
+    {
+        return AnytypeUtil::isClass(potentialAncestorId);
+    }
+
+    // возвращает true для значения, для которого можно получить enumerator
+    public boolean isCollection()
+    {
+        return EnumeratorUtil::isEnumerable(this.value());
+    }
+
+    public boolean isContainer()
+    {
+        return AnytypeUtil::isContainer(this.value());
+    }
+
+    // нормально работает с контейнерами, классами, CLR и прочими сложными объектами.
+    public boolean isEmpty()
+    {
+        if (this.value())
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    public boolean isEnum(enumId enumId = 0)
+    {
+        return AnytypeUtil::isEnum(this.value(), enumId);
+    }
+
+    // возвращает true для значения, для которого можно получить enumerator
+    public boolean isEnumerable()
+    {
+        return EnumeratorUtil::isEnumerable(this.value());
+    }
+
+    // возвращает true для значения, для которого можно получить enumerator
+    public boolean isEnumerator()
+    {
+        return EnumeratorUtil::isEnumerator(this.value());
+    }
+
+    public boolean isImplements(int interfaceId = 0)
+    {
+        return AnytypeUtil::isImplement(this.value(), interfaceId);
+    }
+
+    public boolean isInt()
+    {
+        return AnytypeUtil::isInt(this.value());
+    }
+
+    public boolean isInt64()
+    {
+        return AnytypeUtil::isInt(this.value());
+    }
+
+    public boolean isList()
+    {
+        return AnytypeUtil::isClass(classnum(List));
+    }
+
+    public boolean isMap()
+    {
+        return AnytypeUtil::isClass(classnum(Map));
+    }
+
+    // нормально работает с контейнерами, классами, CLR и прочими сложными объектами.
+    public boolean isNotEmpty()
+    {
+        if (this.value())
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    public boolean isRecId()
+    {
+        return AnytypeUtil::isRecId(this.value());
+    }
+
+    public boolean isRecord(int potentialAncestorId = 0)
+    {
+        return AnytypeUtil::isRecord(this.value(), potentialAncestorId);
+    }
+
+    public boolean isRecVersion()
+    {
+        return AnytypeUtil::isRecId(this.value());
+    }
+
+    public boolean isSet()
+    {
+        return AnytypeUtil::isClass(classnum(Set));
+    }
+
+    public boolean isString()
+    {
+        return AnytypeUtil::isString(this.value());
+    }
+
+    public boolean isValue(anytype isValue)
+    {
+        boolean ret = AnytypeUtil::isValue(this.value(), isValue);
+
+        return ret;
+    }
+
     void new(Anytype _value = null)
     {
         value = _value;
     }
 
+    // @deprecated! используйте метод toQueryValue()
     //
-    // https://github.com/mazzy-ax/SysUtil
-    //
+    final public str queryValue(boolean _usingExtendedQuery_MRC = false)
+    {
+        return this.toQueryValue(_usingExtendedQuery_MRC);
+    }
+
+    // преобразовать value в соответствующий буфер, насколько это возможно
+    public Common toBuf()
+    {
+        return AnytypeUtil::toBuf(this.value());
+    }
+
     public anytype toNullValue()
     {
         return nullValueBaseType(this.type());
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
-    public str toQueryValue()
+    public str toQueryValue(boolean _usingExtendedQuery_MRC = false)
     {
         str ret;
 
@@ -223,7 +447,7 @@ class Any
         {
             case Types::Class:
             case Types::Container:
-                ret = this.addToTextBuffer(',', true).getText();
+                ret = this.addToTextBuffer(',', true, _usingExtendedQuery_MRC).getText();
                 break;
 
             case Types::Record:
@@ -233,16 +457,13 @@ class Any
                 throw error(Error::unsupportedEnum(funcname(), this.type()));
 
             default:
-                ret = SysQuery::value(value);
+                ret = SysQuery::value_MRC(value,_usingExtendedQuery_MRC);
                 break;
         }
 
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public str toString(str sep = ',')
     {
         // поскольку этот метод может вызваться в отладчике еще до инициализации,
@@ -253,9 +474,6 @@ class Any
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     final public Types type()
     {
         Types type = typeof(value);
@@ -263,18 +481,12 @@ class Any
         return type;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // только чтение! см. комментарий к classDeclaration
     final public AnyType value()
     {
         return value;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     // принимает данные в контейнере, который состоит из контейнеров - значение и метка
     // выдает ошибки для всех пустых значений
     // если хотя бы одно значение пустое, то возвращает false
@@ -308,9 +520,6 @@ class Any
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static Any conpeek(container con, int idx)
     {
         anytype value   = conpeek(con, idx);  // не делаем дополнительных проверок: к случае чего, аксапта выбросит исключение про контейнеры
@@ -319,17 +528,11 @@ class Any
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static Any construct(Anytype value)
     {
         return new Any(value);
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
     public static Any field(Common record, fieldId fieldid)
     {
         anytype value   = record.(fieldid);  // не делаем дополнительных проверок: к случае чего, аксапта выбросит исключение про поля в записи
@@ -338,9 +541,7 @@ class Any
         return ret;
     }
 
-    //
-    // https://github.com/mazzy-ax/SysUtil
-    //
+    // TODO удалить
     public static boolean isEqual(Any type1, Any type2)
     {
         //Are both null ?
@@ -374,5 +575,45 @@ class Any
         }
 
         return true;
+    }
+
+    // mazzy CL006053 31.12.2019
+    public static Set list2set(List _list)
+    {
+        Set set;
+        ListEnumerator   le;
+
+        if (_list)
+        {
+            set = new Set(_list.typeId());
+
+            le = _list.getEnumerator();
+            while (le.moveNext())
+            {
+                set.add(le.current());
+            }
+        }
+
+        return set;
+    }
+
+    // mazzy CL006053 31.12.2019
+    public static List set2list(Set _set)
+    {
+        List            list;
+        SetEnumerator   se;
+
+        if (_set)
+        {
+            list = new List(_set.typeId());
+
+            se = _set.getEnumerator();
+            while (se.moveNext())
+            {
+                list.addEnd(se.current());
+            }
+        }
+
+        return list;
     }
 }
