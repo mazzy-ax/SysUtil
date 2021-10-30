@@ -12,33 +12,131 @@ abstract class ListUtil
     {
         if( !list )
         {
-            list = new List(typeof(value));
-        }
-        else if( list.typeId() != typeof(value) )
-        {
-            return list; // значение с другим типом не будет добавлено
+            list = ListUtil::newBy(value);
         }
 
-        list.addEnd(value);
+        if( list.typeId() == typeof(value) ) // значения с другим типом не будет добавлено
+        {
+            list.addEnd(value);
+        }
 
         return list;
     }
 
-    public static List append(List list, anytype collection)
+    public static List addAll(List list, anytype valueOrCollection, int maxElements = 0)
     {
-        Enumerator e = EnumeratorUtil::getEnumerator(collection);
+        int elements;
+        Enumerator e = EnumeratorUtil::getEnumerator(valueOrCollection);
 
-        while( e && e.moveNext() )
+        while( e && e.moveNext() && (maxElements == 0 || elements <= maxElements) )
         {
-            list = ListUtil::add(list, e.moveNext());
+            list = ListUtil::add(list, e.current());
+
+            elements++;
         }
 
         return list;
+    }
+
+    // добавляет значение поля из буфера
+    // если поле содержит контейнер, то контейнер добавляется как есть, целиком
+    public static List addFieldValue(List list, Common buf, FieldId fieldId)
+    {
+        anytype value = RecordFieldUtil::getValue(buf, fieldId);
+        List ret = ListUtil::add(list, value);
+
+        return ret;
+    }
+
+    // добавляет значения поля из буфера, который был заполнен Query
+    //
+    public static List addFromQuery(List toListOrNull, Query q, TableId tableId, FieldId fieldId, int maxElements = 0)
+    {
+        QueryRun qr = new QueryRun(q);
+        List ret = ListUtil::addFromQueryRun(toListOrNull, qr, tableId, fieldId, maxElements);
+
+        return ret;
+    }
+
+    // добавляет значения поля из буфера, который был заполнен QueryRun
+    //
+    public static List addFromQueryRun(List list, QueryRun qr, TableId tableId, FieldId fieldId, int maxElements = 0)
+    {
+        int elements;
+        common rec;
+        ;
+
+        while( qr && qr.next() && (maxElements == 0 || elements <= maxElements) )
+        {
+            rec = qr.get(tableId);
+            list = ListUtil::addFieldValue(list, rec, fieldId);
+
+            elements++;
+        }
+
+        return list;
+    }
+
+    // добавляет значения поля из буфера, который был заполнен командой select
+    //
+    public static List addFromSelect(List list, Common selectedRecord, FieldId fieldId, int maxElements = 0)
+    {
+        int elements;
+        ;
+
+        while( selectedRecord && (maxElements == 0 || elements <= maxElements) )
+        {
+            list = ListUtil::addFieldValue(list, selectedRecord, fieldId);
+
+            next selectedRecord;
+            elements++;
+        }
+
+        return list;
+    }
+
+    public static List addStart(List list, anytype value)
+    {
+        if( !list )
+        {
+            list = ListUtil::newBy(value);
+        }
+
+        if( list.typeId() == typeof(value) ) // значения с другим типом не будет добавлено
+        {
+            list.addStart(value);
+        }
+
+        return list;
+    }
+
+    // по возможности перекидывает ссылки и не перемещает элементы
+    // поэтому могут возникнуть побочные эффекты
+    // используйте с осторожностью
+    public static List appendList(List list, List append)
+    {
+        List ret;
+
+        if( list )
+        {
+            ret = list;
+
+            if( append )
+            {
+                list.appendList(append);
+            }
+        }
+        else
+        {
+            ret = append;
+        }
+
+        return ret;
     }
 
     // клонирует list, не клонирует элементы списка
     //
-    // see deepClone()
+    // @see deepClone()
     public static List clone(List list)
     {
         List ret;
@@ -52,9 +150,186 @@ abstract class ListUtil
         return ret;
     }
 
+    public static boolean contains(List list, anytype value)
+    {
+        boolean ret = ListUtil::in(value, list);
+
+        return ret;
+    }
+
+    // второй аргумент трактуется как коллекция (возможно, из одного значения)
+    // возвращает true, если контейнер содержит все значения из collection
+    public static boolean containsAll(List list, anytype valueOrCollection)
+    {
+        Enumerator e = EnumeratorUtil::getEnumerator(valueOrCollection);
+        boolean ret = true; // любой контейнер содержит пустую коллекцию
+
+        while( ret && e && e.moveNext() )
+        {
+            ret = ret && (ListUtil::find(list, e.current()));
+        }
+
+        return ret;
+    }
+
+    // второй аргумент трактуется как коллекция (возможно, из одного значения)
+    // возвращает true, если контейнер содержит любое значение из collection
+    public static boolean containsAny(List list, anytype valueOrCollection)
+    {
+        Enumerator e = EnumeratorUtil::getEnumerator(valueOrCollection);
+        boolean ret = true; // любой контейнер содержит пустую коллекцию
+
+        while( e && e.moveNext() )
+        {
+            ret = (ListUtil::find(list, e.current()) != 0);
+
+            if( ret )
+            {
+                break;
+            }
+        }
+
+        return ret;
+    }
+
+    public static boolean containsType(Array arr, Types type, int potentialAncestorId = 0)
+    {
+        boolean ret;
+        int len = ArrayUtil::elements(arr);
+        int i;
+
+        for( i=1 ; i<=len ; i++ )
+        {
+            if( AnytypeUtil::is(ArrayUtil::item(arr, i), type, potentialAncestorId) )
+            {
+                ret = true;
+                break;
+            }
+        }
+
+        return ret;
+    }
+
+
+    public static int count(List list, anytype value)
+    {
+        int ret;
+        ListEnumerator e = ListUtil::getEnumerator(list);
+
+        while( e && e.moveNext() )
+        {
+            if( e.current() == value )
+            {
+                ret++;
+            }
+        }
+
+        return ret;
+    }
+
+    public static int countAny(List list, anytype valueOrCollection)
+    {
+        int ret;
+        ListEnumerator e = ListUtil::getEnumerator(list);
+
+        while( e && e.moveNext() )
+        {
+            if( CollectionUtil::in(e.current(), valueOrCollection) )
+            {
+                ret++;
+            }
+        }
+
+        return ret;
+    }
+
+    public static int countEmpty(List list)
+    {
+        int ret;
+        ListEnumerator e = ListUtil::getEnumerator(list);
+
+        while( e && e.moveNext() )
+        {
+            if( !e.current() )
+            {
+                ret++;
+            }
+        }
+
+        return ret;
+    }
+
+    public static int countNotEmpty(List list)
+    {
+        int ret;
+        ListEnumerator e = ListUtil::getEnumerator(list);
+
+        while( e && e.moveNext() )
+        {
+            if( e.current() )
+            {
+                ret++;
+            }
+        }
+
+        return ret;
+    }
+
+    public static int countType(Array arr, Types type, int potentialAncestorId = 0)
+    {
+        int ret;
+        int len = ArrayUtil::elements(arr);
+        int i;
+
+        for( i=1 ; i<=len ; i++ )
+        {
+            if( AnytypeUtil::is(ArrayUtil::item(arr, i), type, potentialAncestorId) )
+            {
+                ret++;
+            }
+        }
+
+        return ret;
+    }
+
+
+    // возвращает List или null, если не смог распаковать
+    // удобно использовать в методах unpack, в которых мы получаем anytype значение
+    // метод проверит что сможет
+    //
+    // внутреннее устройство List: https://axforum.info/forums/showthread.php?t=27738
+    public static List create(anytype fromPackedList, Types expectedTypes = Types::AnyType)
+    {
+        List ret;
+
+        anytype version;
+        anytype type;
+        anytype elements;
+
+        if( fromPackedList &&
+            typeof(fromPackedList) == Types::Container &&
+            conlen(fromPackedList) > 3 )
+        {
+            [version, type, elements] = fromPackedList;
+
+            if( typeof(version)  == Types::Integer && version == 1 &&
+                typeof(type)     == Types::Integer && TypeUtil::is(type, expectedTypes) &&
+                typeof(elements) == Types::Integer )
+            {
+                ret = List::create(fromPackedList);
+            }
+        }
+        else
+        {
+            ret = ListUtil::nonNull(ret, expectedTypes);
+        }
+
+        return ret;
+    }
+
     // клонирует и list, и элементы списка
     //
-    // see clone()
+    // @see clone()
     public static List deepClone(List list)
     {
         List ret;
@@ -78,6 +353,20 @@ abstract class ListUtil
         return ret;
     }
 
+    public static List drop(List list, int n = 1)
+    {
+        List ret = ListUtil::slice(list, 2);
+
+        return ret;
+    }
+
+    public static List dropEnd(List list, int n = 1)
+    {
+        List ret = ListUtil::slice(list, 1, -n);
+
+        return ret;
+    }
+
     public static int elements(List list)
     {
         int ret;
@@ -90,7 +379,125 @@ abstract class ListUtil
         return ret;
     }
 
-    public static boolean empty(List list)
+    // находит позицию значения в списке
+    //
+    // @param occurrence указывает какое вхождение значения нужно найти
+    //
+    public static int find(List list, anytype value, int occurrence = 1)
+    {
+        ListEnumerator e = ListUtil::getEnumerator(list);
+        int ret;
+        int i;
+
+        while( occurrence > 0 && e && e.moveNext() )
+        {
+            i++;
+
+            if( AnytypeUtil::isEqual(value, e.current()) )
+            {
+                occurrence--;
+                if( occurrence <= 0 )
+                {
+                    ret = i;
+                    break;
+                }
+            }
+        }
+
+        return ret;
+    }
+
+    public static int findAny(List list, anytype valueOrCollection)
+    {
+        int ret;
+        int i;
+        ListEnumerator e = ListUtil::getEnumerator(list);
+
+        for( i=1; e && e.moveNext(); i++ )
+        {
+            if( CollectionUtil::in(e.current(), valueOrCollection) )
+            {
+                ret = i;
+                break;
+            }
+        }
+
+        return ret;
+    }
+
+    // возвращает элемент списка.
+    //
+    // @see head - синоним
+    // @see last
+    public static anytype first(List list)
+    {
+        ListEnumerator e = ListUtil::getEnumerator(list);
+
+        anytype ret;
+
+        if( e && e.moveNext() )
+        {
+            ret = e.current();
+        }
+
+        return ret;
+    }
+
+    public static ListEnumerator getEnumerator(List list)
+    {
+        ListEnumerator ret;
+
+        if( list && !list.empty() )
+        {
+            ret = list.getEnumerator();
+        }
+
+        return ret;
+    }
+
+    public static ListEnumerator getEnumeratorAndSkip(List list, int skipIterations)
+    {
+        ListEnumerator ret = ListUtil::getEnumerator(list);
+
+        if( ret && !EnumeratorUtil::skip(ret, skipIterations) )
+        {
+            ret = null;
+        }
+
+        return ret;
+    }
+
+    // возвращает элемент списка
+    //
+    // @see first - синоним
+    public static anytype head(List list)
+    {
+        anytype ret = ListUtil::first(list);
+
+        return ret;
+    }
+
+    // метод возвращает true, если value содержится в контейнере
+    // по сравнению с find параметры метода идут в обратном порядке - значение, конейнер
+    // такой порядок позволяет удобнее записывать выражения в условиях.
+    public static boolean in(anytype value, List list)
+    {
+        boolean ret;
+        ListEnumerator e = ListUtil::getEnumerator(list);
+
+        while( e && e.moveNext() )
+        {
+            if( e.current() == value )
+            {
+                ret = true;
+                break;
+            }
+        }
+
+        return ret;
+    }
+
+    public static boolean isEmpty(List list)
     {
         boolean ret = true;
 
@@ -102,13 +509,74 @@ abstract class ListUtil
         return ret;
     }
 
-    public static ListEnumerator getEnumerator(List list)
+    public static boolean isNotEmpty(List list)
     {
-        ListEnumerator ret;
+        boolean isEmpty = ListUtil::isEmpty(list);
+
+        return !isEmpty;
+    }
+
+    public static boolean isType(List list, Types elementType)
+    {
+        boolean ret;
 
         if( list )
         {
-            ret = list.getEnumerator();
+            ret = TypeUtil::is(list.typeId(), elementType);
+        }
+
+        return ret;
+    }
+
+    // первый элемент имеет индекс 1
+    // медленно: выполняет перебор всех элементов до указанного
+    public static anytype item(List set, int idx)
+    {
+        ListEnumerator e = ListUtil::getEnumerator(set);
+        int            i;
+        anytype        ret;
+
+        while( idx > 0 && e && e.moveNext() )
+        {
+            i++;
+            if( i == idx )
+            {
+                ret = e.current();
+                break;
+            }
+        }
+
+        return ret;
+    }
+
+    public static anytype itemAs(List list, int idx, Types type, int potentialAncestorId = 0)
+    {
+        anytype value = ListUtil::item(list, idx);
+        anytype ret = AnytypeUtil::as(value, type, potentialAncestorId);
+
+        return ret;
+    }
+
+    public static anytype itemAsValue(List list, int idx, anytype asValue)
+    {
+        anytype value = ListUtil::item(list, idx);
+        anytype ret = AnytypeUtil::asValue(value, asValue);
+
+        return ret;
+    }
+
+    // возвращает элемент списка.
+    //
+    // @see first
+    public static anytype last(List list)
+    {
+        ListEnumerator e = ListUtil::getEnumerator(list);
+
+        anytype ret;
+
+        while( e && e.moveNext() )
+        {
+            ret = e.current();
         }
 
         return ret;
@@ -144,48 +612,39 @@ abstract class ListUtil
         return ret;
     }
 
-    public static List newFrom(anytype collection)
+    public static List newFrom(anytype valueOrCollection, int maxElements = 0)
     {
-        List list;
-        Enumerator e;
+        List ret = ListUtil::addAll(null, valueOrCollection, maxElements);
 
-        if( AnytypeUtil::isList(collection) )
-        {
-            list = ListUtil::clone(collection);
-        }
-        else
-        {
-            e = EnumeratorUtil::getEnumerator(collection);
-            while( e && e.moveNext() )
-            {
-                list = ListUtil::add(list, e.current());
-            }
-        }
-
-        return list;
+        return ret;
     }
 
     // быстрое преобразование. https://axforum.info/forums/showthread.php?t=27738
     // безопасное преобразование в методе newFrom()
-    public static List newFromArray(Array arr)
+    public static List newFromArray(Array arr, int maxElements = 0)
     {
         List ret;
-        container packedArray;
 
         if( arr )
         {
-            packedArray = arr.pack();
-            ret = List::create(packedArray);
+            ret = ListUtil::addAll(ret, arr, maxElements);
+
+            // packedArray = arr.pack();   // не работает, в массиве содержится len - 1
         }
 
         return ret;
     }
 
-    public static List newFromContainer(container con)
+    public static List newFromContainer(container con, int maxElements = 0)
     {
         List ret;
         int len = conlen(con);
         int i;
+
+        if( maxElements )
+        {
+            len = min(len, maxElements);
+        }
 
         for( i=1; i<=len; i++ )
         {
@@ -195,32 +654,65 @@ abstract class ListUtil
         return ret;
     }
 
-    public static List newFromList(List list)
+    public static List newFromList(List list, int maxElements = 0)
     {
-        List ret = ListUtil::clone(list);
+        List ret;
+
+        if( maxElements )
+        {
+            ret = ListUtil::addAll(null, list, maxElements);
+        }
+        else
+        {
+            ret = ListUtil::clone(list);
+        }
 
         return ret;
     }
 
-    // создает список записей из буфера, который был заполнен командой select
-    public static RecordList newFromSelect(Common selectedRecords, int maxElements = 0)
+    // создает множество значений поля из буфера, который был заполнен командой select
+    public static List newFromQuery(Query q, TableId tableId, FieldId fieldId, int maxElements = 0)
     {
-        RecordList ret = RecordList::fromSelect(selectedRecords, maxElements);
+        List ret = ListUtil::addFromQuery(null, q, tableId, fieldId, maxElements);
+
+        return ret;
+    }
+
+    // создает множество значений поля из буфера, который был заполнен командой select
+    public static List newFromQueryRun(QueryRun qr, TableId tableId, FieldId fieldId, int maxElements = 0)
+    {
+        List ret = ListUtil::addFromQueryRun(null, qr, tableId, fieldId, maxElements);
+
+        return ret;
+    }
+
+    // создает список из значений полей буфера, который был заполнен командой select
+    // @see RecordListUtil::newFromSelect
+    public static RecordList newFromSelect(Common selectedRecords, FieldId fieldId, int maxElements = 0)
+    {
+        List ret = ListUtil::addFromSelect(null, selectedRecords, fieldId, maxElements);
 
         return ret;
     }
 
     // быстрое преобразование. https://axforum.info/forums/showthread.php?t=27738
     // безопасное преобразование в методе newFrom()
-    public static List newFromSet(Set set)
+    public static List newFromSet(Set set, int maxElements = 0)
     {
         List ret;
         container packedSet;
 
         if( set )
         {
-            packedSet = set.pack();
-            ret = List::create(packedSet);
+            if( maxElements || set.typeId() == Types::Class )
+            {
+                ret = ListUtil::addAll(ret, set, maxElements);
+            }
+            else
+            {
+                packedSet = set.pack();
+                ret = List::create(packedSet);
+            }
         }
 
         return ret;
@@ -229,12 +721,7 @@ abstract class ListUtil
     public static List newFromStr(str s, str sep = ',', int maxSubstrings = 0)
     {
         Enumerator e = StrSplitEnumerator::construct(s, sep, maxSubstrings);
-        List ret;
-
-        while( e && e.moveNext() )
-        {
-            ret = ListUtil::add(ret, e.current());
-        }
+        List ret = ListUtil::addAll(ret, e);
 
         return ret;
     }
@@ -255,6 +742,215 @@ abstract class ListUtil
         }
 
         return list;
+    }
+
+    // метод возвращает true, если value не содержится в контейнере
+    // по сравнению с find параметры метода идут в обратном порядке - значение, конейнер
+    // такой порядок позволяет удобнее записывать выражения в условиях.
+    public static boolean notIn(anytype value, List list)
+    {
+        boolean ret = !ListUtil::in(value,list);
+
+        return ret;
+    }
+
+    public static container pack(List list)
+    {
+        container ret;
+
+        if( list )
+        {
+            ret = list.pack();
+        }
+
+        return ret;
+    }
+
+    // удаляет значение из списка
+    //
+    // @param occurrence указывает какое вхождение значения нужно удалить
+    //
+    // @see removeAll
+    public static List remove(List list, anytype value, int occurrence = 1)
+    {
+        List ret;
+        ListEnumerator e = ListUtil::getEnumerator(list);
+
+        while( e && e.moveNext() )
+        {
+            if( e.current() == value )
+            {
+                occurrence--;
+                if( occurrence <= 0 )
+                {
+                    continue;
+                }
+            }
+
+            ret = ListUtil::add(ret, e.current());
+        }
+
+        return ret;
+    }
+
+    // возвращает новый список, в котором отсустстуют элементы, которые содержатся в коллекции 2
+    public static List removeAll(List list, anytype valueOrCollection)
+    {
+        List ret;
+        Enumerator e = EnumeratorUtil::getEnumerator(list);
+
+        while( e && e.moveNext() )
+        {
+            if( CollectionUtil::notIn(e.current(), valueOrCollection) )
+            {
+                ret = ListUtil::add(ret, e.current());
+            }
+        }
+
+        return ret;
+    }
+
+    // возвращает новый список, в котором удалены все пустые элементы
+    public static List removeEmpty(List list)
+    {
+        ListEnumerator e = ListUtil::getEnumerator(list);
+        List ret;
+
+        while( e && e.moveNext() )
+        {
+            if( e.current() )
+            {
+                ret = ListUtil::add(ret, e.current());
+            }
+        }
+
+        return ret;
+    }
+
+    // возвращает новый список, в котором удалены элементы указанного типа
+    public static List removeType(List list, Types type, int potentialAncestorId = 0)
+    {
+        List ret;
+        ListEnumerator e = ListUtil::getEnumerator(list);
+
+        while( e && e.moveNext() )
+        {
+            if( !AnytypeUtil::is(e.current(), type, potentialAncestorId) )
+            {
+                ret = ListUtil::add(ret, e.current());
+            }
+        }
+
+        return ret;
+    }
+
+    // возвращает новый список, в котором остались элементы, которые содержатся в коллекции 2
+    public static List retainAll(List list, anytype valueOrCollection)
+    {
+        List ret;
+        Enumerator e = EnumeratorUtil::getEnumerator(list);
+
+        while( e && e.moveNext() )
+        {
+            if( CollectionUtil::in(e.current(), valueOrCollection) )
+            {
+                ret = ListUtil::add(ret, e.current());
+            }
+        }
+
+        return ret;
+    }
+
+    // возвращает новый список, в котором остались элементы указанного типа
+    public static List retainType(List list, Types type, int potentialAncestorId = 0)
+    {
+        List ret;
+        ListEnumerator e = ListUtil::getEnumerator(list);
+
+        while( e && e.moveNext() )
+        {
+            if( AnytypeUtil::is(e.current(), type, potentialAncestorId) )
+            {
+                ret = ListUtil::add(ret, e.current());
+            }
+        }
+
+        return ret;
+    }
+
+    public static List reverse(List list)
+    {
+        List ret;
+        ListEnumerator e = ListUtil::getEnumerator(list);
+
+        while( e && e.moveNext() )
+        {
+            ret = ListUtil::addStart(ret, e.current());
+        }
+
+        return ret;
+    }
+
+    public static List slice(List list, int fromPos = 1, int toPos = -1, int step = 1)
+    {
+        List ret;
+        ListEnumerator e;
+
+        int len     = ListUtil::elements(list);
+
+        int fromIdx = fromPos + (fromPos < 0 ? len + 1 : 0);
+        int toIdx   = toPos   + (toPos < 0 ? len + 1 : 0);
+
+        int i       = max(1, fromIdx);
+        int lastIdx = min(len, toIdx);
+
+        if( i <= 1 && lastIdx >= len && step == 1 )
+        {
+            ret = ListUtil::clone(list);
+        }
+        else if( step > 0 )
+        {
+            e = ListUtil::getEnumeratorAndSkip(list, i-1);
+
+            while( i<=lastIdx && e && e.moveNext() )
+            {
+                ret = ListUtil::add(ret, e.current());
+
+                EnumeratorUtil::skip(e, step - 1);
+
+                i += step;
+            }
+        }
+
+        return ret;
+    }
+
+    public static List tail(List list)
+    {
+        List ret = ListUtil::slice(list, 2);
+
+        return ret;
+    }
+
+    public static List take(List list, int n = 1, int startFrom = 1)
+    {
+        List ret = ListUtil::slice(list, startFrom, startFrom + n - 1);
+
+        return ret;
+    }
+
+    public static List takeLast(List list, int n = 1)
+    {
+        List ret = ListUtil::slice(list, -n);
+
+        return ret;
+    }
+
+    public static Array toArray(List list)
+    {
+        Array ret = ArrayUtil::newFromList(list);
+
+        return ret;
     }
 
     public static container toCon(List list)
@@ -285,6 +981,28 @@ abstract class ListUtil
         if( list )
         {
             ret = list.typeId();
+        }
+
+        return ret;
+    }
+
+    public static List zip(List list1, List list2, int maxElements = 0)
+    {
+        List            ret;
+        int             elements;
+        int             minLen = min(ListUtil::elements(list1), ListUtil::elements(list2));
+        ListEnumerator  e1 = ListUtil::getEnumerator(list1);
+        ListEnumerator  e2 = ListUtil::getEnumerator(list2);
+
+        if( maxElements )
+        {
+            minLen = min(minLen, maxElements);
+        }
+
+        while( e1 && e2 && e1.moveNext() && e2.moveNext() && elements < minLen )
+        {
+            ret = ListUtil::add(ret, e1.current());
+            ret = ListUtil::add(ret, e2.current());
         }
 
         return ret;

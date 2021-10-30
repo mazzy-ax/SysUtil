@@ -23,7 +23,7 @@ abstract class RecordUtil
 
         if( expectedTableId &&
             expectedTableId != orig.TableId &&
-            expectedTableId != tablenum(Common) )
+            expectedTableId != TableUtil::commonTableId() )
         {
             throw error(strFmt('%1: Не совпадают TableId. Ожидается %2, фактическое значение %3',
                             funcname(),
@@ -42,15 +42,6 @@ abstract class RecordUtil
         Common rec;
 
         return rec;
-    }
-
-    public static TableId DEL_commonTableId()
-    {
-        // Common rec;
-        //
-        // return rec.TableId;
-
-        return 65535;
     }
 
     // всегда возвращает not nullable объект. Полезно в выражениях
@@ -75,19 +66,12 @@ abstract class RecordUtil
         return ret;
     }
 
-    // TODO refRecord
-    public static str findRef(Common rec, FieldId fieldId)
+    // @deprecated! see RecordFieldIdUtil.getValue
+    public static anytype getFieldValue(Common record, FieldId fieldid)
     {
-    }
+        anytype value = RecordFieldUtil::getValue(record, fieldId);
 
-    // TODO refTitleField2 - title field 2 from reference table
-    public static str findRefTitleField2(Common rec, FieldId fieldId)
-    {
-    }
-
-    // TODO refTitleField2 - title field 1 from reference table
-    public static str findReTitleField1(Common rec, FieldId fieldId)
-    {
+        return value;
     }
 
     // mazzy, 18.12.2020
@@ -116,14 +100,6 @@ abstract class RecordUtil
         str ret = strFmt('%1[%2]', tableId2name(rec.TableId), valueInfo);
 
         return ret;
-    }
-
-    public static anytype getValue(Common record, FieldId fieldid)
-    {
-        // не делаем дополнительных проверок: к случае чего, аксапта выбросит исключение про поля в записи
-        anytype value = record.(fieldid);
-
-        return value;
     }
 
     // mazzy, 05.12.2019
@@ -236,6 +212,13 @@ abstract class RecordUtil
         return ret;
     }
 
+    public static boolean is(Common rec, TableId tableOrMapId)
+    {
+        boolean ret = TableUtil::is(rec.TableId, tableOrMapId);
+
+        return ret;
+    }
+
     public static boolean isCommon(Common record)
     {
         boolean ret = (record.TableId == tablenum(Common));
@@ -260,6 +243,13 @@ abstract class RecordUtil
         select firstOnly firstFast buf;
 
         return (buf.RecId == 0);
+    }
+
+    static boolean isMapped(Common rec, TableId potentialMapId)
+    {
+        boolean ret = TableUtil::isMapped(rec.TableId, potentialMapId);
+
+        return ret;
     }
 
     public static boolean isNotCommon(Common record)
@@ -368,9 +358,51 @@ abstract class RecordUtil
         return false;
     }
 
-    public static anytype setValue(Common record, fieldId fieldid, anytype value)
+    // 1. выбирает запись из базы, если запись еще не выбиралась
+    // 2. копирует пользовательские данные в выбранный буфер
+    // 3. записыват новые данные
+    // поэтому может возвратить новый буфер, который был прочитан из базы
+    //
+    // Внимание! не выполняет валидацию.
+    // @see validateSelectAndWriteOrThrow
+    public static Common selectAndWrite(Common buf)
     {
-        // не делаем дополнительных проверок: к случае чего, аксапта выбросит исключение про поля в записи
+        Common upd;
+        ;
+
+        if( buf.RecId == 0 ||                   // новая запись. будет выполнен insert. безопасно.
+            buf.selectForUpdate() ||            // запись выбрана с признаком ForUpdate = true. можно просто делать write.
+            RecordUtil::isNotSpecified(buf) )   // для Common алкоголь в малых дозах безопасен в любом количестве
+        {
+            buf.write();    // можно безопасно делать write без транзакции и без лишних телодвижений
+        }
+        else
+        {
+            // все сложно: запись вполне конкретной таблицы существует в базе, но выбиралась без ForUpdate.
+            // что ж, выбираем запись, копируем в нее данные, записываем, возвращаем записанное
+
+            upd = RecordUtil::makeRecord(buf.TableId);
+
+            ttsbegin;
+
+            select firstOnly forUpdate upd
+            where upd.RecId == buf.RecId;
+
+            upd.data(buf);
+            upd.write();
+
+            ttscommit;
+
+            buf = upd;
+        }
+
+        return buf;
+    }
+
+    // @deprecated! see RecordFieldIdUtil::setValue
+    public static anytype setFieldValue(Common record, fieldId fieldid, anytype value)
+    {
+        anytype ret = RecordFieldUtil::setValue(record, fieldId, value);
         record.(fieldid) = value;
 
         return value;
@@ -389,14 +421,11 @@ abstract class RecordUtil
         return dt;
     }
 
-    // TODO TitleField2
-    public static str titleField1(Common rec)
+    public static TableName tableName(Common rec)
     {
-    }
+        TableName ret = tableid2name(rec.tableId);
 
-    // TODO TitleField2
-    public static str titleField2(Common rec)
-    {
+        return ret;
     }
 
     public static Common tmpFilter(Common buf, FieldId filterFieldId, AnyType filterValue)
@@ -530,6 +559,20 @@ abstract class RecordUtil
         {
             throw error(strFmt('Delete validation error for %1', RecordUtil::getInfo(buf)));
         }
+
+        return buf;
+    }
+
+    // 1. выполняет валидацию (бросает исключение, если валидация не прошла)
+    // 2. выбирает запись из базы, если запись еще не выбиралась
+    // 3. копирует пользовательские данные в выбранный буфер
+    // 4. записыват новые данные
+    // поэтому может возвратить новый буфер, который был прочитан из базы
+    public static Common validateSelectAndWriteOrThrow(Common buf)
+    {;
+        RecordUtil::validateWriteOrThrow(buf);
+
+        buf = RecordUtil::selectAndWrite(buf);
 
         return buf;
     }

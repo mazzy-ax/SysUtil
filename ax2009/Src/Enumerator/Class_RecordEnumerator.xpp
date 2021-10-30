@@ -104,7 +104,7 @@ class RecordEnumerator implements Enumerator
         return RecordUtil::getInfo(currentBuf);
     }
 
-    public static RecordEnumerator construct(anytype value)
+    public static RecordEnumerator construct(Common value)
     {
         return new RecordEnumerator(value);
     }

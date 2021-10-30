@@ -8,13 +8,88 @@
 abstract class ConUtil
 {
 
-    public static container add(container con, anytype collectionOrValue)
+    public static container add(container con, anytype value)
     {
+        if( AnytypeUtil::isPrimitive(value) )
+        {
+            con += value;
+        }
+
+        return con;
+    }
+
+    public static container addAll(container con, anytype collectionOrValue, int maxElements = 0)
+    {
+        int elements;
         Enumerator e = EnumeratorUtil::getEnumerator(collectionOrValue);
 
-        while( e && e.moveNext() )
+        while( e && e.moveNext() && (maxElements == 0 || elements <= maxElements) )
         {
-            con += e.current(); // ядро бросит исключение, если тип значения не может быть помещен в контейнер
+            con = ConUtil::add(con, e.current());
+
+            elements++;
+        }
+
+        return con;
+    }
+
+    // добавляет значение поля из буфера
+    // если поле содержит контейнер, то контейнер добавляется как есть, целиком
+    public static container addFieldValue(container con, Common buf, FieldId fieldId)
+    {
+        anytype value = RecordFieldUtil::getValue(buf, fieldId);
+        ;
+
+        con = ConUtil::add(con, value); // добавляем значение поля как значение. Не раскрываем контейнер из поля.
+
+        return con;
+    }
+
+    // добавляет значения поля из буфера, который был заполнен командой Query
+    //
+    public static container addFromQuery(container con, Query q, TableId tableId, FieldId fieldId, int maxElements = 0)
+    {
+        QueryRun qr = new QueryRun(q);
+        ;
+
+        con = ConUtil::addFromQueryRun(con, qr, tableId, fieldId, maxElements);
+
+        return con;
+    }
+
+    // добавляет значение поля из буфера, который был заполнен QueryRun
+    // если поле содержит контейнер, то контейнер добавляется как есть, целиком
+    //
+    public static container addFromQueryRun(container con, QueryRun qr, TableId tableId, FieldId fieldId, int maxElements = 0)
+    {
+        int elements;
+        common rec;
+        ;
+
+        while( qr && qr.next() && (maxElements == 0 || elements < maxElements) )
+        {
+            rec = qr.get(tableId);
+            con = ConUtil::addFieldValue(con, rec, fieldId);
+
+            elements++;
+        }
+
+        return con;
+    }
+
+    // добавляет значения поля из буфера, который был заполнен командой select
+    // если поле содержит контейнер, то контейнер добавляется как есть, целиком
+    //
+    public static container addFromSelect(container con, Common selectedRecord, FieldId fieldId, int maxElements = 0)
+    {
+        int elements;
+
+        while( selectedRecord && (maxElements == 0 || elements < maxElements) )
+        {
+            con = ConUtil::addFieldValue(con, selectedRecord, fieldId);
+
+            next selectedRecord;
+            elements++;
         }
 
         return con;
@@ -27,9 +102,11 @@ abstract class ConUtil
         return ret;
     }
 
-    public static boolean containsAll(container con, anytype collection)
+    // второй аргумент трактуется как коллекция (возможно, из одного значения)
+    // возвращает true, если контейнер содержит все значения из collection
+    public static boolean containsAll(container con, anytype valueOrCollection)
     {
-        Enumerator e = EnumeratorUtil::getEnumerator(collection);
+        Enumerator e = EnumeratorUtil::getEnumerator(valueOrCollection);
         boolean ret = true; // любой контейнер содержит пустую коллекцию
 
         while( ret && e && e.moveNext() )
@@ -40,29 +117,51 @@ abstract class ConUtil
         return ret;
     }
 
-    public static FormRun conView(container con, str caption = '', boolean lookup = false)
+    // второй аргумент трактуется как коллекция (возможно, из одного значения)
+    // возвращает true, если контейнер содержит любое значение из collection
+    public static boolean containsAny(container con, anytype valueOrCollection)
     {
-        return conView(con, caption, lookup);
-    }
+        Enumerator e = EnumeratorUtil::getEnumerator(valueOrCollection);
+        boolean ret = true; // любой контейнер содержит пустую коллекцию
 
-    public static int countAs(container con, Types type)
-    {
-        int ret;
-        int len = conlen(con);
-        int i;
-
-        for( i=1 ; i<=len ; i++ )
+        while( e && e.moveNext() )
         {
-            if( typeof(conpeek(con,i)) == type )
+            ret = (confind(con, e.current()) != 0);
+
+            if( ret )
             {
-                ret++;
+                break;
             }
         }
 
         return ret;
     }
 
-    public static int countValue(container con, anytype value)
+    public static boolean containsType(container con, Types type, int potentialAncestorId = 0)
+    {
+        boolean ret;
+        int len = conlen(con);
+        int i;
+
+        for( i=1 ; i<=len ; i++ )
+        {
+            if( AnytypeUtil::is(conpeek(con,i), type, potentialAncestorId) )
+            {
+                ret = true;
+                break;
+            }
+        }
+
+        return ret;
+    }
+
+
+    public static FormRun conView(container con, str caption = '', boolean lookup = false)
+    {
+        return conView(con, caption, lookup);
+    }
+
+    public static int count(container con, anytype value)
     {
         int ret;
         int len = conlen(con);
@@ -79,24 +178,94 @@ abstract class ConUtil
         return ret;
     }
 
-    public static container delete(container con, int start, int number)
+    public static int countAny(container con, anytype valueOrCollection)
     {
-        container ret = condel(con, start, number);
+        int ret;
+        int len = conlen(con);
+        int i;
+
+        for( i=1 ; i<=len ; i++ )
+        {
+            if( CollectionUtil::in(conpeek(con,i), valueOrCollection) )
+            {
+                ret++;
+            }
+        }
+
+        return ret;
+    }
+
+    public static int countEmpty(container con)
+    {
+        int ret;
+        int len = conlen(con);
+        int i;
+
+        for( i=1 ; i<=len ; i++ )
+        {
+            if( !conpeek(con,i) )
+            {
+                ret++;
+            }
+        }
+
+        return ret;
+    }
+
+    public static int countNotEmpty(container con)
+    {
+        int ret;
+        int len = conlen(con);
+        int i;
+
+        for( i=1 ; i<=len ; i++ )
+        {
+            if( conpeek(con,i) )
+            {
+                ret++;
+            }
+        }
+
+        return ret;
+    }
+
+    public static int countType(container con, Types type, int potentialAncestorId = 0)
+    {
+        int ret;
+        int len = conlen(con);
+        int i;
+
+        for( i=1 ; i<=len ; i++ )
+        {
+            if( AnytypeUtil::is(conpeek(con,i), type, potentialAncestorId) )
+            {
+                ret++;
+            }
+        }
+
+        return ret;
+    }
+
+
+    public static container delete(container con, int startFrom, int number = 1)
+    {
+        container ret = condel(con, startFrom, number);
 
         return ret;
     }
 
     // возвращает новый контейнер, в котором присутствуют только уникальные объекты (дубли удалены)
-    public static container distinct(anytype collection)
+    public static container distinct(container con)
     {
-        Enumerator e = EnumeratorUtil::getEnumerator(collection);
         container ret;
+        int len = conlen(con);
+        int i;
 
-        while( e && e.moveNext() )
+        for( i=1; i<=len; i++ )
         {
-            if( !confind(ret, e.current()) )
+            if( !confind(ret, conpeek(con, i)) )
             {
-                ret += e.current();
+                ret = ConUtil::add(ret, conpeek(con, i));
             }
         }
 
@@ -105,25 +274,72 @@ abstract class ConUtil
 
     public static container drop(container con, int n = 1)
     {
-        container ret;
-        int i;
-        int len = conlen(con);
+        container ret = ConUtil::slice(con, 2);
 
-        for( i=n; i<=len; i++ )
+        return ret;
+    }
+
+    public static container dropEnd(container con, int n = 1)
+    {
+        container ret = ConUtil::slice(con, 1, -n);
+
+        return ret;
+    }
+
+    // Создан для "похожести" с ListUtil, SetUtil, ArrayUtil
+    // @see len
+    public static int elements(container con)
+    {
+        int ret = conlen(con);
+
+        return ret;
+    }
+
+    public static int find(container con, anytype value, int occurrence = 1)
+    {
+        int ret;
+        int len = conlen(con);
+        int i;
+
+        for( i = 1; occurrence > 0 && i <= len; i++ )
         {
-            ret += conpeek(con, 1);
+            if( AnytypeUtil::isEqual(value, conpeek(con, i)) )
+            {
+                occurrence--;
+                if( occurrence <= 0 )
+                {
+                    ret = i;
+                    break;
+                }
+            }
         }
 
         return ret;
     }
 
-    public static int find(container con, anytype element)
+    public static int findAny(container con, anytype valueOrCollection)
     {
-        int ret = confind(con, element);
+        int ret;
+        int len = conlen(con);
+        int i;
+
+        for( i=1 ; i<=len ; i++ )
+        {
+            if( CollectionUtil::in(conpeek(con, i), valueOrCollection) )
+            {
+                ret = i;
+                break;
+            }
+        }
 
         return ret;
     }
 
+    // возвращает элемент контейнера. скорее всего, это не контейнер.
+    // поэтому если вызывающий алгоритм знает, что положено в контейнер, то вызывающий алгоритм может не парится с проверками
+    //
+    // @see head - синоним
+    // @see last
     public static anytype first(container con)
     {
         anytype ret = conpeek(con, 1);
@@ -131,13 +347,56 @@ abstract class ConUtil
         return ret;
     }
 
-    public static ConEnumerator getEnumerator(container con)
+    // возвращает новый контейнер, в котором все элементы расположены на первом уровне, а внутри нет вложенных контейнеров
+    public static container flat(container con)
     {
-        ConEnumerator ret = ConEnumerator::construct(con);
+        container ret;
+        int len = conlen(con);
+        int i;
+
+        for( i=1; i<=len; i++ )
+        {
+            if( typeof(conpeek(con, i)) == Types::Container )
+            {
+                ret += ConUtil::flat(conpeek(con, i));
+            }
+            else
+            {
+                ret = ConUtil::add(ret, conpeek(con, i));
+            }
+        }
 
         return ret;
     }
 
+    public static ConEnumerator getEnumerator(container con)
+    {
+        ConEnumerator ret;
+
+        if( conlen(con) > 0 )
+        {
+            ret = ConEnumerator::construct(con);
+        }
+
+        return ret;
+    }
+
+    public static ConEnumerator getEnumeratorAndSkip(container con, int skipIterations)
+    {
+        ConEnumerator ret = ConUtil::getEnumerator(con);
+
+        if( ret && !EnumeratorUtil::skip(ret, skipIterations) )
+        {
+            ret = null;
+        }
+
+        return ret;
+    }
+
+    // возвращает элемент контейнера. скорее всего, это не контейнер.
+    // поэтому если вызывающий алгоритм знает, что положено в контейнер, то вызывающий алгоритм может не парится с проверками
+    //
+    // @see first - синоним
     public static anytype head(container con)
     {
         anytype ret = ConUtil::first(con);
@@ -145,6 +404,19 @@ abstract class ConUtil
         return ret;
     }
 
+    // метод возвращает true, если value содержится в контейнере
+    // по сравнению с find параметры метода идут в обратном порядке - значение, конейнер
+    // такой порядок позволяет удобнее записывать выражения в условиях.
+    //
+    // Например:
+    //
+    // if( predicat1 ||
+    //     ConUtil::in( predicat2, [
+    //         Status::s1,
+    //         Status::s4,
+    //         Status::s7
+    //     ])
+    //
     public static boolean in(anytype value, container con)
     {
         boolean ret = (confind(con, value) != 0);
@@ -152,7 +424,7 @@ abstract class ConUtil
         return ret;
     }
 
-    public static container insert(container con, int start, anytype element)
+    public static container insert(container con, anytype element, int start = 1)
     {
         container ret = conins(con, start, element);
 
@@ -161,35 +433,67 @@ abstract class ConUtil
 
     public static boolean isEmpty(container con)
     {
+        boolean ret = true;
+
         if( con )
         {
-            return false;
+            ret = false;
         }
-
-        return true;
-    }
-
-    public static boolean isNotEmpty(container con)
-    {
-        if( con )
-        {
-            return true;
-        }
-
-        return false;
-    }
-
-    public static anytype last(container con)
-    {
-        int lastPos = conlen(con);
-        anytype ret = conpeek(con, lastPos);
 
         return ret;
     }
 
-    public static int len(container con)
+    public static boolean isNotEmpty(container con)
     {
-        int ret = conlen(con);
+        boolean ret = false;
+
+        if( con )
+        {
+            ret = true;
+        }
+
+        return ret;
+    }
+
+    // первый элемент имеет индекс 1
+    // работает быстро. создан для "похожести" с ListUtil, SetUtil, ArrayUtil, CollectionUtil
+    //
+    // однако для conpeek имеет особенность:
+    // если индекс <= 0 или >= conlen, то conpeek возвращает [int]0, а не AnytypeUtil::undefined()
+    //
+    // метод item не переопределяет это поведение ради производительности
+    //
+    public static anytype item(container con, int idx)
+    {
+        anytype ret = conpeek(con, idx);
+
+        return ret;
+    }
+
+    public static anytype itemAs(container con, int idx, Types type, int potentialAncestorId = 0)
+    {
+        anytype value = conpeek(con, idx);
+        anytype ret = AnytypeUtil::as(value, type, potentialAncestorId);
+
+        return ret;
+    }
+
+    public static anytype itemAsValue(container con, int idx, anytype asValue)
+    {
+        anytype ret = AnytypeUtil::asValue(conpeek(con, idx), asValue);
+
+        return ret;
+    }
+
+    // возвращает элемент контейнера. скорее всего, это не контейнер.
+    // поэтому если вызывающий алгоритм знает, что положено в контейнер, то вызывающий алгоритм может не парится с проверками
+    //
+    // @see first
+    // @see head
+    public static anytype last(container con)
+    {
+        int lastPos = conlen(con);
+        anytype ret = conpeek(con, lastPos);
 
         return ret;
     }
@@ -235,6 +539,24 @@ abstract class ConUtil
         return false;
     }
 
+    public static anytype maxAll(container con)
+    {
+        anytype ret = conpeek(con, 1);
+        Types type = typeof(ret);
+        int len = conlen(con);
+        int i;
+
+        for( i=2; i<=len; i++ )
+        {
+            if( typeof(conpeek(con, i)) == type )
+            {
+                ret = max(ret, conpeek(con, i));
+            }
+        }
+
+        return ret;
+    }
+
     public static anytype maxAs(container con, Types type)
     {
         anytype ret;
@@ -276,7 +598,7 @@ abstract class ConUtil
         return ret;
     }
 
-    public static anytype maxCon(container con)
+    public static anytype minAll(container con)
     {
         anytype ret = conpeek(con, 1);
         Types type = typeof(ret);
@@ -287,7 +609,7 @@ abstract class ConUtil
         {
             if( typeof(conpeek(con, i)) == type )
             {
-                ret = max(ret, conpeek(con, i));
+                ret = min(ret, conpeek(con, i));
             }
         }
 
@@ -335,45 +657,21 @@ abstract class ConUtil
         return ret;
     }
 
-    public static anytype minCon(container con)
+    public static container newFrom(anytype valueOrCollection, int maxElements = 0)
     {
-        anytype ret = conpeek(con, 1);
-        Types type = typeof(ret);
-        int len = conlen(con);
-        int i;
-
-        for( i=2; i<=len; i++ )
-        {
-            if( typeof(conpeek(con, i)) == type )
-            {
-                ret = min(ret, conpeek(con, i));
-            }
-        }
+        container ret = ConUtil::addAll(ret, valueOrCollection, maxElements);
 
         return ret;
     }
 
-    public static container newFrom(anytype collection)
-    {
-        Enumerator e = EnumeratorUtil::getEnumerator(collection);
-        container con;
-
-        while( e && e.moveNext() )
-        {
-            con += e.current();
-        }
-
-        return con;
-    }
-
-    public static container newFromArray(Array array)
+    public static container newFromArray(Array arr, int maxElements = 0)
     {
         container ret;
         int i;
 
-        for( i=1; array && i<=array.lastIndex(); ++i )
+        for( i=1; arr && i<=arr.lastIndex() && (maxElements == 0 || i <= maxElements); ++i )
         {
-            ret += array.value(i);
+            ret = ConUtil::add(ret, arr.value(i));
         }
 
         return ret;
@@ -393,40 +691,73 @@ abstract class ConUtil
         return ret;
     }
 
-    public static container newFromList(List list)
+    public static container newFromList(List list, int maxElements = 0)
     {
-        ListEnumerator le = ListUtil::getEnumerator(list);
         container ret;
+        int elements;
+        ListEnumerator le = ListUtil::getEnumerator(list);
 
-        while( le && le.moveNext() )
+        while( le && le.moveNext() && (maxElements == 0 || elements < maxElements) )
         {
-            ret += le.current();
+            ret = ConUtil::add(ret, le.current());
+
+            elements++;
         }
 
         return ret;
     }
 
-    public static container newFromMap(Map map)
+    public static container newFromMap(Map map, int maxElements = 0)
     {
         container ret;
+        int elements;
         MapEnumerator me = MapUtil::getEnumerator(map);
 
-        while( me && me.moveNext() )
+        while( me && me.moveNext() && (maxElements == 0 || elements < maxElements) )
         {
             ret += [[me.currentKey(), me.currentValue()]];
+
+            elements++;
         }
 
         return ret;
     }
 
-    public static container newFromSet(Set set)
+    // создает множество значений поля из буфера, который был заполнен командой select
+    public static container newFromQuery(Query q, TableId tableId, FieldId fieldId, int maxElements = 0)
     {
-        SetEnumerator se = SetUtil::getEnumerator(set);
-        container ret;
+        container ret = ConUtil::addFromQuery(connull(), q, tableId, fieldId, maxElements);
 
-        while( se && se.moveNext() )
+        return ret;
+    }
+
+    // создает множество значений поля из буфера, который был заполнен командой select
+    public static container newFromQueryRun(QueryRun qr, TableId tableId, FieldId fieldId, int maxElements = 0)
+    {
+        container ret = ConUtil::addFromQueryRun(connull(), qr, tableId, fieldId, maxElements);
+
+        return ret;
+    }
+
+    // создает контейнер значений поля из буфера, который был заполнен командой select
+    public static container newFromSelect(Common selectedRecord, FieldId fieldId, int maxElements = 0)
+    {
+        container ret = ConUtil::addFromSelect(connull(), selectedRecord, fieldId, maxElements);
+
+        return ret;
+    }
+
+    public static container newFromSet(Set set, int maxElements = 0)
+    {
+        container ret;
+        int elements;
+        SetEnumerator se = SetUtil::getEnumerator(set);
+
+        while( se && se.moveNext() && (maxElements == 0 || elements < maxElements) )
         {
-            ret += se.current();
+            ret = ConUtil::add(ret, se.current());
+
+            elements++;
         }
 
         return ret;
@@ -439,7 +770,7 @@ abstract class ConUtil
 
         while( e && e.moveNext() )
         {
-            ret += e.current();
+            ret = ConUtil::add(ret, e.current());
         }
 
         return ret;
@@ -450,86 +781,22 @@ abstract class ConUtil
         return Global::containerFromXMLNode(node);
     }
 
-    public static anytype peekAs(container con, int idx, Types type, int potentialAncestorId = 0)
+    // метод возвращает true, если value не содержится в контейнере
+    // по сравнению с find параметры метода идут в обратном порядке - значение, конейнер
+    // такой порядок позволяет удобнее записывать выражения в условиях.
+    //
+    // Например:
+    //
+    // if( predicat1 ||
+    //     ConUtil::CopyOfin( predicat2, [
+    //         Status::s1,
+    //         Status::s4,
+    //         Status::s7
+    //     ])
+    //
+    public static boolean notIn(anytype value, container con)
     {
-        anytype ret = AnytypeUtil::as(conpeek(con, idx), type, potentialAncestorId);
-
-        return ret;
-    }
-
-    public static container peekAsContainer(container con, int idx)
-    {
-        container ret = AnytypeUtil::asContainer(conpeek(con, idx));
-
-        return ret;
-    }
-
-    public static Date peekAsDate(container con, int idx)
-    {
-        Date ret = AnytypeUtil::asDate(conpeek(con, idx));
-
-        return ret;
-    }
-
-    public static UtcDateTime peekAsDateTime(container con, int idx)
-    {
-        utcdatetime ret = AnytypeUtil::asDateTime(conpeek(con, idx));
-
-        return ret;
-    }
-
-    public static anytype peekAsEnum(container con, int idx, enumId enumId = 0)
-    {
-        anytype ret = AnytypeUtil::asEnum(conpeek(con, idx), enumId);
-
-        return ret;
-    }
-
-    public static GUID peekAsGUID(container con, int idx)
-    {
-        GUID ret = AnytypeUtil::asGUID(conpeek(con, idx));
-
-        return ret;
-    }
-
-    public static int peekAsInt(container con, int idx)
-    {
-        int ret = AnytypeUtil::asInt(conpeek(con, idx));
-
-        return ret;
-    }
-
-    public static Int64 peekAsInt64(container con, int idx)
-    {
-        Int64 ret = AnytypeUtil::asInt64(conpeek(con, idx));
-
-        return ret;
-    }
-
-    public static Real peekAsReal(container con, int idx)
-    {
-        Real ret = AnytypeUtil::asInt(conpeek(con, idx));
-
-        return ret;
-    }
-
-    public static int64 peekAsRecId(container con, int idx)
-    {
-        Int64 ret = AnytypeUtil::asRecId(conpeek(con, idx));
-
-        return ret;
-    }
-
-    public static Common peekAsRecord(container con, int idx, TableId tableId = 0)
-    {
-        Common ret = AnytypeUtil::asRecord(conpeek(con, idx), tableId);
-
-        return ret;
-    }
-
-    public static anytype peekAsValue(container con, int idx, anytype asValue)
-    {
-        anytype ret = AnytypeUtil::asValue(conpeek(con, idx), asValue);
+        boolean ret = (confind(con, value) == 0);
 
         return ret;
     }
@@ -541,26 +808,14 @@ abstract class ConUtil
         return ret;
     }
 
-    // возвращает контейнер, в котором содержатся элементы, равные value
-    public static container ratainAll(container con, anytype value)
+    // удаляет значение из контейнера
+    //
+    // @param occurrence указывает какое вхождение значения нужно удалить
+    //
+    // @see removeAll
+    public static container remove(container con, anytype value, int occurrence = 1)
     {
-        container ret;
-        ConEnumerator ce = ConEnumerator::construct(con);
-
-        while( ce && ce.moveNext() )
-        {
-            if( value == ce.current() )
-            {
-                ret += value;
-            }
-        }
-
-        return ret;
-    }
-
-    public static container remove(container con, anytype value)
-    {
-        int i = confind(con, value);
+        int i = ConUtil::find(con, value, occurrence);
 
         if( i )
         {
@@ -570,62 +825,155 @@ abstract class ConUtil
         return con;
     }
 
-    public static container removeAll(container con, anytype value)
+    // удаляет все значения из контейнера
+    public static container removeAll(container con, anytype valueOrCollection)
     {
+        Enumerator e = EnumeratorUtil::getEnumerator(valueOrCollection);
         int i;
-
-        do
-        {
-            i = confind(con, value);
-            if( i )
-            {
-                con = condel(con, i, 1);
-            }
-        }
-        while( i );
-
-        return con;
-    }
-
-    public static container removeAllEnumerator(container con, Enumerator e)
-    {
-        container ret = con;
 
         while( e && e.moveNext() )
         {
-            ret = ConUtil::removeAll(ret, e.current());
+            do
+            {
+                i = confind(con, e.current());
+
+                if( i )
+                {
+                    con = condel(con, i, 1);
+                }
+            }
+            while( i );
         }
 
         return con;
     }
 
     // возвращает новый контейнер, в котором удалены все пустые элементы
-    public static container removeEmpty(anytype collectionOrValue)
+    public static container removeEmpty(container con)
     {
-        Enumerator e = EnumeratorUtil::getEnumerator(collectionOrValue);
+        int len = conlen(con);
+        int i;
         container ret;
 
-        while( e && e.moveNext() )
+        for( i=1; i<=len; i++ )
         {
-            if( e.current() )
+            if( conpeek(con, i) )
             {
-                ret += e.current(); // ядро бросит исключение, если тип значения не может быть помещен в контейнер
+                ret = ConUtil::add(ret, conpeek(con, i));
             }
         }
 
         return ret;
     }
 
-    public static container retainAllByEnumerator(container con, Enumerator e)
+    public static container removeType(container con, Types type, int potentialAncestorId = 0)
     {
-        container ret = con;
+        container ret;
+        int len = conlen(con);
+        int i;
 
-        while( e && e.moveNext() )
+        for( i=1 ; i<=len ; i++ )
         {
-            ret = ConUtil::removeAll(ret, e.current());
+            if( !AnytypeUtil::is(conpeek(con,i), type, potentialAncestorId) )
+            {
+                ret = ConUtil::add(ret, conpeek(con, i));
+            }
         }
 
-        return con;
+        return ret;
+    }
+
+    // возвращает новый контейнер, в котором остались элементы, которые содержатся в коллекции 2
+    public static container retainAll(container con, anytype valueOrCollection)
+    {
+        container ret;
+        int len = conlen(con);
+        int i;
+
+        for( i=1 ; i<=len ; i++ )
+        {
+            if( CollectionUtil::in(conpeek(con, i), valueOrCollection) )
+            {
+                ret = ConUtil::add(ret, conpeek(con, i));
+            }
+        }
+
+        return ret;
+    }
+
+    // возвращает новый контейнер, в котором остались элементы указанного типа
+    public static container retainType(container con, Types type, int potentialAncestorId = 0)
+    {
+        container ret;
+        int len = conlen(con);
+        int i;
+
+        for( i=1 ; i<=len ; i++ )
+        {
+            if( AnytypeUtil::is(conpeek(con, i), type, potentialAncestorId) )
+            {
+                ret = ConUtil::add(ret, conpeek(con, i));
+            }
+        }
+
+        return ret;
+    }
+
+    public static container reverse(container con)
+    {
+        container ret;
+        int len = conlen(con);
+        int i;
+
+        for( i=len ; i > 0 ; i-- )
+        {
+            ret = ConUtil::add(ret, conpeek(con, i));
+        }
+
+        return ret;
+    }
+
+    public static container slice(container con, int fromPos = 1, int toPos = -1, int step = 1)
+    {
+        container ret;
+
+        int len     = conlen(con);
+
+        int fromIdx = fromPos + (fromPos < 0 ? len + 1 : 0);
+        int toIdx   = toPos   + (toPos < 0 ? len + 1 : 0);
+
+        int i       = max(1, fromIdx);
+        int end     = min(len, toIdx);
+        ;
+
+        if( i <= 1 && end >= len && step == 1 )
+        {
+            ret = con;
+        }
+        else if( step > 0 )
+        {
+            while( i <= end )
+            {
+                ret += conpeek(con, i);
+                i += step;
+            }
+        }
+
+        return ret;
+    }
+
+    public static anytype sumAll(container con)
+    {
+        anytype ret = conpeek(con, 1);
+        int len = conlen(con);
+        int i;
+
+        for( i=2 ; i<=len ; i++ )
+        {
+            ret += conpeek(con, i);
+        }
+
+        return ret;
     }
 
     public static anytype sumAs(container con, Types type)
@@ -668,47 +1016,30 @@ abstract class ConUtil
         return ret;
     }
 
-    public static anytype sumCon(container con)
-    {
-        anytype ret = conpeek(con, 1);
-        int len = conlen(con);
-        int i;
-
-        for( i=2 ; i<=len ; i++ )
-        {
-            ret += conpeek(con, i);
-        }
-
-        return ret;
-    }
-
     public static container tail(container con)
     {
-        container ret = ConUtil::take(con, conlen(con), 2);
+        container ret = ConUtil::slice(con, 2);
 
         return ret;
     }
 
-    public static container take(container con, int n = 1, int startFrom = 1)
+    public static container take(container con, int n, int startFrom = 1)
     {
-        container ret;
+        container ret = ConUtil::slice(con, startFrom, startFrom + n - 1);
 
-        int len     = conlen(con);
-        int i       = max(0, startFrom);
-        int lastPos = min(i+n-1, len);
+        return ret;
+    }
 
-        while( i<=lastPos )
-        {
-            ret += conpeek(con, i);
-            i++;
-        }
+    public static container takeEnd(container con, int n = 1)
+    {
+        container ret = ConUtil::slice(con, -n);
 
         return ret;
     }
 
     public static Array toArray(container con)
     {
-        Array ret = ArrayUtil::newFromCon(con);
+        Array ret = ArrayUtil::newFromContainer(con);
 
         return ret;
     }
@@ -720,68 +1051,34 @@ abstract class ConUtil
         return containerClass.toBlob();
     }
 
+    // первый элемент - для совместимости с Global:buf2con(), и Global::con2Buf()
+    // возможны проблемы, если после создания container таблица изменена в AOT.
+    // метод работает очень быстро.
     public static Common toBuf(container con)
     {
-        TableId tableId;
+        TableId tableId = ConUtil::itemAs(con, 1, Types::Integer);
         Common ret;
-        ;
 
-        // первый элемент - для совместимости с Global:buf2con(), и Global::con2Buf()
-        // возможны проблемы, если после создания container таблица изменена в AOT.
-        // метод работает очень быстро.
-        [tableId, ret] = con;
-
-        Debug::assert(tableId == ret.TableId);
+        if( tableId )
+        {
+            ret = ConUtil::itemAs(con, 2, Types::Record, tableId);
+        }
 
         return ret;
     }
 
     public static List toList(container con, List list = null)
     {
-        Any any;
-        int i;
-        int len = conlen(con);
+        List ret = ListUtil::addAll(list, con);
 
-        for( i=1; i<=len; ++i )
-        {
-            any = Any::conpeek(con, i);
-
-            if( !list )
-            {
-                list = new List(any.type());
-            }
-
-            if( any.type() == list.typeId() )
-            {
-                list.addEnd(any.value());
-            }
-        }
-
-        return list;
+        return ret;
     }
 
     public static Set toSet(container con, Set set = null)
     {
-        Any any;
-        int i;
-        int len = conlen(con);
+        Set ret = SetUtil::addAll(set, con);
 
-        for( i=1; i<=len; ++i )
-        {
-            any = Any::conpeek(con, i);
-
-            if( !set )
-            {
-                set = new Set(any.type());
-            }
-
-            if( any.type() == set.typeId() )
-            {
-                set.add(conpeek(con, i));
-            }
-        }
-
-        return set;
+        return ret;
     }
 
     public static str toStr(container con, str sep = ',')
@@ -827,9 +1124,9 @@ abstract class ConUtil
         int         minLen = min(conlen(con1), conlen(con2));
         int         idx;
 
-        if( maxElements && maxElements < minLen )
+        if( maxElements )
         {
-            minLen = maxElements;
+            minLen = min(minLen, maxElements);
         }
 
         for (idx = 1; idx <= minlen; idx++)

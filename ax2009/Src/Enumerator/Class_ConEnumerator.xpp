@@ -7,11 +7,23 @@ public class ConEnumerator implements Enumerator
     int         len;
     int         idx;
 
+    public container con()
+    {
+        return con;
+    }
+
     public anytype current()
     {
         // никаких проверок:
         // если индекс выходит за границы контейнера, то conPeek возвратит целый 0
         return conPeek(con, idx);
+    }
+
+    public anytype currentIdx()
+    {
+        // никаких проверок:
+        // если индекс выходит за границы контейнера, то conPeek возвратит целый 0
+        return idx;
     }
 
     public str definitionString()
@@ -27,6 +39,11 @@ public class ConEnumerator implements Enumerator
         len = conlen(con);
     }
 
+
+    public int len()
+    {
+        return len;
+    }
 
     public boolean moveNext()
     {

@@ -1,0 +1,47 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+// это Util-класс, содержащий только статические методы
+// нет смысла создавать объекты этого класса
+abstract class QueryUtil
+{
+
+    public client server static boolean hasRecord(Query q)
+    {
+        boolean ret = QueryUtil::hasRecordImpl(q.pack(false));
+
+        return ret;
+    }
+
+    private server static boolean hasRecordImpl(container queryPack)
+    {
+        boolean                 ret;
+
+        Query                   q       = new Query(queryPack);
+        QueryBuildDataSource    qbds    = q.dataSourceNo(1);
+        QueryBuildFieldList     qbfl;
+        QueryRun                qr;
+        ;
+
+        q.clearGroupBy();
+        q.clearOrderBy();
+
+        qbds.update(false);
+        qbds.sortClear();
+        qbds.firstOnly(true);
+
+        qbfl = qbds.fields();
+        qbfl.dynamic(false);
+        qbfl.clearFieldList();
+
+        qbds.addSelectionField(fieldnum(Common,RecId));
+
+        qr = new QueryRun(q);
+        if (qr && qr.next())
+        {
+            ret = true;
+        }
+
+        return ret;
+    }
+}

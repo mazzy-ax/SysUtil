@@ -1,0 +1,196 @@
+//
+// mazzy, https://github.com/mazzy-ax/SysUtil
+//
+// Класс обслуживает поля табличного буфера
+//
+// Util-класс реализует только статические методы.
+// не содержит внутри никаких значений.
+// не имеет смысла создавать экземпляр этого класса.
+//
+abstract class RecordFieldUtil
+{
+
+    // всегда возвращает not nullable объект. Полезно в выражениях
+    public static DictField dictField(Common rec, FieldId fieldId)
+    {
+        DictField df = new DictField(rec.TableId, fieldId);
+
+        if( !df )
+        {
+            df = new DictField(tablenum(Common), fieldnum(Common, RecId));
+        }
+
+        return df;
+    }
+
+    // TODO refRecord
+    public static str findRef(Common rec, FieldId fieldId)
+    {
+    }
+
+    // TODO refTitleField2 - title field 2 from reference table
+    public static str findRefTitleField2(Common rec, FieldId fieldId)
+    {
+    }
+
+    // TODO refTitleField2 - title field 1 from reference table
+    public static str findReTitleField1(Common rec, FieldId fieldId)
+    {
+    }
+
+    // mazzy, 18.12.2020
+    //
+    // возвращает строку, которая содержит значения указанных в контейнере, ключевых и обязательных полей
+    // каждое поле задействовано в контейнере только один раз
+    //
+    // порядок возвращаемых значений:
+    // сначала идут значения из полей, которые указаны пользователем,
+    // затем полей из уникальных индексов, затем обязательные поля
+    //
+    // как правило, метод используется в информационных сообщениях
+    //
+    // пример использования:
+    // str s = SysDictTable::getInfo(rContractTable, [fieldnum(rContractTable,CurrencyCode)]);
+    //
+    // в стандартной Аксапте уникальный индекс состоит из полей RContractPartnerType, RContractCode, RContractAccount
+    // результат будет похож на: "RContractTable[CurrencyCode, RContractPartnerType, RContractCode, RContractAccount]"
+    public static str getInfo(
+        Common      rec,
+        anytype     fieldIdCollection       = null, // Integer, Container, List, Set, Map, implements Enumerable or getEnumerator method
+        anytype     uniqueCollection        = null, // Integer, Container, List, Set, Map, implements Enumerable or getEnumerator method
+        anytype     mandatoryCollection     = null) // Integer, Container, List, Set, Map, implements Enumerable or getEnumerator method
+    {
+        str valueInfo = RecordUtil::getValuesInfo(rec, fieldIdCollection, uniqueCollection, mandatoryCollection);
+        str ret = strFmt('%1[%2]', tableId2name(rec.TableId), valueInfo);
+
+        return ret;
+    }
+
+    public static anytype getValue(Common record, FieldId fieldid)
+    {
+        // не делаем дополнительных проверок: к случае чего, аксапта выбросит исключение про поля в записи
+        anytype value = record.(fieldid);
+
+        return value;
+    }
+
+    // mazzy, 05.12.2019
+    //
+    // возвращает контейнер, который содержит значения указанных в контейнере, ключевых и обязательных полей
+    // каждое поле задействовано в контейнере только один раз
+    //
+    // порядок возвращаемых значений:
+    // сначала идут значения из полей, которые указаны пользователем,
+    // затем полей из уникальных индексов, затем обязательные поля
+    //
+    // как правило, метод используется в unit-тестах
+    //
+    // пример использования:
+    // container values = SysDictTable::getValues(rContractTable, [fieldnum(rContractTable,CurrencyCode)]);
+    //
+    // в стандартной Аксапте уникальный индекс состоит из полей RContractPartnerType, RContractCode, RContractAccount
+    // контейнер values будет содержать 4 значения: [CurrencyCode, RContractPartnerType, RContractCode, RContractAccount]
+    public static container getValues(
+        Common      rec,
+        anytype     fieldIdCollection       = null, // Integer, Container, List, Set, Map, implements Enumerable or getEnumerator method
+        anytype     uniqueCollection        = null, // Integer, Container, List, Set, Map, implements Enumerable or getEnumerator method
+        anytype     mandatoryCollection     = null) // Integer, Container, List, Set, Map, implements Enumerable or getEnumerator method
+    {
+        Set         fields  = new Set(Types::Integer);
+        container   ret;
+
+        void appendFrom(anytype collection)
+        {
+            FieldId fieldId;
+            Enumerator e = collection ? EnumeratorUtil::getEnumerator(collection) : null;
+
+            while( e && e.moveNext() )
+            {
+                fieldId = AnytypeUtil::asInt(e.current());
+
+                if( fieldId && fields.add(fieldId) )
+                {
+                    ret += rec.(fieldId);
+                }
+            }
+        }
+
+        appendFrom(fieldIdCollection);
+        appendFrom(uniqueCollection ? uniqueCollection : SysDictTable::getUniqueIndexFields(rec.TableId));
+        appendFrom(mandatoryCollection ? mandatoryCollection : SysDictTable::getMandatoryFields(rec.TableId));
+
+        return ret;
+    }
+
+    // mazzy, 05.12.2019
+    //
+    // возвращает контейнер, который содержит значения указанных в контейнере, ключевых и обязательных полей
+    // каждое поле задействовано в контейнере только один раз
+    //
+    // порядок возвращаемых значений:
+    // сначала идут значения из полей, которые указаны пользователем,
+    // затем полей из уникальных индексов, затем обязательные поля
+    //
+    // как правило, метод используется в unit-тестах
+    //
+    // пример использования:
+    // container values = SysDictTable::getValuesInfo(rContractTable, [fieldnum(rContractTable,CurrencyCode)]);
+    //
+    // в стандартной Аксапте уникальный индекс состоит из полей RContractPartnerType, RContractCode, RContractAccount
+    // контейнер values будет содержать 4 значения: [CurrencyCode, RContractPartnerType, RContractCode, RContractAccount]
+    public static str getValuesInfo(
+        Common      rec,
+        anytype     fieldIdCollection       = null, // Integer, Container, List, Set, Map, implements Enumerable or getEnumerator method
+        anytype     uniqueCollection        = null, // Integer, Container, List, Set, Map, implements Enumerable or getEnumerator method
+        anytype     mandatoryCollection     = null) // Integer, Container, List, Set, Map, implements Enumerable or getEnumerator method
+    {
+        Set fields = new Set(Types::Integer);
+        TextBuffer text;
+
+        void appendFrom(anytype collection)
+        {
+            FieldId fieldId;
+            DictField df;
+            str info;
+            Enumerator e = EnumeratorUtil::getEnumerator(collection);
+
+            while( e && e.moveNext() )
+            {
+                fieldId = AnytypeUtil::asInt(e.current());
+
+                if( fieldId && fields.add(fieldId) )
+                {
+                    df = new DictField(rec.TableId, fieldId);
+                    info = strfmt("%1=%2", df.label(), rec.(df.id()));
+
+                    text = TextBufferUtil::appendIfNotEmpty(text, ', ');
+                    text = TextBufferUtil::appendStr(text, info);
+                }
+            }
+        }
+
+        appendFrom(fieldIdCollection);
+        appendFrom(uniqueCollection ? uniqueCollection : SysDictTable::getUniqueIndexFields(rec.TableId));
+        appendFrom(mandatoryCollection ? mandatoryCollection : SysDictTable::getMandatoryFields(rec.TableId));
+
+        return TextBufferUtil::getText(text);
+    }
+
+    public static anytype setValue(Common record, fieldId fieldid, anytype value)
+    {
+        // не делаем дополнительных проверок: к случае чего, аксапта выбросит исключение про поля в записи
+        record.(fieldid) = value;
+
+        return value;
+    }
+
+    // TODO TitleField2
+    public static str titleField1(Common rec)
+    {
+    }
+
+    // TODO TitleField2
+    public static str titleField2(Common rec)
+    {
+    }
+}

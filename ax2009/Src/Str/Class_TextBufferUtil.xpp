@@ -82,6 +82,17 @@ abstract class TextBufferUtil
         return text;
     }
 
+    // append if eXists - добавить текст только если TextBuffer уже создан и существует
+    public static TextBuffer appendIfNotNull(TextBuffer text, str s)
+    {
+        if( s && text )
+        {
+            text.appendText(s);
+        }
+
+        return text;
+    }
+
     public static TextBuffer appendInfolog(TextBuffer textOrNull, InfologData info = infolog.export(), str newLine = '\n')
     {
         TextBuffer              text = TextBufferUtil::nonNull(textOrNull);
@@ -207,21 +218,14 @@ abstract class TextBufferUtil
         return text;
     }
 
-    public static TextBuffer fromStr(str s)
-    {
-        TextBuffer text = new TextBuffer();
-
-        if( s )
-        {
-            text.appendText(s);
-        }
-
-        return text;
-    }
-
     public static str getText(TextBuffer text)
     {
-        str ret = text ? text.getText() : '';
+        str ret;
+
+        if( text )
+        {
+            ret = text.getText();
+        }
 
         return ret;
     }
@@ -233,6 +237,18 @@ abstract class TextBufferUtil
         if( textOrNull && textOrNull.size() )
         {
             text.setText(textOrNull.getText());
+        }
+
+        return text;
+    }
+
+    public static TextBuffer newFromStr(str s)
+    {
+        TextBuffer text = new TextBuffer();
+
+        if( s )
+        {
+            text.appendText(s);
         }
 
         return text;

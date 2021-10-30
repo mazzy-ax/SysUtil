@@ -32,7 +32,7 @@ abstract class DictClassUtil
 
         if( dictClass )
         {
-            list = ClassIdUtil::implementedBy(dictClass.id());
+            list = ClassUtil::implementedBy(dictClass.id());
         }
 
         return List;
@@ -48,7 +48,7 @@ abstract class DictClassUtil
 
         if( dictClass )
         {
-            ret = ClassIdUtil::is(dictClass.id(), potentialClassAncestorOrInterfaceId);
+            ret = ClassUtil::is(dictClass.id(), potentialClassAncestorOrInterfaceId);
         }
 
         return ret;
@@ -61,7 +61,7 @@ abstract class DictClassUtil
 
         if( dictClass )
         {
-            ret = ClassIdUtil::isEnumerable(dictClass.id());
+            ret = ClassUtil::isEnumerable(dictClass.id());
         }
 
         return ret;
@@ -79,7 +79,7 @@ abstract class DictClassUtil
 
         if( dictClass )
         {
-            ret = ClassIdUtil::isExtend(dictClass.id(), potentialClassAncestorId);
+            ret = ClassUtil::isExtend(dictClass.id(), potentialClassAncestorId);
         }
 
         return ret;
@@ -95,7 +95,7 @@ abstract class DictClassUtil
 
         if( dictClass )
         {
-            ret = ClassIdUtil::isImplement(dictClass.id(), interfaceId);
+            ret = ClassUtil::isImplement(dictClass.id(), interfaceId);
         }
 
         return ret;
@@ -107,7 +107,7 @@ abstract class DictClassUtil
 
         if( dictClass )
         {
-            ret = ClassIdUtil::isNotSpecified(dictClass.id());
+            ret = ClassUtil::isNotSpecified(dictClass.id());
         }
 
         return ret;
@@ -119,7 +119,7 @@ abstract class DictClassUtil
 
         if( dictClass )
         {
-            ret = ClassIdUtil::isOneOf(dictClass.id(), potentialAncestorIds);
+            ret = ClassUtil::isOneOf(dictClass.id(), potentialAncestorIds);
         }
 
         return ret;
@@ -131,7 +131,7 @@ abstract class DictClassUtil
 
         if( dictClass )
         {
-            ret = ClassIdUtil::isSpecified(dictClass.id());
+            ret = ClassUtil::isSpecified(dictClass.id());
         }
 
         return ret;

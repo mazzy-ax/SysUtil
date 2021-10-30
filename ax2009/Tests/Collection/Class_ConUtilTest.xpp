@@ -1,0 +1,413 @@
+class ConUtilTest extends SysTestCase
+{
+
+    void testDelete()
+    {
+        container con =  ['a','b','c','d','e','f','g','i','j'];
+
+        this.assertEquals(['a','c','d','e','f','g','i','j'], ConUtil::delete(con, 2));
+        this.assertEquals(['a','e','f','g','i','j'],         ConUtil::delete(con, 2, 3));
+
+        this.info('number <= 0');
+
+        this.assertEquals(con, ConUtil::delete(con, 2, 0));
+        this.assertEquals(con, ConUtil::delete(con, 2, -1));
+
+        this.info('out of bounds');
+
+        this.assertEquals(con, ConUtil::delete(con, 0));
+        this.assertEquals(con, ConUtil::delete(con, 10));
+        this.assertEquals(con, ConUtil::delete(con, -1));
+
+        this.info('out of bounds, number = 3');
+
+        this.assertEquals(con, ConUtil::delete(con, 0, 3));
+        this.assertEquals(con, ConUtil::delete(con, 10, 3));
+        this.assertEquals(con, ConUtil::delete(con, -1, 3));
+    }
+
+    void testElements()
+    {
+        container con = ['a','b','c','d','e','f','g','i','j'];
+
+        this.assertEquals(9, ConUtil::elements(con));
+    }
+
+    void testFind()
+    {
+        container con =  ['a','b','c','d','e','f','b','i','j'];
+
+        this.assertEquals(2, ConUtil::find(con, 'b'));
+        this.assertEquals(2, ConUtil::find(con, 'b', 1));
+        this.assertEquals(7, ConUtil::find(con, 'b', 2));
+
+        this.info('not found');
+
+        this.assertEquals(0, ConUtil::find(con, 'z'));
+        this.assertEquals(0, ConUtil::find(con, 1));
+        this.assertEquals(0, ConUtil::find(con, null));
+
+        this.info('null');
+
+        this.assertEquals(0, ConUtil::find(connull(), 'a'));
+    }
+
+    void testItem()
+    {
+        container con = ['a','b','c','d','e','f','g','i','j'];
+
+        this.info('correct idx');
+
+        this.assertEquals('b', ConUtil::item(con, 2));
+        this.assertEquals('c', ConUtil::item(con, 3));
+        this.assertEquals('j', ConUtil::item(con, 9));
+
+        this.info('out of bounds');
+
+        this.assertEquals(0, ConUtil::item(con, 0));
+        this.assertEquals(0, ConUtil::item(con, 10));
+        this.assertEquals(0, ConUtil::item(con, 22));
+        this.assertEquals(0, ConUtil::item(con, -1));
+        this.assertEquals(0, ConUtil::item(con, -4));
+    }
+
+    void testNewFromArray()
+    {
+        container con;
+        Array fromArray;
+
+        this.info('null');
+
+        fromArray = null;
+        con = ConUtil::newFromArray(fromArray);
+        this.assertEquals(0, conlen(con));
+
+        this.info('int');
+
+        fromArray = new Array(Types::Integer);
+        fromArray.value(1,1);
+        fromArray.value(2,2);
+        fromArray.value(3,3);
+
+        con = ConUtil::newFromArray(fromArray);
+        this.assertEquals(3, conlen(con));
+        this.assertEquals(1, conpeek(con,1));
+        this.assertEquals(2, conpeek(con,2));
+        this.assertEquals(3, conpeek(con,3));
+
+        this.info('str');
+
+        fromArray = new Array(Types::String);
+        fromArray.value(1,'a');
+        fromArray.value(2,'b');
+        fromArray.value(3,'c');
+
+        con = ConUtil::newFromArray(fromArray);
+        this.assertEquals(3, conlen(con));
+        this.assertEquals('a', conpeek(con,1));
+        this.assertEquals('b', conpeek(con,2));
+        this.assertEquals('c', conpeek(con,3));
+    }
+
+    void testNewFromList()
+    {
+        container con;
+        List fromList;
+
+        this.info('null');
+
+        fromList = null;
+        con = ConUtil::newFromList(fromList);
+        this.assertEquals(0, conlen(con));
+
+        this.info('int');
+
+        fromList = new List(Types::Integer);
+        fromList.addEnd(1);
+        fromList.addEnd(2);
+        fromList.addEnd(3);
+
+        con = ConUtil::newFromList(fromList);
+        this.assertEquals(3, conlen(con));
+        this.assertEquals(1, conpeek(con,1));
+        this.assertEquals(2, conpeek(con,2));
+        this.assertEquals(3, conpeek(con,3));
+
+        this.info('str');
+
+        fromList = new List(Types::String);
+        fromList.addEnd('a');
+        fromList.addEnd('b');
+        fromList.addEnd('c');
+
+        con = ConUtil::newFromList(fromList);
+        this.assertEquals(3, conlen(con));
+        this.assertEquals('a', conpeek(con,1));
+        this.assertEquals('b', conpeek(con,2));
+        this.assertEquals('c', conpeek(con,3));
+    }
+
+    void testNewFromSet()
+    {
+        container con;
+        Set fromSet;
+
+        this.info('null');
+
+        fromSet = null;
+        con = ConUtil::newFromSet(fromSet);
+        this.assertEquals(0, conlen(con));
+
+        this.info('int');
+
+        fromSet = new Set(Types::Integer);
+        fromSet.add(1);
+        fromSet.add(2);
+        fromSet.add(3);
+
+        con = ConUtil::newFromSet(fromSet);
+        this.assertEquals(3, conlen(con));
+        this.assertEquals(1, conpeek(con,1));
+        this.assertEquals(2, conpeek(con,2));
+        this.assertEquals(3, conpeek(con,3));
+
+        this.info('str');
+
+        fromSet = new Set(Types::String);
+        fromSet.add('a');
+        fromSet.add('b');
+        fromSet.add('c');
+
+        con = ConUtil::newFromSet(fromSet);
+        this.assertEquals(3, conlen(con));
+        this.assertEquals('a', conpeek(con,1));
+        this.assertEquals('b', conpeek(con,2));
+        this.assertEquals('c', conpeek(con,3));
+    }
+
+    void testSlice()
+    {
+        container con = [1,2,3,4,5,6,7,8,9];
+
+        this.info('from');
+
+        this.assertEquals([2,3,4,5,6,7,8,9], ConUtil::slice(con, 2));
+        this.assertEquals([3,4,5,6,7,8,9],   ConUtil::slice(con, 3));
+        this.assertEquals([6,7,8,9],         ConUtil::slice(con, -4));
+
+        this.info('from, to');
+
+        this.assertEquals([3,4,5,6,7,8,9],   ConUtil::slice(con, 3, 99));
+        this.assertEquals([3,4,5,6,7,8,9],   ConUtil::slice(con, 3, -1));
+        this.assertEquals([3,4,5,6,7,8],     ConUtil::slice(con, 3, -2));
+        this.assertEquals(connull(),         ConUtil::slice(con, 3, 0));
+
+        this.info('from, to, step');
+
+        this.assertEquals([3,5,7,9],         ConUtil::slice(con, 3, 9, 2));
+        this.assertEquals([2,5,8],           ConUtil::slice(con, 2, 9, 3));
+        this.assertEquals(connull(),         ConUtil::slice(con, 2, 9, 0));
+        this.assertEquals(connull(),         ConUtil::slice(con, 2, 9, -1));
+    }
+
+    void testToArray()
+    {
+        container con;
+        Array arr;
+
+        this.info('null');
+
+        con = connull();
+        arr = ConUtil::toArray(con);
+        this.assertNull(arr);
+
+        this.info('int');
+
+        con = [1,2,3];
+        arr = ConUtil::toArray(con);
+        this.assertNotNull(arr);
+        this.assertEquals(types::Integer, arr.typeId());
+        this.assertEquals(3, arr.lastIndex());
+        this.assertEquals(1, arr.value(1));
+        this.assertEquals(2, arr.value(2));
+        this.assertEquals(3, arr.value(3));
+
+        this.info('str');
+
+        con = ['a','b','c'];
+        arr = ConUtil::toArray(con);
+        this.assertNotNull(arr);
+        this.assertEquals(types::String, arr.typeId());
+        this.assertEquals(3, arr.lastIndex());
+        this.assertEquals('a', arr.value(1));
+        this.assertEquals('b', arr.value(2));
+        this.assertEquals('c', arr.value(3));
+
+        this.info('mix');
+
+        con = [1, 'b', 'c'];
+        arr = ConUtil::toArray(con);
+        this.assertNotNull(arr);
+        this.assertEquals(types::Integer, arr.typeId());
+        this.assertEquals(1, arr.lastIndex());
+        this.assertEquals(1, arr.value(1));
+    }
+
+    void testToBuf()
+    {
+        container con;
+        tmpVoucherSum tmpVoucherSum;
+        Common common;
+        Common buf;
+    ;
+        tmpVoucherSum.clear();
+        tmpVoucherSum.Voucher = 'v1';
+        tmpVoucherSum.Debit = 100;
+        tmpVoucherSum.SumCur = 2;
+
+        this.info('tmpVoucherSum');
+
+        con = ConUtil::newFromBuf(tmpVoucherSum);
+        buf = ConUtil::toBuf(con);
+        this.assertEquals(tmpVoucherSum.TableId, buf.TableId);
+        this.assertEquals(tmpVoucherSum.toString(), buf.toString());
+
+        this.info('connull');
+
+        con = connull();
+        buf = ConUtil::toBuf(con);
+        this.assertEquals(common.TableId, buf.TableId);
+        this.assertEquals(0, buf.RecId);
+
+        // потестим некорректный контейнер
+
+        this.info('wrong [a]');
+
+        con = ['a'];
+        buf = ConUtil::toBuf(con);
+        this.assertEquals(common.TableId, buf.TableId);
+        this.assertEquals(0, buf.RecId);
+
+        this.info('wrong [1, a]');
+
+        con = [1, 'a'];
+        buf = ConUtil::toBuf(con);
+        this.assertEquals(common.TableId, buf.TableId);
+        this.assertEquals(0, buf.RecId);
+
+        this.info('wrong [a, tmpVoucherSum]');
+
+        con = ['a', tmpVoucherSum];
+        buf = ConUtil::toBuf(con);
+        this.assertEquals(common.TableId, buf.TableId);
+        this.assertEquals(0, buf.RecId);
+
+        this.info('wrong [1, tmpVoucherSum]');
+
+        con = [1, tmpVoucherSum];
+        buf = ConUtil::toBuf(con);
+        this.assertEquals(common.TableId, buf.TableId);
+        this.assertEquals(0, buf.RecId);
+    }
+
+    void testToList()
+    {
+        container con;
+        List list;
+
+        this.info('null');
+
+        con = connull();
+        list = ConUtil::toList(con);
+        this.assertNull(list);
+
+        this.info('int');
+
+        con = [1,2,3];
+        list = ConUtil::toList(con);
+        this.assertNotNull(list);
+        this.assertEquals(types::Integer, list.typeId());
+        this.assertEquals(3, list.elements());
+        this.assertEquals('<1, 2, 3>', list.toString());
+
+        this.info('str');
+
+        con = ['a','b','c'];
+        list = ConUtil::toList(con);
+        this.assertNotNull(list);
+        this.assertEquals(types::String, list.typeId());
+        this.assertEquals(3, list.elements());
+        this.assertEquals('<"a", "b", "c">', list.toString());
+
+        this.info('mix');
+
+        con = [1, 'b', 'c'];
+        list = ConUtil::toList(con);
+        this.assertEquals(types::Integer, list.typeId());
+        this.assertEquals(1, list.elements());
+        this.assertEquals('<1>', list.toString());
+    }
+
+    void testToSet()
+    {
+        container con;
+        Set set;
+
+        this.info('null');
+
+        con = connull();
+        set = ConUtil::toSet(con);
+        this.assertNull(set);
+
+        setprefix('int');
+
+        con = [1,2,3];
+        set = ConUtil::toSet(con);
+        this.assertNotNull(set);
+        this.assertEquals(types::Integer, set.typeId());
+        this.assertEquals(3, set.elements());
+        this.assertEquals('{1, 2, 3}', set.toString());
+
+        this.info('str');
+
+        con = ['a','b','c'];
+        set = ConUtil::toSet(con);
+        this.assertNotNull(set);
+        this.assertEquals(types::String, set.typeId());
+        this.assertEquals(3, set.elements());
+        this.assertEquals('{"a", "b", "c"}', set.toString());
+
+        this.info('mix');
+
+        con = [1, 'b', 'c'];
+        set = ConUtil::toSet(con);
+        this.assertNotNull(set);
+        this.assertEquals(types::Integer, set.typeId());
+        this.assertEquals(1, set.elements());
+        this.assertEquals('{1}', set.toString());
+    }
+
+    void testToStr()
+    {
+        container con;
+        str s;
+
+        this.info('null');
+
+        con = connull();
+        s = ConUtil::toStr(con);
+        this.assertEquals('', s);
+
+        this.info('int');
+
+        con = [1,2,3];
+        s = ConUtil::toStr(con);
+        this.assertEquals('1,2,3', s);
+
+        this.info('mix with separator');
+
+        con = [1,'b','c'];
+        s = ConUtil::toStr(con, ': ');
+        this.assertEquals('1: b: c', s);
+    }
+}

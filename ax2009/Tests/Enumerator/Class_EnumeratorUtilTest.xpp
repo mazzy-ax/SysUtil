@@ -1,0 +1,49 @@
+class EnumeratorUtilTest extends SysTestCase
+{
+
+    void testSkip()
+    {
+        ConEnumerator e = ConEnumerator::construct([1,2,3,4,5]);
+        ;
+
+        this.assertTrue(EnumeratorUtil::skip(e, 2));
+        while( e && e.moveNext() )
+        {
+            this.assertEquals(3, e.current());
+            this.assertTrue(EnumeratorUtil::skip(e, 2));
+        }
+    }
+
+    void testSkipEmptyContainer()
+    {
+        ConEnumerator e = ConEnumerator::construct(connull());
+        ;
+
+        this.assertFalse(EnumeratorUtil::skip(e, 2));
+    }
+
+    void testSkipEmptyList()
+    {
+        List list = new List(Types::Integer);
+        ListEnumerator e = list.getEnumerator();
+        ;
+
+        this.assertFalse(EnumeratorUtil::skip(e, 2));
+    }
+
+    void testSkipEmptySet()
+    {
+        Set set = new Set(Types::Integer);
+        SetEnumerator e = set.getEnumerator();
+        ;
+
+        this.assertFalse(EnumeratorUtil::skip(e, 2));
+    }
+
+    void testSkipNull()
+    {
+        ;
+
+        this.assertFalse(EnumeratorUtil::skip(null, 2));
+    }
+}

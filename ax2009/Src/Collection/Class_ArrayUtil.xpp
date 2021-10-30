@@ -10,36 +10,317 @@ abstract class ArrayUtil
 
     public static Array add(Array arr, anytype value)
     {
-        int lastIndex;
+        int len;
 
         if( !arr )
         {
-            arr = new Array(typeof(value));
-        }
-        else if( arr.typeId() != typeof(value) )
-        {
-            return arr; // значение с другим типом не будет добавлено
+            arr = ArrayUtil::newBy(value);
         }
 
-        lastIndex = arr.lastIndex();
-        arr.value(lastIndex+1, value);
+        if( arr.typeId() == typeof(value) ) // значения с другим типом не будет добавлено
+        {
+            len = arr.lastIndex();
+            arr.value(len+1, value);
+        }
+
+        return arr;
+    }
+
+    public static Array addAll(Array arr, anytype valueOrCollection, int maxElements = 0)
+    {
+        int elements;
+        Enumerator e = EnumeratorUtil::getEnumerator(valueOrCollection);
+
+        while( e && e.moveNext() && (maxElements == 0 || elements < maxElements) )
+        {
+            arr = ArrayUtil::add(arr, e.current());
+
+            elements++;
+        }
+
+        return arr;
+    }
+
+    // добавляет значение поля из буфера
+    // если поле содержит контейнер, то контейнер добавляется как есть, целиком
+    public static Array addFieldValue(Array arr, Common buf, FieldId fieldId)
+    {
+        anytype value = RecordFieldUtil::getValue(buf, fieldId);
+        Array ret = ArrayUtil::add(arr, value);
+
+        return ret;
+    }
+
+    // добавляет значения поля из буфера, который был заполнен командой select
+    //
+    public static Array addFromQuery(Array toArrayOrNull, Query q, TableId tableId, FieldId fieldId, int maxElements = 0)
+    {
+        QueryRun qr = new QueryRun(q);
+        Array ret = ArrayUtil::addFromQueryRun(toArrayOrNull, qr, tableId, fieldId, maxElements);
+
+        return ret;
+    }
+
+    // добавляет значения поля из буфера, который был заполнен командой select
+    //
+    public static Array addFromQueryRun(Array toArrayOrNull, QueryRun qr, TableId tableId, FieldId fieldId, int maxElements = 0)
+    {
+        Array ret = toArrayOrNull;
+        int elements;
+        common rec;
+        ;
+
+        while( qr && qr.next() && (maxElements == 0 || elements <= maxElements) )
+        {
+            rec = qr.get(tableId);
+            ret = ArrayUtil::addFieldValue(ret, rec, fieldId);
+
+            elements++;
+        }
+
+        return ret;
+    }
+
+    // добавляет значения поля из буфера, который был заполнен командой select
+    //
+    public static Array addFromSelect(Array arr, Common selectedRecord, FieldId fieldId, int maxElements = 0)
+    {
+        int elements;
+        ;
+
+        while( selectedRecord && (maxElements == 0 || elements <= maxElements) )
+        {
+            arr = ArrayUtil::addFieldValue(arr, selectedRecord, fieldId);
+
+            next selectedRecord;
+            elements++;
+        }
 
         return arr;
     }
 
     // клонируе массив, не клонирует элементы массива
-    //
-    // see clone()
+    // @see deepClone()
     public static Array clone(Array arr)
     {
-        Array ret = ArrayUtil::newFrom(arr);
+        Array ret = ArrayUtil::addAll(ret, arr);
+
+        return ret;
+    }
+
+    public static boolean contains(Array arr, anytype value)
+    {
+        boolean ret = ArrayUtil::in(value, arr);
+
+        return ret;
+    }
+
+    // второй аргумент трактуется как коллекция (возможно, из одного значения)
+    // возвращает true, если массив содержит все значения из collection
+    public static boolean containsAll(Array arr, anytype valueOrCollection)
+    {
+        Enumerator e = EnumeratorUtil::getEnumerator(valueOrCollection);
+        boolean ret = true; // любой контейнер содержит пустую коллекцию
+
+        while( ret && e && e.moveNext() )
+        {
+            ret = ret && ArrayUtil::contains(arr, e.current());
+        }
+
+        return ret;
+    }
+
+    // второй аргумент трактуется как коллекция (возможно, из одного значения)
+    // возвращает true, если массив содержит любое значение из collection
+    public static boolean containsAny(Array arr, anytype valueOrCollection)
+    {
+        Enumerator e = EnumeratorUtil::getEnumerator(valueOrCollection);
+        boolean ret = true; // любой контейнер содержит пустую коллекцию
+
+        while( e && e.moveNext() )
+        {
+            ret = ArrayUtil::contains(arr, e.current());
+
+            if( ret )
+            {
+                break;
+            }
+        }
+
+        return ret;
+    }
+
+    public static boolean containsType(Array arr, Types type, int potentialAncestorId = 0)
+    {
+        boolean ret;
+        int len;
+        int i;
+
+        if( arr && arr.typeId() == type )
+        {
+            len = arr.lastIndex();
+
+            for( i=1 ; i<=len ; i++ )
+            {
+                if( AnytypeUtil::is(arr.value(i), type, potentialAncestorId) )
+                {
+                    ret = true;
+                    break;
+                }
+            }
+        }
+
+        return ret;
+    }
+
+
+    public static int count(Array arr, anytype value)
+    {
+        int ret;
+        int len;
+        int i;
+
+        if( arr )
+        {
+            len = arr.lastIndex();
+
+            for( i=1; i<=len ; i++ )
+            {
+                if( arr.value(i) == value )
+                {
+                    ret++;
+                }
+            }
+        }
+
+        return ret;
+    }
+
+    public static int countAny(Array arr, anytype valueOrCollection)
+    {
+        int ret;
+        int len;
+        int i;
+
+        if( arr )
+        {
+            len = arr.lastIndex();
+
+            for( i=1 ; i<=len ; i++ )
+            {
+                if( CollectionUtil::in(arr.value(i), valueOrCollection) )
+                {
+                    ret++;
+                }
+            }
+        }
+
+        return ret;
+    }
+
+    public static int countEmpty(Array arr)
+    {
+        int ret;
+        int len;
+        int i;
+
+        if( arr )
+        {
+            len = arr.lastIndex();
+
+            for( i=1 ; i<=len ; i++ )
+            {
+                if( !arr.value(i) )
+                {
+                    ret++;
+                }
+            }
+        }
+
+        return ret;
+    }
+
+    public static int countNotEmpty(Array arr)
+    {
+        int ret;
+        int len;
+        int i;
+
+        if( arr )
+        {
+            len = arr.lastIndex();
+
+            for( i=1 ; i<=len ; i++ )
+            {
+                if( arr.value(i) )
+                {
+                    ret++;
+                }
+            }
+        }
+
+        return ret;
+    }
+
+    public static int countType(Array arr, Types type, int potentialAncestorId = 0)
+    {
+        int ret;
+        int len;
+        int i;
+
+        if( arr && arr.typeId() == type )
+        {
+            len = arr.lastIndex();
+
+            for( i=1 ; i<=len ; i++ )
+            {
+                if( AnytypeUtil::is(arr.value(i), type, potentialAncestorId) )
+                {
+                    ret++;
+                }
+            }
+        }
+
+        return ret;
+    }
+
+    // возвращает Array или null, если не смог распаковать
+    // удобно использовать в методах unpack, в которых мы получаем anytype значение
+    // метод проверит что сможет
+    //
+    // внутреннее устройство Set: https://axforum.info/forums/showthread.php?t=27738
+    public static Array create(anytype fromPackedArray, Types expectedTypes = Types::AnyType)
+    {
+        Array ret;
+
+        anytype version;
+        anytype type;
+        anytype elements;
+
+        if( fromPackedArray &&
+            typeof(fromPackedArray) == Types::Container &&
+            conlen(fromPackedArray) > 3 )
+        {
+            [version, type, elements] = fromPackedArray;
+
+            if( typeof(version)  == Types::Integer && version == 1 &&
+                typeof(type)     == Types::Integer && TypeUtil::is(type, expectedTypes) &&
+                typeof(elements) == Types::Integer )
+            {
+                ret = Array::create(fromPackedArray);
+            }
+        }
+        else
+        {
+            ret = ArrayUtil::nonNull(ret, expectedTypes);
+        }
 
         return ret;
     }
 
     // клонируе и массив, и элементы массива
     //
-    // see clone()
+    // @see clone()
     public static Array deepClone(Array arr)
     {
         Array ret;
@@ -54,33 +335,358 @@ abstract class ArrayUtil
         return ret;
     }
 
-    public static ArrayEnumerator getEnumerator(Array arr)
+    public static Array delete(Array arr, int start, int number = 1)
     {
-        ArrayEnumerator ret = ArrayEnumerator::construct(arr);
+        Array ret;
+        int len;
+        int end;
+        int i;
+
+        if( arr )
+        {
+            if( number <= 0 )
+            {
+                ret = ArrayUtil::clone(arr);
+            }
+            else
+            {
+                len = arr.lastIndex();
+
+                start += (start < 0 ? len + 1 : 0);
+                end = start + number - 1;
+
+                start = max(1, start);
+                end = min(len, end);
+
+                // два цикла минимизируют число итераций
+
+                for( i=1 ; i<start ; i++ )
+                {
+                    ret = ArrayUtil::add(ret, arr.value(i));
+                }
+
+                for( i=end+1 ; i<=len ; i++ )
+                {
+                    ret = ArrayUtil::add(ret, arr.value(i));
+                }
+            }
+        }
 
         return ret;
     }
 
-    public static Array newFrom(anytype collection)
+    // возвращает новый массив, в котором присутствуют только уникальные объекты (дубли удалены)
+    public static Array distinct(Array arr)
     {
-        Array arr;
-        Enumerator e = EnumeratorUtil::getEnumerator(collection);
+        Array ret;
+        int len;
+        int i;
 
-        while( e && e.moveNext() )
+        if( arr )
         {
-            arr = ArrayUtil::add(arr, e.current());
+            len = arr.lastIndex();
+
+            for( i=1 ; i<=len ; i++ )
+            {
+                if( !ArrayUtil::in(arr.value(i), ret) )
+                {
+                    ret = ArrayUtil::add(ret, arr.value(i));
+                }
+            }
         }
+
+        return ret;
+    }
+
+    public static Array drop(Array arr, int n = 1)
+    {
+        Array ret = ArrayUtil::slice(arr, 2);
+
+        return ret;
+    }
+
+    public static Array dropEnd(Array arr, int n = 1)
+    {
+        Array ret = ArrayUtil::slice(arr, 1, -n);
+
+        return ret;
+    }
+
+    public static int elements(Array arr)
+    {
+        int ret;
+
+        if( arr )
+        {
+            ret = arr.lastIndex();
+        }
+
+        return ret;
+    }
+
+    public static int find(Array arr, anytype value, int occurrence = 1)
+    {
+        int ret;
+        int len;
+        int i;
+
+        if( arr )
+        {
+            len = arr.lastIndex();
+
+            for( i = 1; occurrence > 0 && i <= len; i++ )
+            {
+                if( AnytypeUtil::isEqual(value, arr.value(i)) )
+                {
+                    occurrence--;
+                    if( occurrence <= 0 )
+                    {
+                        ret = i;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return ret;
+    }
+
+    public static int findAny(Array arr, anytype valueOrCollection)
+    {
+        int ret;
+        int len;
+        int i;
+
+        if( arr )
+        {
+            len = arr.lastIndex();
+
+            for( i=1 ; i<=len ; i++ )
+            {
+                if( CollectionUtil::in(arr.value(i), valueOrCollection) )
+                {
+                    ret = i;
+                    break;
+                }
+            }
+        }
+
+        return ret;
+    }
+
+    // возвращает первый элемент массива. скорее всего, это не массив.
+    // поэтому если вызывающий алгоритм знает, что положено в массив, то вызывающий алгоритм может не парится с проверками
+    //
+    // @see head - синоним
+    // @see last
+    public static anytype first(Array arr)
+    {
+        anytype ret;
+
+        if( arr )
+        {
+            ret = arr.value(1);
+        }
+
+        return ret;
+    }
+
+    public static ArrayEnumerator getEnumerator(Array arr)
+    {
+        ArrayEnumerator ret;
+
+        if( arr && arr.lastIndex() > 0 )
+        {
+            ret = ArrayEnumerator::construct(arr);
+        }
+
+        return ret;
+    }
+
+    public static ArrayEnumerator getEnumeratorAndSkip(Array arr, int skipIterations)
+    {
+        ArrayEnumerator ret = ArrayUtil::getEnumerator(arr);
+
+        if( ret && !EnumeratorUtil::skip(ret, skipIterations) )
+        {
+            ret = null;
+        }
+
+        return ret;
+    }
+
+    // метод возвращает true, если value содержится в массиве
+    // по сравнению с find параметры метода идут в обратном порядке - значение, конейнер
+    // такой порядок позволяет удобнее записывать выражения в условиях.
+    //
+    // Например:
+    //
+    // if( predicat1 ||
+    //     ArrayUtil::in( predicat2, [
+    //         Status::s1,
+    //         Status::s4,
+    //         Status::s7
+    //     ])
+    //
+    public static boolean in(anytype value, Array arr)
+    {
+        int ret;
+        int len;
+        int i;
+
+        if( arr )
+        {
+            len = ArrayUtil::elements(arr);
+
+            for( i = 1; i <= len; i++ )
+            {
+                if( arr.value(i) == value )
+                {
+                    ret = i;
+                    break;
+                }
+            }
+        }
+
+        return ret;
+    }
+
+    public static boolean isEmpty(Array arr)
+    {
+        boolean ret = true;
+
+        if( arr )
+        {
+            ret = (arr.lastIndex() <= 0);
+        }
+
+        return ret;
+    }
+
+    public static boolean isNotEmpty(Array arr)
+    {
+        boolean ret = false;
+
+        if( arr )
+        {
+            ret = (arr.lastIndex() > 0);
+        }
+
+        return ret;
+    }
+
+    public static boolean isType(Array arr, Types elementType)
+    {
+        boolean ret;
+
+        if( arr )
+        {
+            ret = TypeUtil::is(arr.typeId(), elementType);
+        }
+
+        return ret;
+    }
+
+    // первый элемент имеет индекс 1
+    public static anytype item(Array arr, int idx)
+    {
+        anytype ret;
+
+        if( arr && idx > 0 && arr.exists(idx) )
+        {
+            ret = arr.value(idx);
+        }
+
+        return ret;
+    }
+
+    public static anytype itemAs(Array arr, int idx, Types type, int potentialAncestorId = 0)
+    {
+        anytype value = ArrayUtil::item(arr, idx);
+        anytype ret = AnytypeUtil::as(value, type, potentialAncestorId);
+
+        return ret;
+    }
+
+    public static anytype itemAsValue(Array arr, int idx, anytype asValue)
+    {
+        anytype value = ArrayUtil::item(arr, idx);
+        anytype ret = AnytypeUtil::asValue(value, asValue);
+
+        return ret;
+    }
+
+    // возвращает последний элемент массива. скорее всего, это не массив.
+    // поэтому если вызывающий алгоритм знает, что положено в массив, то вызывающий алгоритм может не парится с проверками
+    //
+    // @see first
+    // @see head
+    public static anytype last(Array arr)
+    {
+        int lastPos = ArrayUtil::elements(arr);
+        anytype ret = ArrayUtil::item(arr, lastPos);
+
+        return ret;
+    }
+
+    // возвращает новый массив, который содержит все элементы первого массива, затем все элементы второго массива
+    public static Array merge(Array arr1, Array arr2)
+    {
+        Array ret;
+        ;
+
+        ret = ArrayUtil::clone(arr1);
+        ret = ArrayUtil::add(ret, arr2);
+
+        return ret;
+    }
+
+    // создать Array для хранения значений, тип которых совпадает с типом переменной value
+    public static Array newBy(anytype value)
+    {
+        Types type = typeof(value);
+        Array ret = new Array(type);
+
+        return ret;
+    }
+
+    public static Array newFrom(anytype collection, int maxElements = 0)
+    {
+        Array arr = ArrayUtil::addAll(null, collection, maxElements);
 
         return arr;
     }
 
-    public static Array newFromCon(container con)
+    // быстрое преобразование. https://axforum.info/forums/showthread.php?t=27738
+    // безопасное преобразование в методе newFrom()
+    public static Array newFromArray(Array arr, int maxElements = 0)
+    {
+        Array ret;
+        container packedArray;
+
+        if( arr )
+        {
+            if( maxElements || arr.typeId() == Types::Class )
+            {
+                ret = ArrayUtil::addAll(null, arr, maxElements);
+            }
+            else
+            {
+                packedArray = arr.pack();
+                ret = Array::create(packedArray);
+            }
+        }
+
+        return ret;
+    }
+
+    public static Array newFromContainer(container con, int maxElements = 0)
     {
         Array ret;
         int len = conlen(con);
         int i;
 
-        for( i=1; i<=len; ++i )
+        for( i=1 ; i<=len && (maxElements == 0 || i <= maxElements); ++i )
         {
             ret = ArrayUtil::add(ret, conpeek(con, i));
         }
@@ -90,16 +696,33 @@ abstract class ArrayUtil
 
     // быстрое преобразование. https://axforum.info/forums/showthread.php?t=27738
     // безопасное преобразование в методе newFrom()
-    public static Array newFromList(List list)
+    public static Array newFromList(List list, int maxElements = 0)
     {
         Array ret;
         container packedList;
 
         if( list )
         {
-            packedList = list.pack();
-            ret = Array::create(packedList);
+            ret = ArrayUtil::addAll(null, list, maxElements);
+
+            // packedArray = arr.pack();   // не работает, в массиве содержится len - 1
         }
+
+        return ret;
+    }
+
+    // создает множество значений поля из буфера, который был заполнен командой select
+    public static Array newFromQuery(Query q, TableId tableId, FieldId fieldId, int maxElements = 0)
+    {
+        Array ret = ArrayUtil::addFromQuery(null, q, tableId, fieldId, maxElements);
+
+        return ret;
+    }
+
+    // создает множество значений поля из буфера, который был заполнен командой select
+    public static Array newFromQueryRun(QueryRun qr, TableId tableId, FieldId fieldId, int maxElements = 0)
+    {
+        Array ret = ArrayUtil::addFromQueryRun(null, qr, tableId, fieldId, maxElements);
 
         return ret;
     }
@@ -109,12 +732,10 @@ abstract class ArrayUtil
     {
         Array ret;
         int elements;
-        anytype value;    // тип поля не меняется внтури цикла, поэтому одного anytype достаточно
 
         while( selectedRecord && (maxElements == 0 || elements <= maxElements) )
         {
-            value = RecordUtil::getValue(selectedRecord, fieldId);
-            ret = ArrayUtil::add(ret, value);
+            ret = ArrayUtil::addFieldValue(ret, selectedRecord, fieldId);
 
             next selectedRecord;
             elements++;
@@ -125,15 +746,16 @@ abstract class ArrayUtil
 
     // быстрое преобразование. https://axforum.info/forums/showthread.php?t=27738
     // безопасное преобразование в методе newFrom()
-    public static Array newFromSet(Set set)
+    public static Array newFromSet(Set set, int maxElements = 0)
     {
         Array ret;
         container packedSet;
 
         if( set )
         {
-            packedSet = set.pack();
-            ret = Array::create(packedSet);
+            ret = ArrayUtil::addAll(null, set, maxElements);
+
+            // packedArray = arr.pack();   // не работает, в массиве содержится len - 1
         }
 
         return ret;
@@ -142,12 +764,7 @@ abstract class ArrayUtil
     public static Array newFromStr(str s, str sep = ',', int maxSubstrings = 0)
     {
         Enumerator e = StrSplitEnumerator::construct(s, sep, maxSubstrings);
-        Array ret;
-
-        while( e && e.moveNext() )
-        {
-            ret = ArrayUtil::add(ret, e.current());
-        }
+        Array ret = ArrayUtil::addAll(ret, e);
 
         return ret;
     }
@@ -170,6 +787,276 @@ abstract class ArrayUtil
         return arr;
     }
 
+    // метод возвращает true, если value не содержится в контейнере
+    // по сравнению с find параметры метода идут в обратном порядке - значение, конейнер
+    // такой порядок позволяет удобнее записывать выражения в условиях.
+    //
+    // Например:
+    //
+    // if( predicat1 ||
+    //     ConUtil::CopyOfin( predicat2, [
+    //         Status::s1,
+    //         Status::s4,
+    //         Status::s7
+    //     ])
+    //
+    public static boolean notIn(anytype value, Array arr)
+    {
+        boolean ret = !ArrayUtil::in(value, arr);
+
+        return ret;
+    }
+
+    public static container pack(Array arr)
+    {
+        container ret;
+
+        if( arr )
+        {
+            ret = arr.pack();
+        }
+
+        return ret;
+    }
+
+    // удаляет значение из контейнера
+    //
+    // @param occurrence указывает какое вхождение значения нужно удалить
+    //
+    // @see removeAll
+    public static Array remove(Array arr, anytype value, int occurrence = 1)
+    {
+        Array ret;
+        int len;
+        int i;
+
+        if( arr )
+        {
+            for( i=1 ; i<=len ; i++ )
+            {
+                if( arr.value(i) == value )
+                {
+                    occurrence--;
+
+                    if( occurrence == 0 )
+                    {
+                        continue;
+                    }
+                }
+
+                ret = ArrayUtil::add(ret, arr.value(i));
+            }
+        }
+
+        return ret;
+    }
+
+    // возвращает новый массив, в котором отсутствуют значения из коллекции
+    public static Array removeAll(Array arr, anytype valueOrCollection)
+    {
+        Array ret;
+        int len;
+        int i;
+
+        if( arr )
+        {
+            len = ArrayUtil::elements(arr);
+
+            for( i=1 ; i<=len ; i++ )
+            {
+                if( !CollectionUtil::in(arr.value(i), valueOrCollection) )
+                {
+                    ret = ArrayUtil::add(ret, arr.value(i));
+                }
+            }
+        }
+
+        return arr;
+    }
+
+    // возвращает новый массив, в котором удалены все пустые элементы
+    public static Array removeEmpty(Array arr)
+    {
+        Array ret;
+        int len;
+        int i;
+
+        if( arr )
+        {
+            len = ArrayUtil::elements(arr);
+
+            for( i=1; i<=len; i++ )
+            {
+                if( arr.value(i) )
+                {
+                    ret = ArrayUtil::add(ret, arr.value(i));
+                }
+            }
+        }
+
+        return ret;
+    }
+
+    public static Array removeType(Array arr, Types type, int potentialAncestorId = 0)
+    {
+        Array ret;
+        int len;
+        int i;
+
+        if( arr )
+        {
+            if( arr.typeId() != type )
+            {
+                ret = ArrayUtil::clone(arr);
+            }
+            else
+            {
+                len = ArrayUtil::elements(arr);
+
+                for( i=1 ; i<=len ; i++ )
+                {
+                    if( !AnytypeUtil::is(arr.value(i), type, potentialAncestorId) )
+                    {
+                        ret = ArrayUtil::add(ret, arr.value(i));
+                    }
+                }
+            }
+        }
+
+        return ret;
+    }
+
+    // возвращает новый контейнер, в котором остались элементы, которые содержатся в коллекции 2
+    public static Array retainAll(Array arr, anytype valueOrCollection)
+    {
+        Array ret;
+        int len;
+        int i;
+
+        if( arr )
+        {
+            len = ArrayUtil::elements(arr);
+
+            for( i=1 ; i<=len ; i++ )
+            {
+                if( CollectionUtil::in(arr.value(i), valueOrCollection) )
+                {
+                    ret = ArrayUtil::add(ret, arr.value(i));
+                }
+            }
+        }
+
+        return ret;
+    }
+
+    // возвращает новый контейнер, в котором остались элементы указанного типа
+    public static Array retainType(Array arr, Types type, int potentialAncestorId = 0)
+    {
+        Array ret;
+        int len;
+        int i;
+
+        if( arr && arr.typeId() == type )
+        {
+            len = ArrayUtil::elements(arr);
+
+            for( i=1 ; i<=len ; i++ )
+            {
+                if( AnytypeUtil::is(arr.value(i), type, potentialAncestorId) )
+                {
+                    ret = ArrayUtil::add(ret, arr.value(i));
+                }
+            }
+        }
+
+        return ret;
+    }
+
+    public static Array reverse(Array arr)
+    {
+        Array ret;
+        int len;
+        int i;
+
+        if( arr )
+        {
+            len = ArrayUtil::elements(arr);
+
+            for( i = len; i > 0; i-- )
+            {
+                ret = ArrayUtil::add(ret, arr.value(i));
+            }
+        }
+
+        return ret;
+    }
+
+    public static Array slice(Array arr, int fromPos = 1, int toPos = -1, int step = 1)
+    {
+        Array ret;
+
+        int len;
+        int end;
+        int i;
+
+        if( arr )
+        {
+            len     = ArrayUtil::elements(arr);
+
+            fromPos += (fromPos < 0 ? len + 1 : 0);
+            toPos   += (toPos < 0 ? len + 1 : 0);
+
+            i       = max(1, fromPos);
+            end     = min(len, toPos);
+
+            // clone для array не быстрее метода add в цилке
+            // поэтому не тратим время на вычиление специальных условий, чтобы сделать clone
+
+            while( i <= end && step > 0 )
+            {
+                ret = ArrayUtil::add(ret, arr.value(i));
+                i += step;
+            }
+        }
+
+        return ret;
+    }
+
+    public static Array take(Array arr, int n = 1, int startFrom = 1)
+    {
+        Array ret = ArrayUtil::slice(arr, startFrom, startFrom + n - 1);
+
+        return ret;
+    }
+
+    public static container takeEnd(container con, int n = 1)
+    {
+        container ret = ConUtil::slice(con, -n);
+
+        return ret;
+    }
+
+    public static container toCon(Array arr)
+    {
+        container ret = ConUtil::newFromArray(arr);
+
+        return ret;
+    }
+
+    public static List toList(Array arr)
+    {
+        List list = ListUtil::newFromArray(arr);
+
+        return list;
+    }
+
+    public static Set toSet(Array arr)
+    {
+        Set set = SetUtil::newFromArray(arr);
+
+        return set;
+    }
+
     public static str toStr(Array arr, str sep = ',')
     {
         str ret = StrUtil::newFromArray(arr, sep);
@@ -184,6 +1071,26 @@ abstract class ArrayUtil
         if( arr )
         {
             ret = arr.typeId();
+        }
+
+        return ret;
+    }
+
+    // первый элемент имеет индекс 1
+    public static anytype value(Array arr, int idx, anytype value = 0)
+    {
+        anytype ret;
+
+        if( arr && arr.exists(idx) )
+        {
+            if( prmisdefault(value) )
+            {
+                ret = arr.value(idx);
+            }
+            else
+            {
+                ret = arr.value(idx, value);
+            }
         }
 
         return ret;

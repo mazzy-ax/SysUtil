@@ -30,19 +30,33 @@ class AnytypeUtil
         return null;
     }
 
-    public static Object asClass(anytype value, ClassId potentialAncestorId = 0)
+    public static Array asArrayWithType(anytype value, Types elementType)
     {
-        if( typeof(value) == Types::Class )
+        if( AnytypeUtil::isArrayWithType(value, elementType) )
         {
-            if( potentialAncestorId )
-            {
-                return ObjectUtil::as(value, potentialAncestorId);
-            }
-
             return value;
         }
 
         return null;
+    }
+
+    public static Object asClass(anytype value, ClassId potentialAncestorId = 0)
+    {
+        Object ret;
+
+        if( typeof(value) == Types::Class )
+        {
+            if( potentialAncestorId )
+            {
+                ret = ObjectUtil::as(value, potentialAncestorId);
+            }
+            else
+            {
+                ret = value;
+            }
+        }
+
+        return ret;
     }
 
     public static anytype asCollection(anytype value)
@@ -52,32 +66,38 @@ class AnytypeUtil
 
     public static container asContainer(anytype value)
     {
+        container ret;
+
         if( typeof(value) == Types::Container )
         {
-            return value;
+            ret = value;
         }
 
-        return connull();
+        return ret;
     }
 
     public static Date asDate(anytype value)
     {
+        Date ret;
+
         if( typeof(value) == Types::Date )
         {
-            return value;
+            ret = value;
         }
 
-        return DateNull();
+        return ret;
     }
 
     public static UtcDateTime asDateTime(anytype value)
     {
+        utcdatetime ret;
+
         if( typeof(value) == Types::UtcDateTime )
         {
-            return value;
+            ret = value;
         }
 
-        return utcDateTimeNull();
+        return ret;
     }
 
     public static anytype asEnum(anytype value, enumId enumId = 0)
@@ -101,13 +121,31 @@ class AnytypeUtil
 
     public static anytype asEnumerable(anytype value)
     {
-        return EnumeratorUtil::asEnumerable(value);
+        anytype ret = EnumeratorUtil::asEnumerable(value);
+
+        return ret;
     }
 
     public static anytype asEnumerator(anytype value)
     {
-        return EnumeratorUtil::asEnumerator(value);
+        anytype ret = EnumeratorUtil::asEnumerator(value);
+
+        return ret;
     }
+
+    public static anytype asEnumOrDefault(anytype value, anytype defaultEnumValue)
+    {
+        int enumId = AnytypeUtil::enumId(defaultEnumValue);
+
+        if( enumId && AnytypeUtil::is(value, Types::Enum, enumId) )
+        {
+            return value;
+        }
+
+        return defaultEnumValue;
+    }
+
+
 
     public static GUID asGUID(anytype value)
     {
@@ -121,42 +159,74 @@ class AnytypeUtil
 
     public static int asInt(anytype value)
     {
+        int ret;
+
         if( typeof(value) == Types::Integer )
         {
-            return value;
+            ret = value;
         }
 
-        return 0;
+        return ret;
     }
 
     public static int64 asInt64(anytype value)
     {
+        int64 ret;
+
         if( typeof(value) == Types::Int64 )
         {
-            return value;
+            ret = value;
         }
 
-        return 0;
+        return ret;
     }
 
     public static List asList(anytype value)
     {
+        List ret;
+
         if( AnytypeUtil::isList(value) )
         {
-            return value;
+            ret = value;
         }
 
-        return null;
+        return ret;
+    }
+
+    public static List asListWithType(anytype value, Types elementType)
+    {
+        List ret;
+
+        if( AnytypeUtil::isListWithType(value, elementType) )
+        {
+            ret = value;
+        }
+
+        return ret;
     }
 
     public static Map asMap(anytype value)
     {
+        Map ret;
+
         if( AnytypeUtil::isMap(value) )
         {
-            return value;
+            ret = value;
         }
 
-        return null;
+        return ret;
+    }
+
+    public static Map asMapWithType(anytype value, Types keyType, Types valueType)
+    {
+        Map ret;
+
+        if( AnytypeUtil::isMapWithType(value, keyType, valueType) )
+        {
+            ret = value;
+        }
+
+        return ret;
     }
 
     public static Object asObject(anytype value)
@@ -166,22 +236,26 @@ class AnytypeUtil
 
     public static Real asReal(anytype value)
     {
+        real ret;
+
         if( typeof(value) == Types::Real )
         {
-            return value;
+            ret = value;
         }
 
-        return 0.0;
+        return ret;
     }
 
-    public static int64 asRecId(anytype value)
+    public static RecId asRecId(anytype value)
     {
+        RecId ret;
+
         if( typeof(value) == Types::Int64 )
         {
-            return value;
+            ret = value;
         }
 
-        return 0;
+        return ret;
     }
 
     public static Common asRecord(anytype value, TableId tableId = 0)
@@ -191,14 +265,16 @@ class AnytypeUtil
         return ret;
     }
 
-    public static int asRecVersion(anytype value)
+    public static RecVersion asRecVersion(anytype value)
     {
+        RecVersion ret;
+
         if( typeof(value) == Types::Integer )
         {
-            return value;
+            ret = value;
         }
 
-        return 0;
+        return ret;
     }
 
     public static anytype assertEmpty(anytype value)
@@ -233,52 +309,74 @@ class AnytypeUtil
 
     public static Set asSet(anytype value)
     {
+        Set ret;
+
         if( AnytypeUtil::isSet(value) )
         {
-            return value;
+            ret = value;
         }
 
-        return null;
+        return ret;
+    }
+
+    public static Set asSetWithType(anytype value, Types elementType)
+    {
+        Set ret;
+
+        if( AnytypeUtil::isSetWithType(value, elementType) )
+        {
+            ret = value;
+        }
+
+        return ret;
     }
 
     public static Stack asStack(anytype value)
     {
+        Stack ret;
+
         if( AnytypeUtil::isStack(value) )
         {
-            return value;
+            ret = value;
         }
 
-        return null;
+        return ret;
     }
 
     public static str asString(anytype value)
     {
+        str ret;
+
         if( AnytypeUtil::isString(value) )
         {
-            return value;
+            ret = value;
         }
 
-        return '';
+        return ret;
     }
 
     public static Struct asStruct(anytype value)
     {
+        Struct ret;
+
         if( AnytypeUtil::isStruct(value) )
         {
-            return value;
+            ret = value;
         }
 
-        return null;
+        return ret;
     }
 
     public static timeOfDay asTime(anytype value)
     {
+        timeOfDay ret;
+
         if( typeof(value) == Types::Integer )
         {
-            return value;
+            ret = value;
         }
 
-        return 0;
+        return ret;
     }
 
     public static anytype asValue(anytype value, anytype asValue)
@@ -302,16 +400,33 @@ class AnytypeUtil
         return id;
     }
 
-    public static int enumId(anytype value)
+    public static int enumId(anytype enumIdOrNameOrValue)
     {
-        int id = 0;
+        Types type = typeof(enumIdOrNameOrValue);
+        int enumId = 0;
 
-        if( typeof(value) == Types::Enum )
+        switch( type )
         {
-            id = DictEnum::value2id(value);
+            case Types::Enum:
+                enumId = DictEnum::value2id(enumIdOrNameOrValue);
+                break;
+
+            case Types::Integer:
+                enumId = enumIdOrNameOrValue;
+                break;
+
+            case Types::Int64:
+                enumId = int642int(enumIdOrNameOrValue, true);
+                break;
+
+            case Types::String:
+            case Types::RString:
+            case Types::VarString:
+                enumId = enumName2Id(enumIdOrNameOrValue);
+                break;
         }
 
-        return id;
+        return enumId;
     }
 
     // возвращает объект, у которого можно вызвать метод moveNext
@@ -324,8 +439,8 @@ class AnytypeUtil
 
     public static int id(anytype value)
     {
-        int   id   = 0;
-        Types type = typeof(value);
+        int     id = 0;
+        Types   type = typeof(value);
 
         switch( type )
         {
@@ -363,21 +478,21 @@ class AnytypeUtil
                     switch( type )
                     {
                         case Types::Class:
-                            return ObjectUtil::is(value, potentialAncestorId);
+                            return ClassUtil::is(value, potentialAncestorId);
 
                         case Types::Record:
-                            return SysDictTable::is(RecordUtil::makeRecord(value), potentialAncestorId);
+                            return TableUtil::is(value, potentialAncestorId);
 
                         case Types::UserType:
                             return DictTypeUtil::is(value, potentialAncestorId);
 
                         case Types::Enum:
-                            return (potentialAncestorId == new DictType(value).enumId());
+                            return (potentialAncestorId == value && new DictEnum(value));
                     }
                     break;
 
                 case Types::Enum:
-                    return (type == t) && potentialAncestorId == DictEnum::value2id(value); // TODO равен ли? может ли быть enum от enum?
+                    return (type == t) && potentialAncestorId == DictEnum::value2id(value);
             }
         }
 
@@ -385,9 +500,9 @@ class AnytypeUtil
         {
             return true;
         }
-        else if( TypeUtil::isString(t) )
+        // не строгое совпадение строковых типов поскольку все строки можно присвоить друг другу
+        else if( TypeUtil::isString(type) && TypeUtil::isString(type) )
         {
-            // не строгое совпадение строковых типов поскольку все строки можно присвоить друг другу
             return true;
         }
 
@@ -396,7 +511,24 @@ class AnytypeUtil
 
     public static boolean isArray(anytype value)
     {
-        boolean ret = AnytypeUtil::isClass(value, classnum(Array));
+        boolean ret;
+
+        if( typeof(value) == Types::Class )
+        {
+            ret = ObjectUtil::isArray(value);
+        }
+
+        return ret;
+    }
+
+    public static boolean isArrayWithType(anytype value, Types elementType)
+    {
+        boolean ret;
+
+        if( typeof(value) == Types::Class )
+        {
+            ret = ObjectUtil::isArrayWithType(value, elementType);
+        }
 
         return ret;
     }
@@ -424,17 +556,21 @@ class AnytypeUtil
     // нормально работает с контейнерами, классами, CLR и прочими сложными объектами.
     public static boolean isEmpty(anytype value)
     {
+        boolean ret = true;
+
         if (value)
         {
-            return false;
+            ret = false;
         }
 
-        return true;
+        return ret;
     }
 
     public static boolean isEnum(anytype value, enumId enumId = 0)
     {
-        return AnytypeUtil::is(value, Types::Enum, enumId);
+        boolean ret = AnytypeUtil::is(value, Types::Enum, enumId);
+
+        return ret;
     }
 
     // возвращает true для значения, для которого можно получить enumerator
@@ -452,20 +588,20 @@ class AnytypeUtil
     // не создаем новых переменных в стеке
     public static boolean isEqual(anytype value1, anytype value2)
     {
-        //Are both null ?
+        //Are their types different ?
+        if (typeof(value1) != typeof(value2))
+        {
+            return false;
+        }
+
+        //Are both null ot empty?
         if (!value1 && !value2)
         {
             return true;
         }
 
-        //Is one of them null ?
+        //Is one of them null ot empty?
         if (!value1 || !value2)
-        {
-            return false;
-        }
-
-        //Are their types different ?
-        if (typeof(value1) != typeof(value2))
         {
             return false;
         }
@@ -523,9 +659,38 @@ class AnytypeUtil
         return ret;
     }
 
+    public static boolean isListWithType(anytype value, Types elementType)
+    {
+        boolean ret;
+
+        if( typeof(value) == Types::Class )
+        {
+            ret = ObjectUtil::isListWithType(value, elementType);
+        }
+
+        return ret;
+    }
+
     public static boolean isMap(anytype value)
     {
-        boolean ret = AnytypeUtil::isClass(value, classnum(Map));
+        boolean ret;
+
+        if( typeof(value) == Types::Class )
+        {
+            ret = ClassUtil::isMap(value);
+        }
+
+        return ret;
+    }
+
+    public static boolean isMapWithType(anytype value, Types keyType, Types valueType)
+    {
+        boolean ret;
+
+        if( typeof(value) == Types::Class )
+        {
+            ret = ObjectUtil::isMapWithType(value, keyType, valueType);
+        }
 
         return ret;
     }
@@ -533,26 +698,79 @@ class AnytypeUtil
     // нормально работает с контейнерами, классами, CLR и прочими сложными объектами.
     public static boolean isNotEmpty(anytype value)
     {
+        boolean ret;
+
         if (value)
         {
-            return true;
+            ret = true;
         }
 
-        return false;
+        return ret;
     }
 
-    public static boolean isNull(anytype value)
+    // не создаем новых переменных в стеке
+    public static boolean isNotEqual(anytype value1, anytype value2)
     {
+        boolean ret = !AnytypeUtil::isEqual(value1, value2);
+
+        return true;
+    }
+
+    public static boolean isNotNull(anytype value)
+    {
+        boolean ret = true;
         Types type = typeof(value);
 
         switch( type )
         {
             case Types::Class:
+                ret = value != null;
+                break;
+
             case typeof(null):
-                return true;
+                ret = false;
         }
 
-        return false;
+        return ret;
+    }
+
+    public static boolean isNull(anytype value)
+    {
+        boolean ret;
+        Types type = typeof(value);
+
+        switch( type )
+        {
+            case Types::Class:
+                ret = !value;
+                break;
+
+            case typeof(null):
+                ret = true;
+        }
+
+        return ret;
+    }
+
+    public static boolean isNullOrEmptyStr(anytype value)
+    {
+        boolean ret;
+        Types type = typeof(value);
+
+        switch( type )
+        {
+            case Types::String:
+            case Types::RString:
+            case Types::VarString:
+            case Types::Class:
+                ret = !value;
+                break;
+
+            case typeof(null):
+                ret = true;
+        }
+
+        return ret;
     }
 
     public static boolean isNumeric(anytype value)
@@ -566,33 +784,16 @@ class AnytypeUtil
     public static boolean isPrimitive(anytype value)
     {
         Types type = typeof(value);
+        boolean ret = TypeUtil::isPrimitive(type);
 
-        switch( type )
-        {
-            case Types::String:
-            case Types::Integer:
-            case Types::Real:
-            case Types::Date:
-            case Types::Enum:
-            case Types::UtcDateTime:
-            case Types::RString:
-            case Types::VarString:
-            case Types::UserType:
-            case Types::Guid:
-            case Types::Int64:
-            case Types::Time:
-                return true;
+        return ret;
+    }
 
-            case Types::Container:
-            case Types::Record:
-            case Types::AnyType:
-            case Types::BLOB:
-            case Types::Class:
-            case Types::void:
-                return false;
-        }
-
-        return false;
+    // возвращает true, если значение (кроме пустой строки) будет преобразовано в непустое queryValue
+    // возвращает false, если значение является пустой строкой или не будет обработано методом SysQuery::value()
+    public static boolean isQueryValue(anytype value)
+    {
+        return SysQuery::isQueryValue(value);
     }
 
     public static boolean isRecId(anytype value)
@@ -618,14 +819,36 @@ class AnytypeUtil
 
     public static boolean isSet(anytype value)
     {
-        boolean ret = AnytypeUtil::isClass(value, classnum(Set));
+        boolean ret;
+
+        if( typeof(value) == Types::Class )
+        {
+            ret = ClassUtil::isset(value);
+        }
+
+        return ret;
+    }
+
+    public static boolean isSetWithType(anytype value, Types elementType)
+    {
+        boolean ret;
+
+        if( typeof(value) == Types::Class )
+        {
+            ret = ObjectUtil::isSetWithType(value, elementType);
+        }
 
         return ret;
     }
 
     public static boolean isStack(anytype value)
     {
-        boolean ret = AnytypeUtil::isClass(value, classnum(Stack));
+        boolean ret;
+
+        if( typeof(value) == Types::Class )
+        {
+            ret = ClassUtil::isStack(value);
+        }
 
         return ret;
     }
@@ -640,7 +863,19 @@ class AnytypeUtil
 
     public static boolean isStruct(anytype value)
     {
-        boolean ret = AnytypeUtil::isClass(value, classnum(Struct));
+        boolean ret;
+
+        if( typeof(value) == Types::Class )
+        {
+            ret = ClassUtil::isStruct(value);
+        }
+
+        return ret;
+    }
+
+    public static boolean isUndefined(anytype value)
+    {
+        boolean ret = TypeUtil::isUndefined(typeof(value));
 
         return ret;
     }
@@ -741,6 +976,7 @@ class AnytypeUtil
 
             case Types::Record:
                 ret = RecordUtil::getValuesInfo(value);
+                break;
 
             case Types::Class:
                 if( value )

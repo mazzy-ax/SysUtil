@@ -614,7 +614,7 @@ class RecordList extends List
 
         for (i=1; i<=len; i++)
         {
-            buf = ConUtil::peekAsRecord(records, i, tableId);
+            buf = ConUtil::itemAs(records, i, Types::Record, tableId);
             if( tableId == 0 || RecordUtil::isNotCommon(buf) )
             {
                 recordList.addEnd(buf);

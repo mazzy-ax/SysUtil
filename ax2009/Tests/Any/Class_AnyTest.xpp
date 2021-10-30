@@ -188,9 +188,6 @@ class AnyTest extends SysTestCase
         this.assertEquals('1,,31.12.2019', any.toString());
 
         any = Any::construct(appl);
-        this.assertEquals('Class', any.toString());
-
-        any = Any::construct(SysUserInfo::find());
-        this.assertEquals('Record', any.toString());
+        this.assertEquals('Class xApplication', any.toString());
     }
 }

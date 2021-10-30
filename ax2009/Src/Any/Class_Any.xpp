@@ -47,70 +47,6 @@ class Any
 {
     Anytype value;
 
-    // перенести в SysTextBuffer
-    // рекурсивно заполняет textBuffer
-    protected textBuffer addToTextBuffer(  str          _sep                        = ',',
-                                           boolean      _queryValue                 = false,
-                                           boolean      _usingExtendedQuery_MRC     = false,
-                                           TextBuffer   _textBuffer                 = null)
-    {
-        Types   type    = typeof(value);
-        int     i;
-        int     len;
-        str     s;
-    ;
-
-        if (_textBuffer == null)
-        {
-            _textBuffer = new TextBuffer();
-        }
-
-        switch(type)
-        {
-            case Types::Container:
-                len = conlen(value);
-                for(i=1; i<=len; ++i)
-                {
-                    if(i>1)
-                    {
-                        _textBuffer.appendText(_sep);
-                    }
-                    _textBuffer = Any::conpeek(value, i).addToTextBuffer(_sep, _queryValue, _usingExtendedQuery_MRC, _textBuffer);
-                }
-                break;
-
-            case Types::Class:
-                if (SysDictClass::isEqualOrSuperclass(classidget(value), classnum(Set)))
-                {
-                    _textBuffer = Any::construct(ConUtil::newFromSet(value)).addToTextBuffer(_sep, _queryValue, _usingExtendedQuery_MRC, _textBuffer);
-                    break;
-                }
-                else if (SysDictClass::isEqualOrSuperclass(classidget(value), classnum(List)))
-                {
-                    _textBuffer = Any::construct(ConUtil::newFromList(value)).addToTextBuffer(_sep, _queryValue, _usingExtendedQuery_MRC, _textBuffer);
-                    break;
-                }
-                else if (SysDictClass::isEqualOrSuperclass(classidget(value), classnum(Array)))
-                {
-                    _textBuffer = Any::construct(ConUtil::newFromArray(value)).addToTextBuffer(_sep, _queryValue, _usingExtendedQuery_MRC, _textBuffer);
-                    break;
-                }
-                // no break! проваливаемся ниже
-            case Types::Record:
-            case Types::AnyType:
-            case Types::BLOB:
-            case Types::void:
-                throw error(Error::unsupportedEnum(funcname(), type));
-
-            default:
-                s = _queryValue ? SysQuery::value_MRC(value) : AnytypeUtil::toString(value);
-                _textBuffer.appendText(s);
-                break;
-        }
-
-        return _textBuffer;
-    }
-
     public anytype as(Types type, int potentialAncestorId = 0)
     {
         return AnytypeUtil::as(this.value(), type, potentialAncestorId);
@@ -421,13 +357,6 @@ class Any
         value = _value;
     }
 
-    // @deprecated! используйте метод toQueryValue()
-    //
-    final public str queryValue(boolean _usingExtendedQuery_MRC = false)
-    {
-        return this.toQueryValue(_usingExtendedQuery_MRC);
-    }
-
     // преобразовать value в соответствующий буфер, насколько это возможно
     public Common toBuf()
     {
@@ -437,31 +366,6 @@ class Any
     public anytype toNullValue()
     {
         return nullValueBaseType(this.type());
-    }
-
-    public str toQueryValue(boolean _usingExtendedQuery_MRC = false)
-    {
-        str ret;
-
-        switch (this.type())
-        {
-            case Types::Class:
-            case Types::Container:
-                ret = this.addToTextBuffer(',', true, _usingExtendedQuery_MRC).getText();
-                break;
-
-            case Types::Record:
-            case Types::AnyType:
-            case Types::BLOB:
-            case Types::void:
-                throw error(Error::unsupportedEnum(funcname(), this.type()));
-
-            default:
-                ret = SysQuery::value_MRC(value,_usingExtendedQuery_MRC);
-                break;
-        }
-
-        return ret;
     }
 
     public str toString(str sep = ',')
@@ -508,7 +412,7 @@ class Any
 
         for (i=1; i<=len; ++i)
         {
-            pair  = ConUtil::peekAsContainer(pairs, i);
+            pair  = ConUtil::itemAs(pairs, i, Types::Container);
             label = conpeek(pair, 2);
 
             if( !conpeek(pair, 1) )
@@ -541,7 +445,6 @@ class Any
         return ret;
     }
 
-    // TODO удалить
     public static boolean isEqual(Any type1, Any type2)
     {
         //Are both null ?
@@ -577,43 +480,39 @@ class Any
         return true;
     }
 
-    // mazzy CL006053 31.12.2019
-    public static Set list2set(List _list)
+    public static Any newIf(anytype value, boolean predicate)
     {
-        Set set;
-        ListEnumerator   le;
+        Any ret;
 
-        if (_list)
+        if( predicate )
         {
-            set = new Set(_list.typeId());
-
-            le = _list.getEnumerator();
-            while (le.moveNext())
-            {
-                set.add(le.current());
-            }
+            ret = Any::construct(value);
         }
 
-        return set;
+        return ret;
     }
 
-    // mazzy CL006053 31.12.2019
-    public static List set2list(Set _set)
+    public static Any newIfEqual(anytype value, anytype probe)
     {
-        List            list;
-        SetEnumerator   se;
+        Any ret;
 
-        if (_set)
+        if( AnytypeUtil::isEqual(value, probe) )
         {
-            list = new List(_set.typeId());
-
-            se = _set.getEnumerator();
-            while (se.moveNext())
-            {
-                list.addEnd(se.current());
-            }
+            ret = Any::construct(value);
         }
 
-        return list;
+        return ret;
+    }
+
+    public static Any newIfNotEqual(anytype value, anytype probe)
+    {
+        Any ret;
+
+        if( !AnytypeUtil::isEqual(value, probe) )
+        {
+            ret = Any::construct(value);
+        }
+
+        return ret;
     }
 }

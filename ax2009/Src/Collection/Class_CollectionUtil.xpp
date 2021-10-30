@@ -59,4 +59,31 @@ abstract class CollectionUtil
     {
         return EnumeratorUtil::isEnumerable(value);
     }
+
+    // первый элемент имеет индекс 1
+    public static anytype item(anytype collection, int idx)
+    {
+        Enumerator e = EnumeratorUtil::getEnumerator(collection);
+        int        i;
+        anytype    ret;
+
+        while( idx > 0 && e && e.moveNext() )
+        {
+            i++;
+            if( i == idx )
+            {
+                ret = e.current();
+                break;
+            }
+        }
+
+        return ret;
+    }
+
+    public static boolean notIn(anytype value, anytype valueOrCollection)
+    {
+        boolean in = CollectionUtil::in(value, valueOrCollection);
+
+        return !in;
+    }
 }

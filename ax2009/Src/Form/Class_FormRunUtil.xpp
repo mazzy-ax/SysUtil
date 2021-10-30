@@ -1,0 +1,22 @@
+//
+// Класс обслуживает значения с типом FormRun
+//
+// Util-класс реализует только статические методы.
+// не содержит внутри никаких значений.
+// не имеет смысла создавать экземпляр этого класса.
+//
+abstract class FormRunUtil
+{
+
+    public static Args args(FormRun formRun)
+    {
+        Args ret;
+
+        if( formRun )
+        {
+            ret = formRun.args();
+        }
+
+        return ret;
+    }
+}

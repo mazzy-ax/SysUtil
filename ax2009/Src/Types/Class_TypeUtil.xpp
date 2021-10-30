@@ -13,6 +13,18 @@ abstract class TypeUtil
         return [Types::Integer, Types::Int64, Types::Date, Types::Time];
     }
 
+    public static boolean is(Types type, Types expectedType)
+    {
+        boolean ret = (type == expectedType || expectedType == Types::AnyType);
+
+        if( !ret )
+        {
+            ret = TypeUtil::isString(type) && TypeUtil::isString(expectedType);
+        }
+
+        return ret;
+    }
+
     public static boolean isInteger(Types type)
     {
         boolean ret = confind(TypeUtil::integerTypes(), type);
@@ -23,6 +35,40 @@ abstract class TypeUtil
     public static boolean isNumeric(Types type)
     {
         boolean ret = confind(TypeUtil::numericTypes(), type);
+
+        return ret;
+    }
+
+    public static boolean isPrimitive(Types type)
+    {
+        boolean ret;
+
+        switch( type )
+        {
+            case Types::String:
+            case Types::Integer:
+            case Types::Real:
+            case Types::Date:
+            case Types::Enum:
+            case Types::UtcDateTime:
+            case Types::RString:
+            case Types::VarString:
+            case Types::UserType:
+            case Types::Guid:
+            case Types::Int64:
+            case Types::Time:
+                ret = true;
+
+            /*
+            case Types::Container:
+            case Types::Record:
+            case Types::AnyType:
+            case Types::BLOB:
+            case Types::Class:
+            case Types::void:
+                return false;
+            */
+        }
 
         return ret;
     }

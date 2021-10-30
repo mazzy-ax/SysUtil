@@ -1,5 +1,4 @@
 
-    //mazzy 24.03.2021
     public static LabelType classIdMismatch(str _funcName, ClassId actual, ClassId expected)
     {
         SysDictClass actualDc = new SysDictClass(actual);
@@ -13,39 +12,50 @@
         return ret;
     }
 
-    //Eshp CL005598 2019/09/05
-    public static LabelType unsupportedBuffer(Common _common, str _funcName = '')
+    private static FormBuildDataSource mainFormDatasource(Form form)
     {
-        LabelType ret;
+        FormBuildDataSource    formDataSource;
+        int                    i;
+        SysDictTable           dictTable;
         ;
 
-        if (_common.TableId)
+        for (i=1; i<= form.dataSourceCount(); i++)
         {
-            ret = strfmt("Таблица %1 не поддерживается%2.",
-                        SysDictTable::newTableId(_common.TableId).name(),
-                        (_funcName ? (" в методе " + _funcName) : ''));
+            formDataSource = form.dataSource(i);
+            dictTable = new SysDictTable(formDataSource.table());
+
+            //Find main table
+            if (!formDataSource.joinSource() &&
+                form.name() == SysRecordTemplate::getFormName(dictTable.id()))
+            {
+                return formDataSource;
+            }
         }
-        else
+        return form.dataSource(1);
+    }
+
+    static LabelType missingFormActiveBuffer(FormName name, str bufferType = '')
+    {
+        if (bufferType)
         {
-            ret = Error::missingRecord(_funcName);
+            return strfmt("@SYS19096", name, bufferType);
         }
 
-        return ret;
+        return strfmt("@SYS22678", name);
     }
 
     // в качестве описания можно использовать название переменной
     public static LabelType unsupportedEmptyString(str _funcName, anytype _description = '')
     {
-        LabelType ret = strfmt("Unsupported empty string in %1 %2", _funcName, _description);
+        LabelType ret = strfmt("unsupported empty string in %1 %2", _funcName, _description);
 
         return ret;
-        }
+    }
 
-    //mazzy 28.11.2019
     public static LabelType unsupportedEnum(str _funcName, anytype enumValue = '')
     {
         LabelType ret;
-    ;
+        ;
 
         if (typeof(enumValue) == Types::Enum)
         {
@@ -58,18 +68,16 @@
         return ret;
     }
 
-    //mazzy 07.12.2020
     public static LabelType unsupportedNull(str _funcName, anytype _varNameOrText = '')
     {
-        LabelType ret = strfmt("Unsupported Null in %1 %2", _funcName, _varNameOrText);
+        LabelType ret = strfmt("unsupported Null in %1 %2", _funcName, _varNameOrText);
 
         return ret;
     }
 
-    //mazzy 24.03.2021
     public static LabelType unsupportedType(str _funcName, anytype type = '')
     {
-        LabelType ret = strfmt("Unsupported Type %1 - %2", type, _funcName);
+        LabelType ret = strfmt("unsupported Type %1 - %2", type, _funcName);
 
         return ret;
     }

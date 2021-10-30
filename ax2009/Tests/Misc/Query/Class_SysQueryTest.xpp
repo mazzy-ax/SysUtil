@@ -9,27 +9,12 @@ class SysQueryTest extends SysTestCase
     //
     void testValue_Container()
     {
-        InventLocation  inventLocation;
-        container       con         = [InventLocationType::Quarantine, InventLocationType::Standard];
-        str             range       = SysQuery::value(con);
-        Query           q           = new Query();
-        QueryRun        qr;
-        boolean         found;
+        container   con         = [InventLocationType::Quarantine, InventLocationType::Standard];
+        str         range       = SysQuery::value(con);
+        str         expected    = strfmt('%1,%2', InventLocationType::Quarantine, InventLocationType::Standard);
         ;
 
-        q.addDataSource(inventLocation.TableId)
-            .addRange(fieldnum(InventLocation, InventLocationType))
-            .value(range);
-
-        qr = new QueryRun(q);
-        while(qr.next())
-        {
-            inventLocation = qr.get(inventLocation.TableId);
-            this.assertNotEqual(0, confind(con, inventLocation.InventLocationType));
-            found = true;
-        }
-
-        this.assertTrue(found);
+        this.assertEquals(expected, range);
     }
 
     //
@@ -37,28 +22,13 @@ class SysQueryTest extends SysTestCase
     //
     void testValue_List()
     {
-        InventLocation  inventLocation;
-        container       con         = [InventLocationType::Quarantine, InventLocationType::Standard];
-        List            list        = ListUtil::newFrom(con);
-        str             range       = SysQuery::value(list);
-        Query           q           = new Query();
-        QueryRun        qr;
-        boolean         found;
+        container   con         = [InventLocationType::Quarantine, InventLocationType::Standard];
+        List        list        = ListUtil::newFrom(con);
+        str         range       = SysQuery::value(list);
+        str         expected    = '1,0';
         ;
 
-        q.addDataSource(inventLocation.TableId)
-            .addRange(fieldnum(InventLocation, InventLocationType))
-            .value(range);
-
-        qr = new QueryRun(q);
-        while(qr.next())
-        {
-            inventLocation = qr.get(inventLocation.TableId);
-            this.assertNotEqual(0, confind(con, inventLocation.InventLocationType));
-            found = true;
-        }
-
-        this.assertTrue(found);
+        this.assertEquals(expected, range);
     }
 
     //
@@ -66,28 +36,13 @@ class SysQueryTest extends SysTestCase
     //
     void testValue_Set()
     {
-        InventLocation  inventLocation;
-        container       con         = [InventLocationType::Quarantine, InventLocationType::Standard];
-        Set             set         = SetUtil::newFrom(con);
-        str             range       = SysQuery::value(set);
-        Query           q           = new Query();
-        QueryRun        qr;
-        boolean         found;
+        container   con         = [InventLocationType::Quarantine, InventLocationType::Standard];
+        Set         set         = SetUtil::newFrom(con);
+        str         range       = SysQuery::value(set);
+        str         expected    = '0,1';
         ;
 
-        q.addDataSource(inventLocation.TableId)
-            .addRange(fieldnum(InventLocation, InventLocationType))
-            .value(range);
-
-        qr = new QueryRun(q);
-        while(qr.next())
-        {
-            inventLocation = qr.get(inventLocation.TableId);
-            this.assertNotEqual(0, confind(con, inventLocation.InventLocationType));
-            found = true;
-        }
-
-        this.assertTrue(found);
+        this.assertEquals(expected, range);
     }
 
     //
@@ -95,27 +50,12 @@ class SysQueryTest extends SysTestCase
     //
     void testValueNot_Container()
     {
-        InventLocation  inventLocation;
-        container       con         = [InventLocationType::Quarantine, InventLocationType::Standard];
-        str             range       = SysQuery::valueNot(con);
-        Query           q           = new Query();
-        QueryRun        qr;
-        boolean         found;
+        container   con         = [InventLocationType::Quarantine, InventLocationType::Standard];
+        str         range       = SysQuery::valueNot(con);
+        str         expected    = strfmt('!%1,!%2', InventLocationType::Quarantine, InventLocationType::Standard);
         ;
 
-        q.addDataSource(inventLocation.TableId)
-            .addRange(fieldnum(InventLocation, InventLocationType))
-            .value(range);
-
-        qr = new QueryRun(q);
-        while(qr.next())
-        {
-            inventLocation = qr.get(inventLocation.TableId);
-            this.assertEquals(0, confind(con, inventLocation.InventLocationType));
-            found = true;
-        }
-
-        this.assertTrue(found);
+        this.assertEquals(expected, range);
     }
 
     //
@@ -123,28 +63,13 @@ class SysQueryTest extends SysTestCase
     //
     void testValueNot_List()
     {
-        InventLocation  inventLocation;
-        container       con         = [InventLocationType::Quarantine, InventLocationType::Standard];
-        List            list        = ListUtil::newFrom(con);
-        str             range       = SysQuery::valueNot(list);
-        Query           q           = new Query();
-        QueryRun        qr;
-        boolean         found;
+        container   con         = [InventLocationType::Quarantine, InventLocationType::Standard];
+        List        list        = ListUtil::newFrom(con);
+        str         range       = SysQuery::valueNot(list);
+        str         expected    = '!1,!0';
         ;
 
-        q.addDataSource(inventLocation.TableId)
-            .addRange(fieldnum(InventLocation, InventLocationType))
-            .value(range);
-
-        qr = new QueryRun(q);
-        while(qr.next())
-        {
-            inventLocation = qr.get(inventLocation.TableId);
-            this.assertEquals(0, confind(con, inventLocation.InventLocationType));
-            found = true;
-        }
-
-        this.assertTrue(found);
+        this.assertEquals(expected, range);
     }
 
     //
@@ -152,27 +77,12 @@ class SysQueryTest extends SysTestCase
     //
     void testValueNot_Set()
     {
-        InventLocation  inventLocation;
-        container       con         = [InventLocationType::Quarantine, InventLocationType::Standard];
-        Set             set         = SetUtil::newFrom(con);
-        str             range       = SysQuery::valueNot(set);
-        Query           q           = new Query();
-        QueryRun        qr;
-        boolean         found;
+        container   con         = [InventLocationType::Quarantine, InventLocationType::Standard];
+        Set         set         = SetUtil::newFrom(con);
+        str         range       = SysQuery::valueNot(set);
+        str         expected    = '!0,!1';
         ;
 
-        q.addDataSource(inventLocation.TableId)
-            .addRange(fieldnum(InventLocation, InventLocationType))
-            .value(range);
-
-        qr = new QueryRun(q);
-        while(qr.next())
-        {
-            inventLocation = qr.get(inventLocation.TableId);
-            this.assertEquals(0, confind(con, inventLocation.InventLocationType));
-            found = true;
-        }
-
-        this.assertTrue(found);
+        this.assertEquals(expected, range);
     }
 }

@@ -1,0 +1,124 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+// выполняет итерации по всем элементам переданного в конструктор enum
+//
+public class EnumEnumerator implements Enumerator
+{
+    anytype     origValue;      // запомним любое значение, которое прислал внешний код
+    anytype     currentEnum;    // текущее значение enum, если в класс был прислан enum. или неинициализированное значение Anytype
+    DictEnum    dictEnum;       // если в класс передали не enum, то здесь будет null, а энумератор не сделает ни одной итерации
+    int         len;            // если в класс передали не enum, то длина будет = 0, а энумератор не сделает ни одной итерации
+    int         idx;
+
+    boolean     hideFirstEntry;
+
+    public anytype current()
+    {
+        return currentEnum;
+    }
+
+    public int currentIdx()
+    {
+        return idx;
+    }
+
+    public str definitionString()
+    {
+        return 'enum enumerator';
+    }
+
+    public DictEnum dictEnum()
+    {
+        return dictEnum;
+    }
+
+    // метод публичный, чтобы объект данного класса можно было создавать из classFactory и инициализировать из всевозможных unpack
+    // не вызывайте этот метод напрямую
+    public void init(anytype value, int _hideFirstEntry = false)
+    {
+        EnumId enumId = DictEnum::value2id(value);
+        ;
+
+        origValue = value; // запомним любое значение, которое прислал внешний код
+        hideFirstEntry = _hideFirstEntry;
+
+        if( enumId )
+        {
+            currentEnum = value; // фиксируем тип anytype переменной в enum
+            dictEnum = new DictEnum(enumId);
+            len = dictEnum.values();
+        }
+
+        this.reset();
+    }
+
+
+    public boolean moveNext()
+    {
+        boolean ret = false;
+
+        if( dictEnum && idx < len )
+        {
+            idx++;
+            ret = (idx < len);
+
+            if( ret )
+            {
+                currentEnum = dictEnum.index2Value(idx);
+            }
+        }
+
+        return ret;
+    }
+
+    public void new(anytype value, int _hideFirstEntry = false)
+    {
+        this.init(value, _hideFirstEntry);
+    }
+
+
+    public void reset()
+    {
+        idx = -1;   // индекс для не опеределенного значения enum
+
+        if( hideFirstEntry )
+        {
+            idx++;
+        }
+    }
+
+    public str toString()
+    {
+        str ret;
+
+        // поскольку этот метод может вызваться в отладчике еще до инициализации,
+        // то в этом методе нельзя использовать методы класса и нельзя бросать исключение
+        // и ни в коем случае не бросаем исключение на неинициализированные значения
+        if( dictEnum )
+        {
+            ret = strfmt('%1:%2', dictEnum.name(), currentEnum);
+        }
+        else
+        {
+            ret = '<unknown enum>';
+        }
+
+        return ret;
+    }
+
+    // принимает любой anytype, но итерации сделает только для enum.
+    // если передать enum, то выполнит итерации по всем элементам
+    // если передать не enum, то не сделает ни одной итерации
+    public static server EnumEnumerator construct(anytype value, int hideFirstEntry = false)
+    {
+        return new EnumEnumerator(value, hideFirstEntry);
+    }
+
+
+    public static ClassDescription description()
+    {
+        return "An enumerator to traverse a enum.";
+    }
+
+}

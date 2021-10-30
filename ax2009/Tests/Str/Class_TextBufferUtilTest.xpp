@@ -1,0 +1,402 @@
+//
+// mazzy, https://github.com/mazzy-ax/SysString
+//
+class TextBufferUtilTest extends SysTestCase
+{
+
+    void testCalcIndent()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'
+                    ABC
+                        123
+                    456
+        ');
+
+        this.assertEquals(16, TextBufferUtil::calcIndent(text));
+    }
+
+    void testCalcIndent_1()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'  ABC');
+
+        this.assertEquals(2, TextBufferUtil::calcIndent(text));
+    }
+
+    void testCalcIndent_1_Blank()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'  ');
+
+        this.assertEquals(2, TextBufferUtil::calcIndent(text));
+    }
+
+    void testCalcIndent_1_NoIndent()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'ABC  ');
+
+        this.assertEquals(0, TextBufferUtil::calcIndent(text));
+    }
+
+    void testCalcIndent_2_Blank()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'
+    ');
+
+        this.assertEquals(0, TextBufferUtil::calcIndent(text));
+    }
+
+    void testCalcIndent_3_Blank()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'
+
+    ');
+
+        this.assertEquals(0, TextBufferUtil::calcIndent(text));
+    }
+
+    void testCalcIndent_4_Blank()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'
+
+
+    ');
+
+        this.assertEquals(0, TextBufferUtil::calcIndent(text));
+    }
+
+    void testCalcIndent_BlankLine()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'
+
+                    ABC
+
+                        123
+                    456
+
+        ');
+
+        this.assertEquals(16, TextBufferUtil::calcIndent(text));
+    }
+
+    void testCalcIndent_Disorder()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'
+                     ABC
+                      123
+                   456
+            ');
+
+        this.assertEquals(15, TextBufferUtil::calcIndent(text));
+    }
+
+    void testCalcIndent_Empty()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr('');
+
+        this.assertEquals(0, TextBufferUtil::calcIndent(text));
+    }
+
+    void testCalcIndent_First()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'  ABC
+                    123
+                    456
+            ');
+
+        this.assertEquals(2, TextBufferUtil::calcIndent(text));
+    }
+
+    void testCalcIndent_First_NoIndent()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'0  ABC
+                    123
+                    456
+            ');
+
+        this.assertEquals(0, TextBufferUtil::calcIndent(text));
+    }
+
+    void testCalcIndent_Last()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'
+                    ABC
+                    123
+        456');
+
+        this.assertEquals(4, TextBufferUtil::calcIndent(text));
+    }
+
+    void testCalcIndent_NoIndent()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'
+    ABC
+    123
+    456
+            ');
+
+        this.assertEquals(0, TextBufferUtil::calcIndent(text));
+    }
+
+    void testCalcIndent_Null()
+    {
+        this.assertEquals(0, TextBufferUtil::calcIndent(null));
+    }
+
+    void testChangeIndent()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'
+        ABC
+            123
+        456
+        ');
+
+        this.assertEquals('\nABC\n    123\n456\n', TextBufferUtil::changeIndent(text, -4).getText());
+    }
+
+    void testChangeIndent_1()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'  ABC');
+
+        this.assertEquals('ABC', TextBufferUtil::changeIndent(text, -4).getText());
+    }
+
+    void testChangeIndent_1_Blank()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'  ');
+
+        this.assertEquals('', TextBufferUtil::changeIndent(text, -4).getText());
+    }
+
+    void testChangeIndent_1_NoIndent()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'ABC  ');
+
+        this.assertEquals('ABC  ', TextBufferUtil::changeIndent(text, -4).getText());
+    }
+
+    void testChangeIndent_AddIndent()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'
+        ABC
+            123
+        456
+        ');
+
+        this.assertEquals('    \n        ABC\n            123\n        456\n        ', TextBufferUtil::changeIndent(text, 4).getText());
+    }
+
+    void testChangeIndent_BlankLine()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'
+
+        ABC
+
+            123
+    456
+
+        ');
+
+        this.assertEquals('\n\nABC\n\n    123\n456\n\n', TextBufferUtil::changeIndent(text, -4).getText());
+    }
+
+    void testChangeIndent_BlankLine_AddIndent()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'
+
+        ABC
+
+            123
+    456
+
+        ');
+
+        this.assertEquals('    \n    \n        ABC\n    \n            123\n    456\n    \n        ', TextBufferUtil::changeIndent(text, 4).getText());
+    }
+
+    void testChangeIndent_Empty()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr('');
+
+        this.assertEquals('', TextBufferUtil::changeIndent(text, -4).getText());
+    }
+
+    void testChangeIndent_First()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'  ABC
+        123
+        456
+    ');
+
+        this.assertEquals('ABC\n123\n456\n', TextBufferUtil::changeIndent(text, -4).getText());
+    }
+
+    void testChangeIndent_Last()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'ABC
+        123
+        456  ');
+
+        this.assertEquals('ABC\n123\n456  ', TextBufferUtil::changeIndent(text, -4).getText());
+    }
+
+    void testChangeIndent_Null()
+    {
+        this.assertEquals('', TextBufferUtil::changeIndent(null, -4).getText());
+    }
+
+    void testChangeIndent_OverIndent()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'
+        ABC
+            123
+    456
+        ');
+
+        this.assertEquals('\nABC\n    123\n456\n', TextBufferUtil::changeIndent(text, -4).getText());
+    }
+
+    void testChangeIndent_UnderIndent()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'
+            ABC
+                123
+            456
+        ');
+
+        this.assertEquals('\n    ABC\n        123\n    456\n', TextBufferUtil::changeIndent(text, -4).getText());
+    }
+
+    void testChangeIndent_ZeroIndent()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'
+        ABC
+            123
+        456
+        ');
+
+        this.assertEquals('\n    ABC\n        123\n    456\n    ', TextBufferUtil::changeIndent(text, 0).getText());
+    }
+
+    void testChangeIndent_ZeroIndent_BlankLine()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr('  \n    ABC\n    ');
+
+        this.assertEquals('  \n    ABC\n    ', TextBufferUtil::changeIndent(text, 0).getText());
+    }
+
+    void testTrimIndent()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'
+        ABC
+            123
+        456
+        ');
+
+        this.assertEquals('ABC\n    123\n456', TextBufferUtil::trimIndent(text).getText());
+    }
+
+    void testTrimIndent_1()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'  ABC');
+
+        this.assertEquals('ABC', TextBufferUtil::trimIndent(text).getText());
+    }
+
+    void testTrimIndent_1_Blank()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'  ');
+
+        str res = TextBufferUtil::trimIndent(text).getText();
+
+        this.assertEquals(0, strlen(res));
+        this.assertEquals('', res);
+    }
+
+    void testTrimIndent_1_NoIndent()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'ABC  ');
+
+        this.assertEquals('ABC  ', TextBufferUtil::trimIndent(text).getText());
+    }
+
+    void testTrimIndent_2_Blank()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'
+        ');
+
+        str res = TextBufferUtil::trimIndent(text).getText();
+
+        this.assertEquals(0, strlen(res));
+        this.assertEquals('', res);
+    }
+
+    void testTrimIndent_3_Blank()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'
+
+        ');
+
+        str res = TextBufferUtil::trimIndent(text).getText();
+
+        this.assertEquals(0, strlen(res));
+        this.assertEquals('', res);
+    }
+
+    void testTrimIndent_4_Blank()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'
+
+
+        ');
+
+        str res = TextBufferUtil::trimIndent(text).getText();
+
+        this.assertEquals(1, strlen(res));
+        this.assertEquals(10, char2num(res, 1));
+        this.assertEquals('\n', res);
+    }
+
+    void testTrimIndent_BlankLine()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'
+
+        ABC
+
+            123
+    456
+
+        ');
+
+        this.assertEquals('\n    ABC\n\n        123\n456\n', TextBufferUtil::trimIndent(text).getText());
+    }
+
+    void testTrimIndent_Empty()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr('');
+
+        this.assertEquals('', TextBufferUtil::trimIndent(text).getText());
+    }
+
+    void testTrimIndent_First()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'  ABC
+        123
+        456
+    ');
+
+        this.assertEquals('ABC\n  123\n  456', TextBufferUtil::trimIndent(text).getText());
+    }
+
+    void testTrimIndent_Last()
+    {
+        TextBuffer text = TextBufferUtil::newFromStr(@'ABC
+        123
+        456  ');
+
+        this.assertEquals('ABC\n    123\n    456  ', TextBufferUtil::trimIndent(text).getText());
+    }
+
+    void testTrimIndent_Null()
+    {
+        this.assertEquals('', TextBufferUtil::trimIndent(null).getText());
+    }
+}

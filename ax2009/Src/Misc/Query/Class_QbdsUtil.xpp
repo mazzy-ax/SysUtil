@@ -1,0 +1,43 @@
+class QbdsUtil 
+{
+
+    public static QueryBuildDataSource childDataSourceTable(QueryBuildDataSource parentQbds, tableId tableId, int occurrence = 1)
+    {
+        QueryBuildDataSource ret;
+        QueryBuildDataSource qbds;
+        query q;
+        int i;
+        ;
+
+        for (i = 1; parentQbds && i <= parentQbds.childDataSourceCount(); i++)
+        {
+            qbds = parentQbds.childDataSourceNo(i);
+
+            if (qbds && qbds.table() == tableId)
+            {
+                occurrence--;
+
+                if( occurrence <= 0 )
+                {
+                    ret = qbds;
+                    break;
+                }
+            }
+        }
+
+        return ret;
+    }
+
+    public static QueryBuildDataSource findOrCreateDataSource(QueryBuildDataSource parentQbds, tableId tableId)
+    {
+        QueryBuildDataSource qbds = QbdsUtil::childDataSourceTable(parentQbds, tableId);
+        ;
+
+        if( !qbds )
+        {
+            qbds = parentQbds.addDataSource(tableId);
+        }
+
+        return qbds;
+    }
+}

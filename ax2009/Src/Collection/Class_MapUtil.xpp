@@ -10,14 +10,7 @@ abstract class MapUtil
 
     public static Map add(Map map, anytype key, anytype value)
     {
-        if( !map )
-        {
-            map = new Map(typeof(key), typeof(value));
-        }
-
-        map.insert(key, value); // ядро бросит исключение, если тип значения не совпадает с типом списка
-
-        return map;
+        return MapUtil::insert(map, key, value);
     }
 
     public static Map clone(Map map)
@@ -34,6 +27,40 @@ abstract class MapUtil
             {
                 map.insert(me.currentKey(), me.currentValue());
             }
+        }
+
+        return ret;
+    }
+
+    // возвращает Map или null, если не смог распаковать
+    // удобно использовать в методах unpack, в которых мы получаем anytype значение
+    // метод проверит что сможет
+    //
+    // внутреннее устройство Set: https://axforum.info/forums/showthread.php?t=27738
+    public static Map create(anytype fromPackedMap, Types expectedTypes = Types::AnyType)
+    {
+        Map ret;
+
+        anytype version;
+        anytype type;
+        anytype elements;
+
+        if( fromPackedMap &&
+            typeof(fromPackedMap) == Types::Container &&
+            conlen(fromPackedMap) > 3 )
+        {
+            [version, type, elements] = fromPackedMap;
+
+            if( typeof(version)  == Types::Integer && version == 1 &&
+                typeof(type)     == Types::Integer && TypeUtil::is(type, expectedTypes) &&
+                typeof(elements) == Types::Integer )
+            {
+                ret = Map::create(fromPackedMap);
+            }
+        }
+        else
+        {
+            ret = MapUtil::nonNull(ret, expectedTypes);
         }
 
         return ret;
@@ -99,6 +126,60 @@ abstract class MapUtil
         return map;
     }
 
+    public static Map insertMap(Map map, Map insertThisMap)
+    {
+        MapEnumerator me;
+
+        if( insertThisMap )
+        {
+            me = insertThisMap.getEnumerator();
+
+            while( me && me.moveNext() )
+            {
+                map = MapUtil::insert(map, me.currentKey(), me.currentValue());
+            }
+        }
+
+        return map;
+    }
+
+    public static boolean isType(Map map, Types keyType, Types valueType)
+    {
+        boolean ret;
+
+        if( map )
+        {
+            ret = TypeUtil::is(map.keyType(), keyType) &&
+                  TypeUtil::is(map.valueType(), valueType);
+        }
+
+        return ret;
+    }
+
+    public static Set keySet(Map map)
+    {
+        Set ret;
+
+        if( map )
+        {
+            ret = map.keySet();
+        }
+
+        return ret;
+    }
+
+    public static Types keyType(Map map)
+    {
+        Types ret = Types::AnyType;
+
+        if( map )
+        {
+            ret = map.keyType();
+        }
+
+        return ret;
+    }
+
     public static anytype lookup(Map map, anytype key)
     {
         anytype ret;
@@ -109,6 +190,18 @@ abstract class MapUtil
         }
 
         return ret;
+    }
+
+    public static anytype lookupAsValue(Map map, anytype key, anytype asValue)
+    {
+        anytype ret;
+
+        if( map && map.exists(key) )
+        {
+            ret = map.lookup(key);
+        }
+
+        return AnytypeUtil::asValue(ret, asValue);
     }
 
     // бросает исключение, если map isNull или key отсутствует в map
@@ -147,6 +240,18 @@ abstract class MapUtil
         return map;
     }
 
+    public static container pack(Map map)
+    {
+        container ret;
+
+        if( map )
+        {
+            ret = map.pack();
+        }
+
+        return ret;
+    }
+
     public static Map remove(Map map, anytype key)
     {
         if( map )
@@ -155,5 +260,29 @@ abstract class MapUtil
         }
 
         return map;
+    }
+
+    public static Set valueSet(Map map)
+    {
+        Set ret;
+
+        if( map )
+        {
+            ret = map.valueSet();
+        }
+
+        return ret;
+    }
+
+    public static Types valueType(Map map)
+    {
+        Types ret = Types::AnyType;
+
+        if( map )
+        {
+            ret = map.valueType();
+        }
+
+        return ret;
     }
 }

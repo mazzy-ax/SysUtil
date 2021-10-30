@@ -14,7 +14,7 @@ abstract class DictTypeUtil
 
         if( dt )
         {
-            ret = ExtendedTypeIdUtil::is(dt.id(), potentialAncestorId);
+            ret = ExtendedTypeUtil::is(dt.id(), potentialAncestorId);
         }
 
         return ret;
@@ -26,34 +26,38 @@ abstract class DictTypeUtil
 
         if( dt )
         {
-            ret = ExtendedTypeIdUtil::isInteger(dt.id());
+            ret = ExtendedTypeUtil::isInteger(dt.id());
         }
 
         return false;
     }
 
     // строка помещается в указанный тип?
-    public static boolean isLengthEnough(DictType dt, str s)
+    public static boolean isLengthEnough(DictType dt, int len)
     {
         boolean ret;
 
+        int sLen;
+        int dtStringLen;
+
         if( dt )
         {
-            ret = ExtendedTypeIdUtil::isLengthEnough(dt.id(), s);
+            dtStringLen = dt.stringLen();
+            ret = (dtStringLen <= Len);
         }
 
         return ret;
     }
 
     // строка помещается в указанный тип?
-    public static boolean isLengthEnoughOrWarning(DictType dt, str s)
+    public static boolean isLengthEnoughOrWarning(DictType dt, int len)
     {
-        boolean ret = DictTypeUtil::isLengthEnough(dt, s);
+        boolean ret = DictTypeUtil::isLengthEnough(dt, len);
 
         if( dt && !ret )
         {
             // сообщите smazurkin@mercury.ru, если у вас появилось это сообщение
-            Warning(strfmt('Строка с длиной %1 не помещается в тип %2. Обратитесь к разработчикам.', strlen(s), DictTypeUtil::name(dt)));
+            Warning(strfmt('Строка с длиной %1 не помещается в тип %2. Обратитесь к разработчикам.', len, DictTypeUtil::name(dt)));
         }
 
         return ret;

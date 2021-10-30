@@ -19,12 +19,166 @@ abstract class ObjectUtil
 
     static public Object as(Object obj, classId potentialClassAncestorOrInterfaceId)
     {
-        if (ObjectUtil::is(obj, potentialClassAncestorOrInterfaceId))
+        Object ret;
+
+        if (potentialClassAncestorOrInterfaceId && ObjectUtil::is(obj, potentialClassAncestorOrInterfaceId))
+        {
+            ret = obj;
+        }
+
+        return ret;
+    }
+
+    static public Array asArray(Object obj)
+    {
+        Array ret;
+
+        if( ObjectUtil::isArray(obj) )
+        {
+            ret = obj;
+        }
+
+        return ret;
+    }
+
+    static public Array asArrayWithType(Object obj, Types elementType)
+    {
+        Array ret;
+
+        if( ObjectUtil::isArrayWithType(obj, elementType) )
+        {
+            ret = obj;
+        }
+
+        return ret;
+    }
+
+    static public List asList(Object obj)
+    {
+        List ret;
+
+        if( ObjectUtil::isList(obj) )
+        {
+            ret = obj;
+        }
+
+        return ret;
+    }
+
+    static public List asListWithType(Object obj, Types elementType)
+    {
+        List ret;
+
+        if( ObjectUtil::isListWithType(obj, elementType) )
+        {
+            ret = obj;
+        }
+
+        return ret;
+    }
+
+    static public Map asMap(Object obj)
+    {
+        Map ret;
+
+        if( ObjectUtil::isMap(obj) )
+        {
+            ret = obj;
+        }
+
+        return ret;
+    }
+
+    static public Object asOneOf(Object obj, anytype potentialAncestorIds)
+    {
+        if (ObjectUtil::isOneOf(obj, potentialAncestorIds))
         {
             return obj;
         }
 
         return null;
+    }
+
+    static public Set asSet(Object obj)
+    {
+        Set ret;
+
+        if( ObjectUtil::isSet(obj) )
+        {
+            ret = obj;
+        }
+
+        return ret;
+    }
+
+    static public Set asSetWithType(Object obj, Types elementType)
+    {
+        Set ret;
+
+        if( ObjectUtil::isSetWithType(obj, elementType) )
+        {
+            ret = obj;
+        }
+
+        return ret;
+    }
+
+    static public Struct asStruct(Object obj)
+    {
+        Struct ret;
+
+        if( ObjectUtil::isStruct(obj) )
+        {
+            ret = obj;
+        }
+
+        return ret;
+    }
+
+    static public Map fasMapWithType(Object obj, Types keyType, Types valueType)
+    {
+        Map ret;
+
+        if( ObjectUtil::isMapWithType(obj, keyType, valueType) )
+        {
+            ret = obj;
+        }
+
+        return ret;
+    }
+
+    // возвращает @nonNull объект, у которого можно вызвать метод moveNext или Null
+    // если в качестве аргумента передана не коллекция, то возвращает энумератор по коллекции из одного элемента
+    // поэтому результат этого метода всегда можно энумерировать
+    //
+    // используйте CollectionUtil::getEnumerator()
+    // если хотите получить энумератор только для коллекции, но не по элементу
+    public static Enumerator getEnumerator(Object collection)
+    {
+        Enumerator ret;
+        ClassId    classId;
+
+        if( collection )
+        {
+            classId = classidget(collection);
+
+            if( ClassUtil::isEnumerator(classId) )
+            {
+                ret = collection;
+            }
+            else if( classId == classnum(Array) )
+            {
+                ret = new ArrayEnumerator(collection);
+            }
+            else if( ClassUtil::isEnumerable(classId) )
+            {
+                ret = collection.getEnumerator();
+                // проверки на пустое значение и isEnumerable выше гарантируют,
+                // что метод getEnumerator существует и определен правильно
+            }
+        }
+
+        return ret;
     }
 
     // отличается от SysDictClass:
@@ -33,8 +187,34 @@ abstract class ObjectUtil
     // 3. минимальное число создаваемых в памяти объектов
     public static boolean is(Object obj, ClassId potentialClassAncestorOrInterfaceId)
     {
+        ClassId classId;
+        boolean ret;
+
+        if( potentialClassAncestorOrInterfaceId )
+        {
+            classId = classidget(obj);
+            ret = ClassUtil::is(classId, potentialClassAncestorOrInterfaceId);
+        }
+
+        return ret;
+    }
+
+    public static boolean isArray(Object obj)
+    {
         ClassId classId = classidget(obj);
-        boolean ret = ClassIdUtil::is(classId, potentialClassAncestorOrInterfaceId);
+        boolean ret = ClassUtil::isArray(classId);
+
+        return ret;
+    }
+
+    public static boolean isArrayWithType(Object obj, Types elementType)
+    {
+        boolean ret;
+
+        if( obj && ObjectUtil::isArray(obj) )
+        {
+            ret = ArrayUtil::isType(obj, elementType);
+        }
 
         return ret;
     }
@@ -42,8 +222,25 @@ abstract class ObjectUtil
     // возвращает true для объекта, для которого можно получить enumerator
     public static boolean isEnumerable(Object obj)
     {
-        ClassId classId = classidget(obj);
-        boolean ret = ClassIdUtil::isEnumerable(classId);
+        boolean ret;
+
+        if( obj )
+        {
+            ret = ClassUtil::isEnumerable(classidget(obj));
+        }
+
+        return ret;
+    }
+
+    // возвращает true для объекта, класс которого реализует enumerator
+    public static boolean isEnumerator(Object obj)
+    {
+        boolean ret;
+
+        if( obj )
+        {
+            ret = ClassUtil::isEnumerator(classidget(obj));
+        }
 
         return ret;
     }
@@ -67,7 +264,7 @@ abstract class ObjectUtil
     public static boolean isExtend(Object obj, ClassId potentialClassAncestorId)
     {
         ClassId classId = classidget(obj);
-        boolean ret = ClassIdUtil::isExtend(classId, potentialClassAncestorId);
+        boolean ret = ClassUtil::isExtend(classId, potentialClassAncestorId);
 
         return false;
     }
@@ -79,7 +276,47 @@ abstract class ObjectUtil
     public static boolean isImplement(Object obj, ClassId interfaceId)
     {
         ClassId classId = classidget(obj);
-        boolean ret = ClassIdUtil::isImplement(classId, interfaceId);
+        boolean ret = ClassUtil::isImplement(classId, interfaceId);
+
+        return ret;
+    }
+
+    public static boolean isList(Object obj)
+    {
+        ClassId classId = classidget(obj);
+        boolean ret = ClassUtil::isList(classId);
+
+        return ret;
+    }
+
+    public static boolean isListWithType(Object obj, Types elementType)
+    {
+        boolean ret;
+
+        if( obj && ObjectUtil::isList(obj) )
+        {
+            ret = ListUtil::isType(obj, elementType);
+        }
+
+        return ret;
+    }
+
+    public static boolean isMap(Object obj)
+    {
+        ClassId classId = classidget(obj);
+        boolean ret = ClassUtil::isMap(classId);
+
+        return ret;
+    }
+
+    public static boolean isMapWithType(Object obj, Types keyType, Types valueType)
+    {
+        boolean ret;
+
+        if( obj && ObjectUtil::isList(obj) )
+        {
+            ret = MapUtil::isType(obj, keyType, valueType);
+        }
 
         return ret;
     }
@@ -87,7 +324,43 @@ abstract class ObjectUtil
     public static boolean isOneOf(Object obj, anytype potentialAncestorIds)
     {
         ClassId classId = classidget(obj);
-        boolean ret = ClassIdUtil::isOneOf(classId, potentialAncestorIds);
+        boolean ret = ClassUtil::isOneOf(classId, potentialAncestorIds);
+
+        return ret;
+    }
+
+    public static boolean isSet(Object obj)
+    {
+        ClassId classId = classidget(obj);
+        boolean ret = ClassUtil::isSet(classId);
+
+        return ret;
+    }
+
+    public static boolean isSetWithType(Object obj, Types elementType)
+    {
+        boolean ret;
+
+        if( obj && ObjectUtil::isSet(obj) )
+        {
+            ret = SetUtil::isType(obj, elementType);
+        }
+
+        return ret;
+    }
+
+    public static boolean isStack(Object obj)
+    {
+        ClassId classId = classidget(obj);
+        boolean ret = ClassUtil::isStack(classId);
+
+        return ret;
+    }
+
+    public static boolean isStruct(Object obj)
+    {
+        ClassId classId = classidget(obj);
+        boolean ret = ClassUtil::isStruct(classId);
 
         return ret;
     }
@@ -95,7 +368,7 @@ abstract class ObjectUtil
     public static ListEnumerator subClassListEnumerator(Object obj)
     {
         ClassId classId = classidget(obj);
-        ListEnumerator ret = ClassIdUtil::subClassListEnumerator(classId);
+        ListEnumerator ret = ClassUtil::subClassListEnumerator(classId);
 
         return ret;
     }

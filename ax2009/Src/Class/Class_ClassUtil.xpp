@@ -1,0 +1,386 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+// Класс обслуживает значения с типом ClassId
+//
+// Util-класс реализует только статические методы.
+// не содержит внутри никаких значений.
+// не имеет смысла создавать экземпляр этого класса.
+//
+// @see ObjectUtil
+// @see DictClassUtil
+//
+abstract class ClassUtil
+{
+
+    // TODO перенести в отдельый класс?
+    // для утиной типизации: есть метод getEnumerator,
+    // у которого нет параметров и который возвращает объект с типом Enumerator
+    private static boolean containsGetEnumeratorMethod(ClassId classId)
+    {
+        boolean ret;
+        SysDictMethod sdm;
+
+        if( classId )
+        {
+            sdm = new SysDictMethod(UtilElementType::ClassInstanceMethod, classId, methodstr(Enumerable, getEnumerator));
+
+            if( sdm &&
+                sdm.parameterCnt() == 0 &&
+                sdm.returnType() == Types::Class &&
+                ClassUtil::isImplement(sdm.returnId(), classnum(Enumerator)) )
+            {
+                ret = true;
+            }
+        }
+
+        return ret;
+    }
+
+    // используйте <c>new DictClass(classId)<c> чтобы создать объект DictClass без проверки на null
+    //
+    public static DictClass dictClass_NonNull(ClassId classId)
+    {
+        DictClass dc = new DictClass(classId);
+        ;
+
+        dc = DictClassUtil::nonNull(dc);
+
+        return dc;
+    }
+
+    public static container enumerableClasses()
+    {
+        return [
+            classnum(List),
+            classnum(Map),
+            classnum(Set),
+            // classnum(Array), // нет метода getEnumerator. класс должен обрабатываться отдельно.
+            classnum(Enumerable)
+        ];
+    }
+
+    public static List extendedBy(ClassId classId)
+    {
+        DictClass dc = new DictClass(classId);
+        List list;
+
+        if( dc )
+        {
+            list = dc.extendedBy();
+        }
+
+        return List;
+    }
+
+    // @warning медленный метод. перебирает все классы в AOT
+    public static List implementedBy(ClassId classId)
+    {
+        SysDictClass dc = new SysDictClass(classId);
+        List list;
+
+        if( dc )
+        {
+            list = dc.implementedBy();
+        }
+
+        return List;
+    }
+
+    // отличается от SysDictClass:
+    // 1. итерация, а не рекурсия.
+    // 2. один проход вместо двух отдельных для extends и implements
+    // 3. минимальное число создаваемых в памяти объектов
+    public static boolean is(ClassId classId, ClassId potentialClassAncestorOrInterfaceId)
+    {
+        DictClass dictClass;
+        int       n;
+        ;
+
+        while( classId && potentialClassAncestorOrInterfaceId )
+        {
+            if( classId == potentialClassAncestorOrInterfaceId )
+            {
+                return true;
+            }
+
+            dictClass = new DictClass(classId);
+
+            if( dictClass )
+            {
+                for( n = dictClass.implementsCnt(); n > 0; --n )
+                {
+                    if( dictClass.implements(n) == potentialClassAncestorOrInterfaceId )
+                    {
+                        return true;
+                    }
+                }
+
+                classId = dictClass.extend();
+            }
+            else
+            {
+                classId = 0;
+            }
+        }
+
+        return false;
+    }
+
+    public static boolean isArray(ClassId classId)
+    {
+        boolean ret = ClassUtil::is(classId, classnum(Array));
+
+        return ret;
+    }
+
+    // возвращает true для класса, для которого можно получить enumerator
+    public static boolean isEnumerable(ClassId classId)
+    {
+        boolean ret;
+
+        if( classId )
+        {
+            if( ClassUtil::isOneOf(classId, ClassUtil::enumerableClasses()) )
+            {
+                ret = true;
+            }
+            else if( ClassUtil::containsGetEnumeratorMethod(classId) )
+            {
+                ret = true;
+            }
+        }
+
+        return ret;
+    }
+
+    // возвращает true для объекта, класс которого реализует enumerator
+    public static boolean isEnumerator(ClassId classId)
+    {
+        boolean ret = ClassUtil::isImplement(classId, classnum(Enumerator));
+
+        return ret;
+    }
+
+    // отличается от SysDictClass:
+    // 1. итерация, а не рекурсия.
+    // 2. один проход вместо двух отдельных для extends и implements
+    // 3. минимальное число создаваемых в памяти объектов
+    //
+    // только extends, без implements
+    public static boolean isExtend(ClassId classId, ClassId potentialClassAncestorId)
+    {
+        DictClass dictClass;
+
+        while( classId && potentialClassAncestorId )
+        {
+            if( classId == potentialClassAncestorId )
+            {
+                return true;
+            }
+
+            dictClass = new DictClass(classId);
+
+            if( dictClass )
+            {
+                classId = dictClass.extend();
+            }
+            else
+            {
+                classId = 0;
+            }
+        }
+
+        return false;
+    }
+
+    // отличается от SysDictClass:
+    // 1. итерация, а не рекурсия.
+    // 2. один проход вместо двух отдельных для extends и implements
+    // 3. минимальное число создаваемых в памяти объектов
+    public static boolean isImplement(ClassId classId, ClassId interfaceId)
+    {
+        DictClass dictClass;
+        int       n;
+
+        while( classId && interfaceId )
+        {
+            dictClass = new DictClass(classId);
+
+            if( dictClass )
+            {
+                for( n = dictClass.implementsCnt(); n > 0; --n )
+                {
+                    if( dictClass.implements(n) == interfaceId )
+                    {
+                        return true;
+                    }
+                }
+
+                classId = dictClass.extend();
+            }
+            else
+            {
+                classId = 0;
+            }
+        }
+
+        return false;
+    }
+
+    public static boolean isList(ClassId classId)
+    {
+        boolean ret = ClassUtil::is(classId, classnum(List));
+
+        return ret;
+    }
+
+    public static boolean isMap(ClassId classId)
+    {
+        boolean ret = ClassUtil::is(classId, classnum(Map));
+
+        return ret;
+    }
+
+    public static boolean isNotSpecified(ClassId classId)
+    {
+        boolean ret = (classId == 0 || classId == ClassUtil::objectClassId());
+
+        return ret;
+    }
+
+    public static boolean isOneOf(ClassId classId, anytype potentialAncestorIds)
+    {
+        Set         set = SetUtil::newFrom(potentialAncestorIds);
+        DictClass   dictClass;
+        int         i;
+
+        while( classId && set )
+        {
+            if( set.in(classId) )
+            {
+                return true;
+            }
+
+            dictClass = new DictClass(classId);
+
+            if( dictClass )
+            {
+                for( i = dictClass.implementsCnt(); i > 0; --i )
+                {
+                    if( set.in(dictClass.implements(i)) )
+                    {
+                        return true;
+                    }
+                }
+
+                classId = dictClass.extend();
+            }
+            else
+            {
+                classId = 0;
+            }
+        }
+
+        return false;
+    }
+
+    public static boolean isSet(ClassId classId)
+    {
+        boolean ret = ClassUtil::is(classId, classnum(Set));
+
+        return ret;
+    }
+
+    public static boolean isSpecified(ClassId classId)
+    {
+        boolean ret = (classId != 0 && classId != ClassUtil::objectClassId());
+
+        return ret;
+    }
+
+    public static boolean isStack(ClassId classId)
+    {
+        boolean ret = AnytypeUtil::isClass(classId, classnum(StackBase));
+
+        return ret;
+    }
+
+    public static boolean isStruct(ClassId classId)
+    {
+        boolean ret = ClassUtil::is(classId, classnum(Struct));
+
+        return ret;
+    }
+
+    public static ClassId name2id(ClassName className)
+    {
+        Dictionary dict = new Dictionary();
+        ClassId classId;
+
+        if( dict )
+        {
+            classId = dict.className2Id(className);
+        }
+
+        return classId;
+    }
+
+    // возвращает код класса Object
+    public static ClassId objectClassId()
+    {
+        // Object obj;
+        //
+        // return claggidget(obj);
+
+        return classnum(Object);
+
+        //return 65535;
+    }
+
+    static TreeNodePath path(ClassId classId)
+    {
+        DictClass dc = new DictClass(classId);
+        TreeNodePath ret = DictClassUtil::path(dc);
+
+        return ret;
+    }
+
+    public static ListEnumerator subClassListEnumerator(ClassId classId)
+    {
+        DictClass       dc  = new DictClass(classId);
+        ListEnumerator  le  = DictClassUtil::subClassListEnumerator(dc);
+
+        return le;
+    }
+
+    public static SysDictClass sysDictClass_NonNull(ClassId classId)
+    {
+        SysDictClass dc = new SysDictClass(classId);
+
+        if( dc )
+        {
+            dc = new SysDictClass(classnum(Object));
+        }
+
+        return dc;
+    }
+
+    private static void TODO_duckTyping()
+    {
+    }
+
+    // возвращает null, если класс не найден
+    public static TreeNode treeNode(ClassId classId)
+    {
+        TreeNodePath path = ClassUtil::path(classId);
+        TreeNode treeNode;
+
+        if( path )
+        {
+            treeNode = TreeNode::findNode(path);
+        }
+
+        return treeNode;
+    }
+}

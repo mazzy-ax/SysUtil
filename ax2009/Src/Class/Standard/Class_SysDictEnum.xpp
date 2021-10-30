@@ -56,7 +56,7 @@
         return ret;
     }
 
-    public static SysDictEnum fromEnum(anytype enum)
+    public static SysDictEnum newFromEnum(anytype enum)
     {
         enumId          enumId          = DictEnum::value2id(enum);
         SysDictEnum     sysDictEnum     = new SysDictEnum(enumId);

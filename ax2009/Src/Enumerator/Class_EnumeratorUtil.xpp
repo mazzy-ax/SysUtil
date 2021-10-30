@@ -8,6 +8,26 @@
 abstract class EnumeratorUtil
 {
 
+    void current() // TODO !!!
+    {
+    }
+
+    void currentAs() // TODO !!!
+    {
+    }
+
+    void currentAsValue() // TODO !!!
+    {
+    }
+
+    public Enumerator head() // TODO
+    {
+    }
+
+    public Enumerator tail()
+    {
+    }
+
     public static anytype asEnumerable(anytype value)
     {
         if( EnumeratorUtil::isEnumerable(value) )
@@ -46,6 +66,29 @@ abstract class EnumeratorUtil
         return e;
     }
 
+    // возвращает @nonNull объект, у которого можно вызвать метод moveNext или Null
+    // если в качестве аргумента передана не коллекция, то возвращает энумератор по коллекции из одного элемента
+    // поэтому результат этого метода всегда можно энумерировать
+    //
+    // используйте CollectionUtil::getEnumerator()
+    // если хотите получить энумератор только для коллекции, но не по элементу
+    public static Enumerator getEnumeratorAndSkip(anytype collectionOrValue, int skipIterations)
+    {
+        Enumerator e = EnumeratorUtil::newFromCollection(collectionOrValue);
+
+        if( !e )
+        {
+            e = OneValueEnumerator::construct(collectionOrValue);
+        }
+
+        if( !EnumeratorUtil::skip(e, skipIterations) )
+        {
+            e = null;
+        }
+
+        return e;
+    }
+
     // возвращает true для значения, для которого можно получить enumerator
     public static boolean isEnumerable(anytype value)
     {
@@ -58,7 +101,7 @@ abstract class EnumeratorUtil
                 return true;
 
             case Types::Class:
-                return DictClassUtil::isEnumerable(value);
+                return ObjectUtil::isEnumerable(value);
         }
 
         return false;
@@ -70,7 +113,7 @@ abstract class EnumeratorUtil
     // возвращает true для значения, для которого можно получить enumerator
     public static boolean isEnumerator(anytype value)
     {
-        return AnytypeUtil::isImplement(value, classnum(Enumerator));
+        return ObjectUtil::isEnumerator(value);
     }
 
     // возвращает объект, у которого можно вызвать метод moveNext или Null
@@ -79,34 +122,35 @@ abstract class EnumeratorUtil
     // используйте EnumeratorUtil::getEnumerator() чтобы получить энумератор для любого объекта
     public static Enumerator newFromCollection(anytype collection)
     {
-        Object obj;
-
-        if( collection )
+        switch( typeof(collection) )
         {
-            if( EnumeratorUtil::isEnumerator(collection) )
-            {
-                return collection;
-            }
+            case Types::Container:
+                return ConEnumerator::construct(collection);
 
-            switch( typeof(collection) )
-            {
-                case Types::Container:
-                    return ConEnumerator::construct(collection);
+            case Types::Record:
+                return RecordEnumerator::construct(collection);
 
-                case Types::Record:
-                    return RecordEnumerator::construct(collection);
-
-                case Types::Class:
-                    if( ObjectUtil::isEnumerable(collection) )
-                    {
-                        obj = collection;
-                        return obj.getEnumerator();
-                        // проверки на пустое значение и isEnumerable выше гарантируют,
-                        // что метод getEnumerator существует и определен правильно
-                    }
-            }
+            case Types::Class:
+                return ObjectUtil::getEnumerator(collection);
         }
 
         return null;
+    }
+
+    // пропускает заданное количество итераций
+    // возвращает true, если после пропуска мы все еще находимся внутри коллекции
+    public static boolean skip(Enumerator e, int skipIterations = 1)
+    {
+        boolean ret = true;
+
+        while( ret && e && skipIterations > 0 )
+        {
+            ret = e.moveNext();
+            skipIterations--;
+        }
+
+        ret = (ret && e && skipIterations <= 0);
+
+        return ret;
     }
 }

@@ -10,6 +10,18 @@
 abstract class ArgsUtil
 {
 
+    public static Common asRecord(Args args, TableId tableId = 0)
+    {
+        Common ret;
+
+        if( ArgsUtil::checkRecord(args, tableId) )
+        {
+            ret = args.record();
+        }
+
+        return ret;
+    }
+
     public static void assertCallerFormName(Args args, FormName formName, str _funcname = '')
     {
         if( ArgsUtil::callerFormName(args) == formName)
@@ -40,9 +52,49 @@ abstract class ArgsUtil
         throw error(Error::missingRecord(_funcname ? _funcname : funcname()));
     }
 
+    public static void assertEnum_Parm(Args args, Anytype enum, str _funcname = '')
+    {
+        if ( ArgsUtil::checkEnum_Parm(args, enum) )
+        {
+            return;
+        }
+
+        throw error(Error::missingRecord(_funcname ? _funcname : funcname()));
+    }
+
+    public static void assertEnum_RefField(Args args, Anytype enum, str _funcname = '')
+    {
+        if ( ArgsUtil::checkEnum_RefField(args, enum) )
+        {
+            return;
+        }
+
+        throw error(Error::missingRecord(_funcname ? _funcname : funcname()));
+    }
+
     public static void assertEnumType(Args args, EnumId enumId, str _funcname = '')
     {
         if( ArgsUtil::checkEnumType(args, enumId) )
+        {
+            return;
+        }
+
+        throw error(Error::wrongUseOfFunction(_funcname ? _funcname : funcname()));
+    }
+
+    public static void assertEnumType_Parm(Args args, EnumId enumId, str _funcname = '')
+    {
+        if( ArgsUtil::checkEnumType_Parm(args, enumId) )
+        {
+            return;
+        }
+
+        throw error(Error::wrongUseOfFunction(_funcname ? _funcname : funcname()));
+    }
+
+    public static void assertEnumType_RefField(Args args, EnumId enumId, str _funcname = '')
+    {
+        if( ArgsUtil::checkEnumType_RefField(args, enumId) )
         {
             return;
         }
@@ -125,6 +177,13 @@ abstract class ArgsUtil
         return formName;
     }
 
+    public static boolean checkCallerFormName(Args args, str formName)
+    {
+        boolean ret = (ArgsUtil::callerFormName(args) == formName);
+
+        return ret;
+    }
+
     public static boolean checkCallerType(Args args, classId potentialAncestorClassId)
     {
         boolean checkOk = args && SysDictClass::is(args.caller(), potentialAncestorClassId);
@@ -134,18 +193,58 @@ abstract class ArgsUtil
 
     public static boolean checkEnum(Args args, Anytype enum)
     {
-        boolean checkOk;
+        boolean ret = ArgsUtil::checkEnum_Parm(args, enum) ||
+                      ArgsUtil::checkEnum_RefField(args, enum);
+
+        return ret;
+    }
+
+
+    public static boolean checkEnum_Parm(Args args, Anytype enum)
+    {
+        boolean ret;
 
         if( args && typeof(enum) == types::Enum )
         {
-            checkOk = (enum == args.parmEnum());
+            ret = (enum == args.parmEnum());
         }
 
-        return checkOk;
+        return ret;
+    }
+
+
+    // TODO!!!!
+    public static boolean checkEnum_RefField(Args args, Anytype enum)
+    {
+        boolean ret;
+
+        if( args && typeof(enum) == types::Enum )
+        {
+            throw error(Error::missingOverride(funcname()));
+
+            ret = (enum == args.parmEnum());
+        }
+
+        return ret;
     }
 
 
     public static boolean checkEnumType(Args args, EnumId enumId)
+    {
+        boolean ret = ArgsUtil::checkEnumType_Parm(args, enumId) ||
+                      ArgsUtil::checkEnumType_RefField(args, enumId);
+
+        return ret;
+    }
+
+    public static boolean checkEnumType_Parm(Args args, EnumId enumId)
+    {
+        boolean checkOk = (args && args.parmEnumType() == enumId);
+
+        return checkOk;
+    }
+
+    public static boolean checkEnumType_RefField(Args args, EnumId enumId)
     {
         boolean checkOk = (args && args.parmEnumType() == enumId);
 
@@ -176,7 +275,7 @@ abstract class ArgsUtil
 
             if( dataset )
             {
-                ret = (dataset == tableId || TableIdUtil::isNotSpecified(tableId));
+                ret = (tableId == 0 || TableUtil::is(dataset, tableId));
             }
         }
 
@@ -186,7 +285,7 @@ abstract class ArgsUtil
     // запись существует (recId != 0) и запись из указанной таблицы (или любой таблицы для tableId = 0)
     public static boolean checkRecordExists(Args args, TableId tableId = 0)
     {
-        boolean checkOk = (ArgsUtil::checkRecord(args, tableId) && args.record() && args.record().RecId != 0);
+        boolean checkOk = (ArgsUtil::checkRecord(args, tableId) && args.record().RecId != 0);
 
         return checkOk;
     }
@@ -198,27 +297,25 @@ abstract class ArgsUtil
     // возвращает false в остальных случаях
 
     // коллекция - это одно значение, container, Set, List, Array
-    public static boolean checkRecordTableIds(Args args, anytype tableIdCollection)
+    public static boolean checkRecordTableIds(Args args, anytype tableIdOrCollection)
     {
-        TableId dataset = ArgsUtil::dataset(args);
-        Enumerator e;
+        boolean     ret = true; // для пустой коллекции
+        Enumerator  e   = EnumeratorUtil::getEnumerator(tableIdOrCollection);
+        TableId     tableId;
 
-        if( dataset == 0 && CollectionUtil::empty(tableIdCollection) )
+        while( e && e.moveNext() )
         {
-            return true;
-        }
+            tableId = e.current(); // TODO здесь возможно исключение, если коллекция содержит не целые
 
-        e = AnytypeUtil::getEnumerator(tableIdCollection);
-
-        while( dataset && e && e.moveNext() )
-        {
-            if( confind([dataset, 0], e.current()) )
+            if( ArgsUtil::checkRecord(args, tableId) )
             {
                 return true;
             }
+
+            ret = false;
         }
 
-        return false;
+        return ret;
     }
 
     public static Args copyArgs(Args fromArgs, Args toArgs = null)
@@ -252,13 +349,37 @@ abstract class ArgsUtil
     // убедиться что в аргументах enum указанного типа и
     // вернуть значение этого enum из аргументов
     // бросает исключение, если enum не указанного типа
-    public static int enum(Args args, EnumId enumId, str _funcname = '')
-    {;
+    public static int enum(Args args, anytype enumIdNameOrValue, str _funcname = '')
+    {
+        EnumId enumId = AnytypeUtil::enumId(enumIdNameOrValue);
+        ;
+
         ArgsUtil::assertEnumType(args, enumId, _funcname);
 
         return args.parmEnum();
     }
 
+    // убедиться что в аргументах CopyOfenum указанного типа и
+    // вернуть значение этого enum из аргументов
+    // бросает исключение, если enum не указанного типа
+    public static int enum_Parm(Args args, EnumId enumId, str _funcname = '')
+    {;
+        ArgsUtil::assertEnumType_Parm(args, enumId, _funcname);
+
+        return args.parmEnum();
+    }
+
+    // убедиться что в аргументах enum указанного типа и
+    // вернуть значение этого enum из аргументов
+    // бросает исключение, если enum не указанного типа
+    public static int enum_RefField(Args args, EnumId enumId, str _funcname = '')
+    {;
+        ArgsUtil::assertEnumType_RefField(args, enumId, _funcname);
+
+        return args.parmEnum(); // TODO !!!!!
+    }
+
+    // TODO !!!
     // тоже самое, что и ArgsUtil::getEnum()
     // но если в аргументах не нужный enum не выдает ошибку, а возвращает дефолтное значение.
     public static int enumOrDefault(Args args, anytype defaultEnumValue)
@@ -276,33 +397,68 @@ abstract class ArgsUtil
         throw error::wrongUseOfFunction(funcname());
     }
 
-    public static container markedList(Args args, TableId tableId = 0, str _funcname = '')
+    // тоже самое, что и ArgsUtil::getEnumFromParm()
+    // но если в аргументах не нужный enum не выдает ошибку, а возвращает дефолтное значение.
+    public static int enumOrDefault_Parm(Args args, anytype defaultEnumValue)
     {
-        List            ret = new List(Types::Int64);
-        FormDataSource  fds;
-        common          record;
+        if( typeof(defaultEnumValue) == Types::Enum )
+        {
+            if( ArgsUtil::checkEnumType_Parm(args, AnytypeUtil::enumId(defaultEnumValue)) )
+            {
+                return args.parmEnum();
+            }
+
+            return defaultEnumValue;
+        }
+
+        throw error::wrongUseOfFunction(funcname());
+    }
+
+    // тоже самое, что и ArgsUtil::getEnumFromParm()
+    // но если в аргументах не нужный enum не выдает ошибку, а возвращает дефолтное значение.
+    public static int enumOrDefault_RefField(Args args, anytype defaultEnumValue)
+    {
+        if( typeof(defaultEnumValue) == Types::Enum )
+        {
+            if( ArgsUtil::checkEnumType_RefField(args, AnytypeUtil::enumId(defaultEnumValue)) )
+            {
+                return args.parmEnum(); // TODO !!!!
+            }
+
+            return defaultEnumValue;
+        }
+
+        throw error::wrongUseOfFunction(funcname());
+    }
+
+    // возвращает отмеченные в датасорсе записи
+    // список может быть пустым, если record не является датасорсом формы
+    public static RecordList marked(Args args, TableId tableId = 0)
+    {
+        RecordList ret;
 
         if( ArgsUtil::checkRecord(args, tableId) )
         {
-            fds = args.record().dataSource();
-            if( fds && fds.anyMarked() )
-            {
-                // marked records
-                for( record = fds.getFirst(true) ; record ; record = fds.getNext() )
-                {
-                    ret.addEnd(record.RecId);
-                }
-            }
-
-            if( ret.elements() == 0 )
-            {
-                // or a record itself
-                record = ArgsUtil::record(args, tableId, _funcname);
-                ret.addEnd(record.RecId);
-            }
+            ret = RecordList::fromMarked(args.record().dataSource());
         }
 
-        return ret.pack();
+        return ret;
+    }
+
+    // возвращает отмеченные на форме записи или текущую
+    public static RecordList markedOrCurrent(Args args, TableId tableId = 0)
+    {
+        RecordList ret = ArgsUtil::marked(args, tableId);
+        Common buf;
+        ;
+
+        if( !ret || ret.elements() == 0 )
+        {
+            buf = ArgsUtil::record(args, tableId);
+            ret = RecordList::fromBuf1(buf);
+        }
+
+        return ret;
     }
 
     public static container markedRecIds(Args args, TableId tableId = 0, str _funcname = '')
@@ -338,30 +494,31 @@ abstract class ArgsUtil
     // если args не содержит записей или содержит записи "не того" типа, то null
     // если на форме нет промарктированных записей, то вернет set из одной записи (из args.record)
     // если опустить параметр _field, то возвратит значения recId
-    public static Set markedSet(Args args, DictField _field = null)
+    public static Set markedSet(Args args, TableId tableId = 0, FieldId fieldId = 0)
     {
         Set             ret;
-        DictField       field  = DictFieldUtil::nonNull(_field);
-        Common          record = ArgsUtil::recordAs(args, field.tableid());
+        Common          record = ArgsUtil::asRecord(args, tableId);
         FormDataSource  fds;
         Common          marked;
 
         if( RecordUtil::isNotCommon(record) )
         {
+            fieldId  = nz(fieldId, fieldnum(Common, RecId));
+
             fds = record.dataSource();
             if( fds && fds.anyMarked() )
             {
                 // marked records
                 for( marked = fds.getFirst(true) ; marked ; marked = fds.getNext() )
                 {
-                    ret = SetUtil::addFieldValue(ret, marked, field.id());
+                    ret = SetUtil::addFieldValue(ret, marked, fieldId);
                 }
             }
 
             if( !ret )
             {
                 // or a record itself
-                ret = SetUtil::addFieldValue(ret, record, field.id());
+                ret = SetUtil::addFieldValue(ret, record, fieldId);
             }
         }
 
@@ -372,23 +529,43 @@ abstract class ArgsUtil
     // если args не содержит записей или содержит записи "не того" типа, то вернет пустой map
     // если опустить параметр _field, то возвратит значения одного поля - recId
     // если на форме нет промарктированных записей, то вернет набор из одной записи (из args.record)
-    public static Map markedSets(Args args, TableId tableId, anytype fieldIdContainer)
+    public static Map markedSets(Args args, TableId tableId, anytype fieldIdCollection)
     {
         Map         ret = new Map(Types::Integer, Types::Class); // {FieldId, Set(FieldValue)}
         Enumerator  e;
-        DictField   field;
+        FieldId     fieldId;
         Set         set;
 
         if( ArgsUtil::checkRecord(args, tableid) )
         {
             // можно переделать, чтобы вместо вложенных циклов был один цикл
-            e = AnytypeUtil::getEnumerator(fieldIdContainer);
+            e = AnytypeUtil::getEnumerator(fieldIdCollection);
             while( tableId && e && e.moveNext() )
             {
-                field = FieldIdUtil::dictField_NonNull(tableId, e.current());
-                set = ArgsUtil::markedSet(args, field);
-                ret.insert(field.id(), set);
+                fieldId = AnytypeUtil::asInt(e.current());
+                if( fieldId )
+                {
+                    set = ArgsUtil::markedSet(args, tableId, fieldId);
+                    ret.insert(fieldId, set);
+                }
             }
+        }
+
+        return ret;
+    }
+
+    // заполняет данные в указанной записи, если в аргументах есть запись с подходящей таблицей (map)
+    // возвращает true, если запись была заполнена
+    //
+    // Внимание! метод заполнит только поля. метод потеряет информацию о datasource, while select, selectForUpdate и прочее
+    public static boolean populateRecord(Args args, Common record)
+    {
+        boolean ret;
+
+        if( ArgsUtil::checkRecord(args, record.TableId) )
+        {
+            record.data(args.record());
+            ret = true;
         }
 
         return ret;
@@ -401,13 +578,18 @@ abstract class ArgsUtil
         return args.record();
     }
 
-    public static Common recordAs(Args args, TableId tableId = 0)
+    public static boolean setEnum(Args args, anytype enum)
     {
-        Common ret;
+        boolean ret;
+        EnumId enumId;
 
-        if( ArgsUtil::checkRecord(args, tableId) )
+        if( args && typeof(enum) == Types::Enum )
         {
-            ret = args.record();
+            enumId = DictEnum::value2id(enum);
+            args.parmEnumType(enumId);
+            args.parmEnum(enum);
+
+            ret = true;
         }
 
         return ret;

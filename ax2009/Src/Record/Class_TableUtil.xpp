@@ -1,0 +1,164 @@
+//
+// https://github.com/mazzy-ax/SysUtil
+//
+// Класс обслуживает значения с типом TableId
+
+// Util-класс реализует только статические методы.
+// не содержит внутри никаких значений.
+// не имеет смысла создавать экземпляр этого класса.
+//
+// @see DictTableUtil
+//
+abstract class TableUtil
+{
+
+    public static TableId commonTableId()
+    {
+        // Common rec;
+        //
+        // return rec.TableId;
+
+        return tablenum(Common);
+
+        // return 65535;
+    }
+
+    // используйте new DictTable чтобы создать объект без проверки на null
+    public static DictTable dictTable_NonNull(TableId tableId)
+    {
+        DictTable dt = new DictTable(tableId);
+        ;
+        dt = DictTableUtil::nonNull(dt);
+
+        return dt;
+    }
+
+    public static boolean is(TableId tableId, TableId tableOrMapId)
+    {
+        if( tableId == tableOrMapId )
+            return true;
+
+        if( tableOrMapId && TableUtil::isMapped(tableId, tableOrMapId) )
+            return true;
+
+        return false;
+    }
+
+    public static boolean isCommon(TableId tableId)
+    {
+        boolean ret = (tableId == tablenum(Common));
+
+        return ret;
+    }
+
+    static boolean isMapped(TableId tableId, TableId potentialMapId)
+    {
+        #AOT
+
+        TableName   mapName;
+        TreeNode    treeNode;
+        TableName   tableName;
+        boolean     ret;
+
+        if( tableId )
+        {
+            if( TableUtil::isCommon(potentialMapId) )
+            {
+                ret = true;
+            }
+            else
+            {
+                tableName = tableid2name(tableId);
+                mapName = tableid2name(potentialMapId);
+
+                if( tableName && mapName )
+                {
+                    treeNode = TreeNode::findNode(#TableMapsPath+'\\'+mapName+'\\mappings');
+                    ret = treeNode ? (treeNode.AOTfindChild(tableName) != null) : false;
+                }
+            }
+        }
+
+        return ret;
+    }
+
+    public static boolean isNotCommon(TableId tableId)
+    {
+        boolean ret = (tableId != tablenum(Common));
+
+        return ret;
+    }
+
+    public static boolean isNotSpecified(TableId tableId)
+    {
+        boolean ret = (tableId == 0 || tableId == tablenum(Common));
+
+        return ret;
+    }
+
+    public static boolean isSpecified(TableId tableId)
+    {
+        boolean ret = (tableId && tableId != tablenum(Common));
+
+        return ret;
+    }
+
+    public static Common makeRecord(TableId tableId = 0)
+    {
+        Common record;
+        DictTable dt;
+
+        if( tableId )
+        {
+            dt = new DictTable(tableId);
+            if( dt )
+            {
+                record = dt.makeRecord();
+            }
+        }
+
+        return record;
+    }
+
+    public static Common makeRecordTmp(TableId tableId = 0)
+    {
+        Common record = TableUtil::makeRecord(tableId);
+        ;
+
+        record.setTmp();
+
+        return record;
+    }
+
+    // используйте new SysDictTable чтобы создать объект без проверки на Null
+    public static SysDictTable sysDictTable_NonNull(TableId tableId)
+    {
+        SysDictTable dt = new SysDictTable(tableId);
+        ;
+
+        if( !dt )
+        {
+            dt = new SysDictTable(tablenum(Common));
+        }
+
+        return dt;
+    }
+
+    // Возвращает подходящий не nullable объект.
+    // Полезно в выражениях, чтобы быть уверенным, что после выполнения этого метода объект точно не null
+    //
+    // not в названиях методов прочно ассоциируется с оператором логического отрицания (!)
+    // Поэтому название этого метода NonNull, а не NotNull
+    //
+    // @see https://stackoverflow.com/questions/4963300/which-notnull-java-annotation-should-i-use
+    //
+    public static SysDictTable sysNonNull(SysDictTable dt)
+    {
+        if( !dt )
+        {
+            new SysDictTable(tablenum(Common));
+        }
+
+        return dt;
+    }
+}

@@ -1,0 +1,483 @@
+class ArrayUtilTest extends SysTestCase
+{
+
+    void testElements()
+    {
+        Array arr;
+
+        this.info('null');
+
+        arr = null;
+        this.assertEquals(0, ArrayUtil::elements(arr));
+
+        this.info('int');
+
+        arr = new Array(Types::Integer);
+        arr.value(1, 1);
+        arr.value(2, 2);
+        arr.value(3, 3);
+
+        this.assertEquals(3, ArrayUtil::elements(arr));
+
+        this.info('str');
+
+        arr = new Array(Types::String);
+        arr.value(1, 'a');
+        arr.value(2, 'b');
+        arr.value(3, 'c');
+        arr.value(4, 'd');
+
+        this.assertEquals(4, ArrayUtil::elements(arr));
+
+        this.info('class');
+
+        arr = new Array(Types::Class);
+        arr.value(1, Any::construct(1));
+        arr.value(2, Any::construct(2));
+        arr.value(3, Any::construct(3));
+
+        this.assertEquals(3, ArrayUtil::elements(arr));
+    }
+
+    void testFind()
+    {
+        Array arr = ArrayUtil::newFromContainer(['a','b','c','d','e','f','b','i','j']);
+
+        this.assertEquals(2, ArrayUtil::find(arr, 'b'));
+        this.assertEquals(2, ArrayUtil::find(arr, 'b', 1));
+        this.assertEquals(7, ArrayUtil::find(arr, 'b', 2));
+
+        this.info('not found');
+
+        this.assertEquals(0, ArrayUtil::find(arr, 'z'));
+        this.assertEquals(0, ArrayUtil::find(arr, 1));
+        this.assertEquals(0, ArrayUtil::find(arr, null));
+
+        this.info('null');
+
+        this.assertEquals(0, ArrayUtil::find(null, 'a'));
+    }
+
+    void testItem()
+    {
+        Array arr = ArrayUtil::newFromContainer(['a','b','c','d','e','f','g','i','j']);
+        anytype undefined;
+
+        this.info('correct idx');
+
+        this.assertEquals('b', ArrayUtil::item(arr, 2));
+        this.assertEquals('c', ArrayUtil::item(arr, 3));
+        this.assertEquals('j', ArrayUtil::item(arr, 9));
+
+        this.info('out of bounds');
+
+        this.assertEquals(undefined, ArrayUtil::item(arr, 0));
+        this.assertEquals(undefined, ArrayUtil::item(arr, 10));
+        this.assertEquals(undefined, ArrayUtil::item(arr, 22));
+        this.assertEquals(undefined, ArrayUtil::item(arr, -1));
+        this.assertEquals(undefined, ArrayUtil::item(arr, -4));
+    }
+
+    void testNewFromArray()
+    {
+        Array arr;
+        Array fromArray;
+
+        this.info('null');
+
+        fromArray = null;
+        arr = ArrayUtil::newFromArray(fromArray);
+        this.assertNull(arr);
+
+        this.info('int');
+
+        fromArray = new Array(Types::Integer);
+        fromArray.value(1,1);
+        fromArray.value(2,2);
+        fromArray.value(3,3);
+        fromArray.value(4,2);
+
+        arr = ArrayUtil::newFromArray(fromArray);
+        this.assertNotNull(arr);
+        this.assertEquals(Types::Integer, arr.typeId());
+        this.assertEquals(4, arr.lastIndex());
+        this.assertEquals('(1, 2, 3, 2)', arr.toString());
+
+        this.info('str');
+
+        fromArray = new Array(Types::String);
+        fromArray.value(1,'a');
+        fromArray.value(2,'b');
+        fromArray.value(3,'c');
+        fromArray.value(4,'b');
+
+        arr = ArrayUtil::newFromArray(fromArray);
+        this.assertNotNull(arr);
+        this.assertEquals(Types::String, arr.typeId());
+        this.assertEquals(4, arr.lastIndex());
+        this.assertEquals('("a", "b", "c", "b")', arr.toString());
+
+        this.info('class');
+
+        fromArray = new Array(Types::Class);
+        fromArray.value(1,Any::construct('a'));
+        fromArray.value(2,Any::construct('b'));
+        fromArray.value(3,Any::construct('c'));
+        fromArray.value(4,Any::construct('b'));
+
+        arr = ArrayUtil::newFromArray(fromArray);
+        this.assertNotNull(arr);
+        this.assertEquals(Types::Class, arr.typeId());
+        this.assertEquals(4, arr.lastIndex());
+    }
+
+    void testNewFromContainer()
+    {
+        Array arr;
+        container con;
+
+        this.info('null');
+
+        con = connull();
+        arr = ArrayUtil::newFromContainer(con);
+        this.assertNull(arr);
+
+        this.info('int');
+
+        con = [1,2,3,2];
+        arr = ArrayUtil::newFromContainer(con);
+        this.assertNotNull(arr);
+        this.assertEquals(types::Integer, arr.typeId());
+        this.assertEquals(4, arr.lastIndex());
+        this.assertEquals('(1, 2, 3, 2)', arr.toString());
+
+        this.info('str');
+
+        con = ['a','b','c','b'];
+        arr = ArrayUtil::newFromContainer(con);
+        this.assertNotNull(arr);
+        this.assertEquals(types::String, arr.typeId());
+        this.assertEquals(4, arr.lastIndex());
+        this.assertEquals('("a", "b", "c", "b")', arr.toString());
+
+        this.info('mix');
+
+        con = [1, 'b', 'c'];
+        arr = ArrayUtil::newFromContainer(con);
+        this.assertEquals(types::Integer, arr.typeId());
+        this.assertEquals(1, arr.lastIndex());
+        this.assertEquals('(1)', arr.toString());
+    }
+
+    void testNewFromList()
+    {
+        Array arr;
+        List fromList;
+
+        this.info('null');
+
+        fromList = null;
+        arr = ArrayUtil::newFromList(fromList);
+        this.assertNull(arr);
+
+        this.info('int');
+
+        fromList = new List(Types::Integer);
+        fromList.addEnd(1);
+        fromList.addEnd(2);
+        fromList.addEnd(3);
+        fromList.addEnd(2);
+
+        arr = ArrayUtil::newFromList(fromList);
+        this.assertNotNull(arr);
+        this.assertEquals(Types::Integer, arr.typeId());
+        this.assertEquals(4, arr.lastIndex());
+        this.assertEquals('(1, 2, 3, 2)', arr.toString());
+
+        this.info('str');
+
+        fromList = new List(Types::String);
+        fromList.addEnd('a');
+        fromList.addEnd('b');
+        fromList.addEnd('c');
+        fromList.addEnd('b');
+
+        arr = ArrayUtil::newFromList(fromList);
+        this.assertNotNull(arr);
+        this.assertEquals(Types::String, arr.typeId());
+        this.assertEquals(4, arr.lastIndex());
+        this.assertEquals('("a", "b", "c", "b")', arr.toString());
+
+        this.info('class');
+
+        fromList = new List(Types::Class);
+        fromList.addEnd(Any::construct('a'));
+        fromList.addEnd(Any::construct('b'));
+        fromList.addEnd(Any::construct('c'));
+        fromList.addEnd(Any::construct('b'));
+
+        arr = ArrayUtil::newFromList(fromList);
+        this.assertNotNull(arr);
+        this.assertEquals(Types::Class, arr.typeId());
+        this.assertEquals(4, arr.lastIndex());
+    }
+
+    void testNewFromSet()
+    {
+        Array arr;
+        Set fromSet;
+
+        this.info('null');
+
+        fromSet = null;
+        arr = ArrayUtil::newFromSet(fromSet);
+        this.assertNull(arr);
+
+        this.info('int');
+
+        fromSet = new Set(Types::Integer);
+        fromSet.add(1);
+        fromSet.add(2);
+        fromSet.add(3);
+
+        arr = ArrayUtil::newfromSet(fromSet);
+        this.assertNotNull(arr);
+        this.assertEquals(Types::Integer, arr.typeId());
+        this.assertEquals(3, arr.lastIndex());
+        this.assertEquals('(1, 2, 3)', arr.toString());
+
+        this.info('str');
+
+        fromSet = new Set(Types::String);
+        fromSet.add('a');
+        fromSet.add('b');
+        fromSet.add('c');
+
+        arr = ArrayUtil::newfromSet(fromSet);
+        this.assertNotNull(arr);
+        this.assertEquals(Types::String, arr.typeId());
+        this.assertEquals(3, arr.lastIndex());
+        this.assertEquals('("a", "b", "c")', arr.toString());
+
+        this.info('class');
+
+        fromSet = new Set(Types::Class);
+        fromSet.add(Any::construct('a'));
+        fromSet.add(Any::construct('b'));
+        fromSet.add(Any::construct('c'));
+
+        arr = ArrayUtil::newfromSet(fromSet);
+        this.assertNotNull(arr);
+        this.assertEquals(Types::Class, arr.typeId());
+        this.assertEquals(3, arr.lastIndex());
+    }
+
+    void testSlice()
+    {
+        Array arr = ArrayUtil::newFromContainer([1,2,3,4,5,6,7,8,9]);
+
+        this.info('from');
+
+        this.assertEquals('(2, 3, 4, 5, 6, 7, 8, 9)', ArrayUtil::slice(arr, 2).toString());
+        this.assertEquals('(3, 4, 5, 6, 7, 8, 9)',    ArrayUtil::slice(arr, 3).toString());
+        this.assertEquals('(6, 7, 8, 9)',             ArrayUtil::slice(arr, -4).toString());
+
+        this.info('from, to');
+
+        this.assertEquals('(3, 4, 5, 6, 7, 8, 9)',    ArrayUtil::slice(arr, 3, 99).toString());
+        this.assertEquals('(3, 4, 5, 6, 7, 8, 9)',    ArrayUtil::slice(arr, 3, -1).toString());
+        this.assertEquals('(3, 4, 5, 6, 7, 8)',       ArrayUtil::slice(arr, 3, -2).toString());
+        this.assertNull(                              ArrayUtil::slice(arr, 3, 0));
+
+        this.info('from, to, step');
+
+        this.assertEquals('(3, 5, 7, 9)',             ArrayUtil::slice(arr, 3, 9, 2).toString());
+        this.assertEquals('(2, 5, 8)',                ArrayUtil::slice(arr, 2, 9, 3).toString());
+        this.assertNull(                              ArrayUtil::slice(arr, 2, 9, 0));
+        this.assertNull(                              ArrayUtil::slice(arr, 2, 9, -1));
+    }
+
+    void testToCon()
+    {
+        Array arr;
+        container con;
+
+        this.info('null');
+
+        arr = null;
+        con = ArrayUtil::toCon(arr);
+        this.assertEquals(connull(), con);
+
+        this.info('int');
+
+        arr = new Array(Types::Integer);
+        arr.value(1, 1);
+        arr.value(2, 2);
+        arr.value(3, 3);
+
+        con = ArrayUtil::toCon(arr);
+        this.assertEquals([1, 2, 3], con);
+
+        this.info('str');
+
+        arr = new Array(Types::String);
+        arr.value(1, 'a');
+        arr.value(2, 'b');
+        arr.value(3, 'c');
+
+        con = ArrayUtil::toCon(arr);
+        this.assertEquals(["a", "b", "c"], con);
+
+        this.info('class');
+
+        arr = new Array(Types::Class);
+        arr.value(1, Any::construct(1));
+        arr.value(2, Any::construct(2));
+        arr.value(3, Any::construct(3));
+
+        con = ArrayUtil::toCon(arr);
+        this.assertEquals(connull(), con);
+    }
+
+    void testToList()
+    {
+        Array arr;
+        List list;
+
+        this.info('null');
+
+        arr = null;
+        list = ArrayUtil::toList(arr);
+        this.assertNull(list);
+
+        this.info('int');
+
+        arr = new Array(Types::Integer);
+        arr.value(1, 1);
+        arr.value(2, 2);
+        arr.value(3, 3);
+
+        list = ArrayUtil::toList(arr);
+        this.assertNotNull(list);
+        this.assertEquals(types::Integer, list.typeId());
+        this.assertEquals(3, list.elements());
+        this.assertEquals('<1, 2, 3>', list.toString());
+
+        this.info('str');
+
+        arr = new Array(Types::String);
+        arr.value(1, 'a');
+        arr.value(2, 'b');
+        arr.value(3, 'c');
+
+        list = ArrayUtil::toList(arr);
+        this.assertNotNull(list);
+        this.assertEquals(types::String, list.typeId());
+        this.assertEquals(3, list.elements());
+        this.assertEquals('<"a", "b", "c">', list.toString());
+
+        this.info('class');
+
+        arr = new Array(Types::Class);
+        arr.value(1, Any::construct('a'));
+        arr.value(2, Any::construct('b'));
+        arr.value(3, Any::construct('c'));
+
+        list = ArrayUtil::toList(arr);
+        this.assertNotNull(list);
+        this.assertEquals(types::Class, list.typeId());
+        this.assertEquals(3, list.elements());
+    }
+
+    void testToSet()
+    {
+        Array arr;
+        Set set;
+
+        this.info('null');
+
+        arr = null;
+        set = ArrayUtil::toSet(arr);
+        this.assertNull(set);
+
+        this.info('int');
+
+        arr = new Array(Types::Integer);
+        arr.value(1, 1);
+        arr.value(2, 2);
+        arr.value(3, 3);
+
+        set = ArrayUtil::toSet(arr);
+        this.assertNotNull(set);
+        this.assertEquals(types::Integer, set.typeId());
+        this.assertEquals(3, set.elements());
+        this.assertEquals('{1, 2, 3}', set.toString());
+
+        this.info('str');
+
+        arr = new Array(Types::String);
+        arr.value(1, 'a');
+        arr.value(2, 'b');
+        arr.value(3, 'c');
+
+        set = ArrayUtil::toSet(arr);
+        this.assertNotNull(set);
+        this.assertEquals(types::String, set.typeId());
+        this.assertEquals(3, set.elements());
+        this.assertEquals('{"a", "b", "c"}', set.toString());
+
+        this.info('class');
+
+        arr = new Array(Types::Class);
+        arr.value(1, Any::construct('a'));
+        arr.value(2, Any::construct('b'));
+        arr.value(3, Any::construct('c'));
+
+        set = ArrayUtil::toSet(arr);
+        this.assertNotNull(set);
+        this.assertEquals(types::Class, set.typeId());
+        this.assertEquals(3, set.elements());
+    }
+
+    void testToStr()
+    {
+        Array arr;
+        str s;
+
+        this.info('null');
+
+        arr = null;
+        s = ArrayUtil::toStr(arr);
+        this.assertEquals('', s);
+
+        this.info('int');
+
+        arr = new Array(Types::Integer);
+        arr.value(1, 1);
+        arr.value(2, 2);
+        arr.value(3, 3);
+
+        s = ArrayUtil::toStr(arr);
+        this.assertEquals('1,2,3', s);
+
+        this.info('str');
+
+        arr = new Array(Types::String);
+        arr.value(1, 'a');
+        arr.value(2, 'b');
+        arr.value(3, 'c');
+
+        s = ArrayUtil::toStr(arr);
+        this.assertEquals('a,b,c', s);
+
+        this.info('class');
+
+        arr = new Array(Types::Class);
+        arr.value(1, Any::construct('a'));
+        arr.value(2, Any::construct('b'));
+        arr.value(3, Any::construct('c'));
+
+        s = ArrayUtil::toStr(arr, ': ');
+        this.assertEquals('a: b: c', s);
+    }
+}

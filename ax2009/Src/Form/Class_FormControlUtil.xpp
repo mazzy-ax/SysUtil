@@ -1,0 +1,100 @@
+//
+// Класс обслуживает значения с типом FormControl
+//
+// Util-класс реализует только статические методы.
+// не содержит внутри никаких значений.
+// не имеет смысла создавать экземпляр этого класса.
+//
+abstract class FormControlUtil
+{
+
+    static container classesWithMadatoryMethod()
+    {
+        container ret = [
+                classnum(FormStringControl),
+                classnum(FormRealControl),
+                classnum(FormIntControl),
+                classnum(FormInt64Control),
+                classnum(FormDateControl),
+                classnum(FormDateTimeControl),
+                classnum(FormTimeControl),
+                classnum(FormGuidControl)
+        ];
+
+        return ret;
+    }
+
+    static boolean enabled(
+        FormControl formControl,
+        boolean     enabled = true)
+    {
+        boolean ret;
+
+        if (formControl)
+        {
+            if( prmisdefault(enabled) )
+            {
+                ret = formControl.enabled();
+            }
+            else
+            {
+                ret = formControl.enabled(enabled);
+            }
+        }
+
+        return ret;
+    }
+
+    static boolean hasMandatoryMethod(FormControl formControl)
+    {
+        boolean ret = ObjectUtil::isOneOf(formControl, FormControlUtil::classesWithMadatoryMethod());
+
+        return ret;
+    }
+
+    static boolean madatory(
+        FormControl     formControl,
+        boolean         mandatory   = false)
+    {
+        Object obj = ObjectUtil::asOneOf(formControl, FormControlUtil::classesWithMadatoryMethod());
+        boolean ret;
+        ;
+
+        if( obj )
+        {
+            // мы убедились, что объект имеет тип, у которого есть метод mandatory
+            // поэтому выполняем вызов произвольного метода через object (позднее связывание)
+            if( prmisdefault(mandatory) )
+            {
+                ret = obj.mandatory();
+            }
+            else
+            {
+                ret = obj.mandatory(mandatory);
+            }
+        }
+
+        return ret;
+    }
+
+    static boolean visible(
+        FormControl formControl,
+        boolean     visible = true)
+    {
+        boolean ret;
+
+        if (formControl)
+        {
+            if( prmisdefault(visible) )
+            {
+                ret = formControl.visible();
+            }
+            else
+            {
+                ret = formControl.visible(visible);
+            }
+        }
+
+        return ret;
+    }
+}

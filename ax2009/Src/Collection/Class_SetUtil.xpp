@@ -12,29 +12,91 @@ abstract class SetUtil
     {
         if( !set )
         {
-            set = new Set(typeof(value));
-        }
-        else if( set.typeId() != typeof(value) )
-        {
-            return set; // значение с другим типом не будет добавлено
+            set = SetUtil::newBy(value);
         }
 
-        set.add(value);
+        if( set.typeId() == typeof(value) ) // значения с другим типом не будет добавлено
+        {
+            set.add(value);
+        }
 
         return set;
     }
 
+    public static Set addAll(Set set, anytype valueOrCollection, int maxElements = 0)
+    {
+        int elements;
+        Enumerator e = EnumeratorUtil::getEnumerator(valueOrCollection);
+
+        while( e && e.moveNext() && (maxElements == 0 || elements <= maxElements) )
+        {
+            set = SetUtil::add(set, e.current());
+
+            elements++;
+        }
+
+        return set;
+    }
+
+    // добавляет значение поля из буфера
+    // если поле содержит контейнер, то контейнер добавляется как есть, целиком
     public static Set addFieldValue(Set set, Common buf, FieldId fieldId)
     {
-        anytype value = RecordUtil::getValue(buf, fieldId);
+        anytype value = RecordFieldUtil::getValue(buf, fieldId);
         Set ret = SetUtil::add(set, value);
 
         return ret;
     }
 
+    // добавляет значения поля из буфера, который был заполнен командой select
+    //
+    public static Set addFromQuery(Set toSetOrNull, Query q, TableId tableId, FieldId fieldId, int maxElements = 0)
+    {
+        QueryRun qr = new QueryRun(q);
+        Set ret = SetUtil::addFromQueryRun(toSetOrNull, qr, tableId, fieldId, maxElements);
+
+        return ret;
+    }
+
+    // добавляет значения поля из буфера, который был заполнен командой select
+    //
+    public static Set addFromQueryRun(Set toSetOrNull, QueryRun qr, TableId tableId, FieldId fieldId, int maxElements = 0)
+    {
+        Set ret = toSetOrNull;
+        int elements;
+        common rec;
+        ;
+        while( qr && qr.next() && (maxElements == 0 || elements <= maxElements) )
+        {
+            rec = qr.get(tableId);
+            ret = SetUtil::addFieldValue(ret, rec, fieldId);
+
+            elements++;
+        }
+
+        return ret;
+    }
+
+    // добавляет значения поля из буфера, который был заполнен командой select
+    //
+    public static Set addFromSelect(Set set, Common selectedRecord, FieldId fieldId, int maxElements = 0)
+    {
+        int elements;
+
+        while( selectedRecord && (maxElements == 0 || elements <= maxElements) )
+        {
+            set = SetUtil::addFieldValue(set, selectedRecord, fieldId);
+
+            next selectedRecord;
+            elements++;
+        }
+
+        return set;
+    }
+
     // клонирует set, не клонирует элементы множества
     //
-    // see deepClone()
+    // @see deepClone()
     public static Set clone(Set set)
     {
         Set ret;
@@ -43,6 +105,110 @@ abstract class SetUtil
         {
             ret = new Set(set.typeId());
             ret = Set::union(ret, set);
+        }
+
+        return ret;
+    }
+
+    public static boolean contains(Set set, anytype value)
+    {
+        boolean ret;
+
+        if( set )
+        {
+            ret = set.in(value);
+        }
+
+        return ret;
+    }
+
+    // второй аргумент трактуется как коллекция (возможно, из одного значения)
+    // возвращает true, если set содержит все значения из collection
+    public static boolean containsAll(Set set, anytype valueOrCollection)
+    {
+        Enumerator e = EnumeratorUtil::getEnumerator(valueOrCollection);
+        boolean ret = true; // любой контейнер содержит пустую коллекцию
+
+        while( set && ret && e && e.moveNext() )
+        {
+            ret = ret && (set.in(e.current()));
+        }
+
+        return ret;
+    }
+
+    // второй аргумент трактуется как коллекция (возможно, из одного значения)
+    // возвращает true, если set содержит любое значение из collection
+    public static boolean containsAny(Set set, anytype valueOrCollection)
+    {
+        Enumerator e = EnumeratorUtil::getEnumerator(valueOrCollection);
+        boolean ret = true; // любой контейнер содержит пустую коллекцию
+
+        while( set && e && e.moveNext() )
+        {
+            ret = set.in(e.current());
+
+            if( ret )
+            {
+                break;
+            }
+        }
+
+        return ret;
+    }
+
+    public static boolean containsType(Set set, Types type, int potentialAncestorId = 0)
+    {
+        boolean ret;
+        SetEnumerator e;
+
+        if( set && set.typeId() == type )
+        {
+            e = SetUtil::getEnumerator(set);
+
+            while( e && e.moveNext() )
+            {
+                if( AnytypeUtil::is(e.current(), type, potentialAncestorId) )
+                {
+                    ret = true;
+                    break;
+                }
+            }
+        }
+
+        return ret;
+    }
+
+
+    // возвращает Set или null, если не смог распаковать
+    // удобно использовать в методах unpack, в которых мы получаем anytype значение
+    // метод проверит что сможет
+    //
+    // внутреннее устройство Set: https://axforum.info/forums/showthread.php?t=27738
+    public static Set create(anytype fromPackedSet, Types expectedTypes = Types::AnyType)
+    {
+        Set ret;
+
+        anytype version;
+        anytype type;
+        anytype elements;
+
+        if( fromPackedSet &&
+            typeof(fromPackedSet) == Types::Container &&
+            conlen(fromPackedSet) > 3 )
+        {
+            [version, type, elements] = fromPackedSet;
+
+            if( typeof(version)  == Types::Integer && version == 1 &&
+                typeof(type)     == Types::Integer && TypeUtil::is(type, expectedTypes) &&
+                typeof(elements) == Types::Integer )
+            {
+                ret = Set::create(fromPackedSet);
+            }
+        }
+        else
+        {
+            ret = SetUtil::nonNull(ret, expectedTypes);
         }
 
         return ret;
@@ -97,25 +263,25 @@ abstract class SetUtil
         return ret;
     }
 
-    public static boolean empty(Set set)
+    public static SetEnumerator getEnumerator(Set set)
     {
-        boolean ret = true;
+        SetEnumerator ret;
 
-        if( set )
+        if( set && !set.empty() )
         {
-            ret = set.empty();
+            ret = set.getEnumerator();
         }
 
         return ret;
     }
 
-    public static SetEnumerator getEnumerator(Set set)
+    public static SetEnumerator getEnumeratorAndSkip(Set set, int skipIterations)
     {
-        SetEnumerator ret;
+        SetEnumerator ret = SetUtil::getEnumerator(set);
 
-        if( set )
+        if( ret && !EnumeratorUtil::skip(ret, skipIterations) )
         {
-            ret = set.getEnumerator();
+            ret = null;
         }
 
         return ret;
@@ -153,6 +319,79 @@ abstract class SetUtil
         return Set::union(set1, set2);
     }
 
+    public static boolean isEmpty(Set set)
+    {
+        boolean ret = true;
+
+        if( set )
+        {
+            ret = set.empty();
+        }
+
+        return ret;
+    }
+
+    public static boolean isNotEmpty(Set set)
+    {
+        boolean isEmpty = SetUtil::isEmpty(set);
+
+        return !isEmpty;
+    }
+
+    public static boolean isType(Set set, Types elementType)
+    {
+        boolean ret;
+
+        if( set )
+        {
+            ret = TypeUtil::is(set.typeId(), elementType);
+        }
+
+        return ret;
+    }
+
+    // первый элемент имеет индекс 1
+    // медленно: выполняет перебор всех элементов до указанного
+    public static anytype item(Set set, int idx)
+    {
+        SetEnumerator se = SetUtil::getEnumerator(set);
+        int           i;
+        anytype       ret;
+
+        while( idx > 0 && se && se.moveNext() )
+        {
+            i++;
+            if( i == idx )
+            {
+                ret = se.current();
+                break;
+            }
+        }
+
+        return ret;
+    }
+
+    public static anytype itemAs(Set set, int idx, Types type, int potentialAncestorId = 0)
+    {
+        anytype value = SetUtil::item(set, idx);
+        anytype ret = AnytypeUtil::as(value, type, potentialAncestorId);
+
+        return ret;
+    }
+
+    public static anytype itemAsValue(Set set, int idx, anytype asValue)
+    {
+        anytype value = SetUtil::item(set, idx);
+        anytype ret = AnytypeUtil::asValue(value, asValue);
+
+        return ret;
+    }
+
+    public static Set merge(Set set1, Set set2)
+    {
+        return Set::union(set1, set2);
+    }
+
     // создать set для хранения значений, тип которых совпадает с типом переменной value
     public static Set newBy(anytype value)
     {
@@ -162,22 +401,34 @@ abstract class SetUtil
         return ret;
     }
 
-    public static Set newFrom(anytype collection)
+    public static Set newFrom(anytype valueOrCollection, int maxElements = 0)
     {
-        Set set;
-        Enumerator e;
+        Set set = SetUtil::addAll(null, valueOrCollection, maxElements);
 
-        if( AnytypeUtil::isSet(collection) )
+        return set;
+    }
+
+    public static Set newFrom2(anytype valueOrCollection1, anytype valueOrCollection2, int maxElements = 0)
+    {
+        Set set = SetUtil::addAll(null, valueOrCollection1, maxElements);
+        ;
+
+        if( maxElements == 0 || SetUtil::elements(set) < maxElements )
         {
-            set = SetUtil::clone(collection);
+            set = SetUtil::addAll(set, valueOrCollection2, maxElements);
         }
-        else
+
+        return set;
+    }
+
+    public static Set newFrom3(anytype valueOrCollection1, anytype valueOrCollection2, anytype valueOrCollection3, int maxElements = 0)
+    {
+        Set set = SetUtil::newFrom2(valueOrCollection1, valueOrCollection2, maxElements);
+        ;
+
+        if( maxElements == 0 || SetUtil::elements(set) < maxElements )
         {
-            e = EnumeratorUtil::getEnumerator(collection);
-            while( e && e.moveNext() )
-            {
-                set = SetUtil::add(set, e.current());
-            }
+            set = SetUtil::addAll(set, valueOrCollection3, maxElements);
         }
 
         return set;
@@ -185,25 +436,30 @@ abstract class SetUtil
 
     // быстрое преобразование. https://axforum.info/forums/showthread.php?t=27738
     // безопасное преобразование в методе newFrom()
-    public static Set newFromArray(Array arr)
+    public static Set newFromArray(Array arr, int maxElements = 0)
     {
         Set ret;
-        container packedArray;
 
         if( arr )
         {
-            packedArray = arr.pack();
-            ret = Set::create(packedArray);
+            ret = SetUtil::addAll(ret, arr, maxElements);
+
+            // packedArray = arr.pack();   // не работает, в массиве содержится len - 1
         }
 
         return ret;
     }
 
-    public static Set newFromContainer(container con)
+    public static Set newFromContainer(container con, int maxElements = 0)
     {
         Set ret;
         int len = conlen(con);
         int i;
+
+        if( maxElements )
+        {
+            len = min(len, maxElements);
+        }
 
         for( i=1; i<=len; i++ )
         {
@@ -215,16 +471,39 @@ abstract class SetUtil
 
     // быстрое преобразование. https://axforum.info/forums/showthread.php?t=27738
     // безопасное преобразование в методе newFrom()
-    public static Set newFromList(List list)
+    public static Set newFromList(List list, int maxElements = 0)
     {
         Set ret;
         container packedList;
 
         if( list )
         {
-            packedList = list.pack();
-            ret = Set::create(packedList);
+            if( maxElements || list.typeId() == Types::Class )
+            {
+                ret = setUtil::addAll(ret, list, maxElements);
+            }
+            else
+            {
+                packedList = list.pack();
+                ret = Set::create(packedList);
+            }
         }
+
+        return ret;
+    }
+
+    // создает множество значений поля из буфера, который был заполнен командой select
+    public static Set newFromQuery(Query q, TableId tableId, FieldId fieldId, int maxElements = 0)
+    {
+        Set ret = SetUtil::addFromQuery(null, q, tableId, fieldId, maxElements);
+
+        return ret;
+    }
+
+    // создает множество значений поля из буфера, который был заполнен командой select
+    public static Set newFromQueryRun(QueryRun qr, TableId tableId, FieldId fieldId, int maxElements = 0)
+    {
+        Set ret = SetUtil::addFromQueryRun(null, qr, tableId, fieldId, maxElements);
 
         return ret;
     }
@@ -232,25 +511,23 @@ abstract class SetUtil
     // создает множество значений поля из буфера, который был заполнен командой select
     public static Set newFromSelect(Common selectedRecord, FieldId fieldId, int maxElements = 0)
     {
-        Set ret;
-        int elements;
-        anytype value;    // тип поля не меняется внтури цикла, поэтому одного anytype достаточно
-
-        while( selectedRecord && (maxElements == 0 || elements <= maxElements) )
-        {
-            value = RecordUtil::getValue(selectedRecord, fieldId);
-            ret = SetUtil::add(ret, value);
-
-            next selectedRecord;
-            elements++;
-        }
+        Set ret = SetUtil::addFromSelect(null, selectedRecord, fieldId, maxElements);
 
         return ret;
     }
 
-    public static Set newFromSet(Set set)
+    public static Set newFromSet(Set set, int maxElements = 0)
     {
-        Set ret = SetUtil::clone(set);
+        Set ret;
+
+        if( maxElements )
+        {
+            ret = SetUtil::addAll(ret, set, maxElements);
+        }
+        else
+        {
+            ret = SetUtil::clone(set);
+        }
 
         return ret;
     }
@@ -258,12 +535,7 @@ abstract class SetUtil
     public static Set newFromStr(str s, str sep = ',', int maxSubstrings = 0)
     {
         Enumerator e = StrSplitEnumerator::construct(s, sep, maxSubstrings);
-        Set ret;
-
-        while( e && e.moveNext() )
-        {
-            ret = SetUtil::add(ret, e.current());
-        }
+        Set ret = SetUtil::addAll(ret, e);
 
         return ret;
     }
@@ -284,6 +556,159 @@ abstract class SetUtil
         }
 
         return set;
+    }
+
+    // метод возвращает true, если value не содержится в set
+    // по сравнению с find параметры метода идут в обратном порядке - значение, конейнер
+    // такой порядок позволяет удобнее записывать выражения в условиях.
+    public static boolean notIn(anytype value, Set set)
+    {
+        boolean ret;
+
+        if( set )
+        {
+            ret = !set.in(value);
+        }
+
+        return ret;
+    }
+
+    public static container pack(Set set)
+    {
+        container ret;
+
+        if( set )
+        {
+            ret = set.pack();
+        }
+
+        return ret;
+    }
+
+    // удаляет значение из set. возвращает новый set
+    //
+    // @see removeAll
+    public static Set remove(Set set, anytype value)
+    {
+        Set ret;
+
+        if( set && set.typeId() == typeof(value) )
+        {
+            ret = SetUtil::clone(set);
+            ret.remove(value);
+        }
+
+        return ret;
+    }
+
+    // возвращает новый set, в котором отсустстуют элементы, которые содержатся в коллекции 2
+    public static Set removeAll(Set set, anytype valueOrCollection)
+    {
+        Set ret;
+        Enumerator e;
+
+        if( set )
+        {
+            ret = SetUtil::clone(set);
+            e = EnumeratorUtil::getEnumerator(valueOrCollection);
+
+            while( e && e.moveNext() )
+            {
+                if( ret.typeId() == typeof(e.current()) )
+                {
+                    ret.remove(e.current());
+                }
+            }
+        }
+
+        return ret;
+    }
+
+    // возвращает новый set, в котором удалены все пустые элементы
+    public static Set removeEmpty(Set set)
+    {
+        SetEnumerator e = SetUtil::getEnumerator(set);
+        Set ret;
+
+        while( e && e.moveNext() )
+        {
+            if( e.current() )
+            {
+                ret = SetUtil::add(ret, e.current());
+            }
+        }
+
+        return ret;
+    }
+
+    // возвращает новый set, в котором удалены элементы указанного типа
+    public static Set removeType(Set set, Types type, int potentialAncestorId = 0)
+    {
+        Set ret;
+        SetEnumerator e = setUtil::getEnumerator(set);
+
+        if( set && set.typeId() == type )
+        {
+            while( e && e.moveNext() )
+            {
+                if( !AnytypeUtil::is(e.current(), type, potentialAncestorId) )
+                {
+                    ret = SetUtil::add(ret, e.current());
+                }
+            }
+        }
+        else if( set )
+        {
+            ret = SetUtil::clone(set);
+        }
+
+        return ret;
+    }
+
+    // возвращает новый set, в котором остались элементы, которые содержатся в коллекции 2
+    public static Set retainAll(Set set, anytype valueOrCollection)
+    {
+        Set ret;
+        SetEnumerator e = setUtil::getEnumerator(set);
+
+        while( e && e.moveNext() )
+        {
+            if( CollectionUtil::in(e.current(), valueOrCollection) )
+            {
+                ret = SetUtil::add(ret, e.current());
+            }
+        }
+
+        return ret;
+    }
+
+    // возвращает новый список, в котором остались элементы указанного типа
+    public static Set retainType(Set set, Types type, int potentialAncestorId = 0)
+    {
+        Set ret;
+        SetEnumerator e;
+
+        if( set && set.typeId() == type )
+        {
+            e = setUtil::getEnumerator(set);
+
+            while( e && e.moveNext() )
+            {
+                if( AnytypeUtil::is(e.current(), type, potentialAncestorId) )
+                {
+                    ret = SetUtil::add(ret, e.current());
+                }
+            }
+        }
+
+        return ret;
+    }
+
+    public static Array toArray(Set set)
+    {
+        Array arr = ArrayUtil::newFromSet(set);
+
+        return arr;
     }
 
     public static container toCon(Set set)

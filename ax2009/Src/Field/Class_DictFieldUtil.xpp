@@ -24,6 +24,18 @@ abstract class DictFieldUtil
         return type;
     }
 
+    public static boolean is(DictField dt, ExtendedTypeId potentialAncestorId)
+    {
+        boolean ret;
+
+        if( dt && potentialAncestorId)
+        {
+            ret = ExtendedTypeUtil::is(dt.typeId(), potentialAncestorId);
+        }
+
+        return ret;
+    }
+
     // Возвращает подходящий не nullable объект.
     // Полезно в выражениях, чтобы быть уверенным, что после выполнения этого метода объект точно не null
     //

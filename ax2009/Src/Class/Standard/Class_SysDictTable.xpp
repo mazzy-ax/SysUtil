@@ -255,3 +255,14 @@
 
         return false;
     }
+
+    static boolean isTableMapped(tableId _mapTableId, tableId _tableIdToTest)
+    {
+        #AOT
+        TreeNode treeNode = TreeNode::findNode(#TableMapsPath+'\\'+tableid2name(_mapTableId)+'\\mappings');
+
+        if( treeNode )
+            return treeNode.AOTfindChild(tableid2name(_tableIdToTest)) != null;
+
+        return false;
+    }
